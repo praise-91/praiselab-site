@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>다독다독 — 모임 관리, 이제 앱 하나로</title>
+  <meta name="description" content="출석·회비·일정을 하나의 앱으로. 모임 관리자의 행정 부하를 줄여주는 올인원 도구." />
+  <link rel="icon" href="../PRAISELAB.png" />
+  <link rel="stylesheet" href="../assets/style.css" />
+  <style>
+    :root {
+      --dadok: #4A90D9;
+      --dadok-soft: rgba(74,144,217,0.10);
+      --dadok-border: rgba(74,144,217,0.22);
+    }
+
+    /* ── 히어로 ── */
+    .hero {
+      padding: 56px 0 40px;
+      text-align: center;
+    }
+    .hero-icon { font-size: 56px; display: block; margin-bottom: 20px; }
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.35;
+      margin-bottom: 14px;
+    }
+    .hero h1 span { color: var(--dadok); }
+    .hero p {
+      font-size: 15px;
+      color: var(--text-sub);
+      max-width: 380px;
+      margin: 0 auto 32px;
+      line-height: 1.75;
+    }
+
+    /* ── 준비 중 배너 ── */
+    .soon-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--dadok-soft);
+      border: 1px solid var(--dadok-border);
+      border-radius: 12px;
+      padding: 14px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--dadok);
+    }
+    .soon-banner a {
+      color: var(--text-sub);
+      font-size: 13px;
+      font-weight: 400;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .soon-banner a:hover { color: var(--dadok); }
+
+    /* ── 섹션 타이틀 ── */
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      margin-bottom: 14px;
+    }
+
+    /* ── 대체 도구 그리드 ── */
+    .replace-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .replace-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 12px;
+      text-align: center;
+    }
+    .replace-icon  { font-size: 26px; display: block; margin-bottom: 8px; }
+    .replace-from  { font-size: 11px; color: var(--text-sub); margin-bottom: 4px; text-decoration: line-through; opacity: 0.6; }
+    .replace-to    { font-size: 13px; font-weight: 700; color: var(--dadok); }
+
+    /* ── 기능 목록 ── */
+    .feature-list { display: flex; flex-direction: column; gap: 12px; }
+    .feature-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .feature-emoji { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+    .feature-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .feature-desc  { font-size: 13px; color: var(--text-sub); line-height: 1.6; }
+    .feature-item:hover {
+      border-color: var(--dadok-border);
+    }
+
+    @media (max-width: 480px) {
+      .replace-grid { gap: 8px; }
+      .replace-card { padding: 14px 8px; }
+      .hero h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="brand">🏕️ Praiselab</a>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- 히어로 -->
+    <section class="hero">
+      <span class="hero-icon">📋</span>
+      <h1>모임 관리,<br /><span>이제 앱 하나로</span></h1>
+      <p>카카오톡·엑셀·모임통장을 대체하는<br />모임 관리자를 위한 올인원 도구</p>
+      <div class="soon-banner">
+        🛠 출시 준비 중이에요 &nbsp;·&nbsp;
+        <a href="mailto:diget910@gmail.com?subject=다독다독 출시 알림 신청">출시 알림 받기</a>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- 무엇을 대체하나요 -->
+    <div class="section-title">무엇을 대체하나요</div>
+    <div class="replace-grid">
+      <div class="replace-card">
+        <span class="replace-icon">💬</span>
+        <div class="replace-from">카카오톡 공지</div>
+        <div class="replace-to">모임 공지</div>
+      </div>
+      <div class="replace-card">
+        <span class="replace-icon">📊</span>
+        <div class="replace-from">엑셀 장부</div>
+        <div class="replace-to">회비 관리</div>
+      </div>
+      <div class="replace-card">
+        <span class="replace-icon">📝</span>
+        <div class="replace-from">네이버폼</div>
+        <div class="replace-to">출석 체크</div>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- 주요 기능 -->
+    <div class="section-title">주요 기능</div>
+    <div class="feature-list">
+      <div class="feature-item">
+        <span class="feature-emoji">📱</span>
+        <div>
+          <div class="feature-title">QR 출석 체크</div>
+          <div class="feature-desc">관리자 화면에 QR을 띄우면 멤버가 스캔하는 것만으로 즉시 체크인. 수동 마킹도 OK.</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-emoji">💰</span>
+        <div>
+          <div class="feature-title">회비 관리</div>
+          <div class="feature-desc">납부 현황 한눈에 파악, 미납자 자동 알림. D-3·D-1·D-day에 푸시가 대신 챙겨줘요.</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-emoji">📅</span>
+        <div>
+          <div class="feature-title">일정 & 리마인더</div>
+          <div class="feature-desc">일정 생성, RSVP 참석 의향 수집, 24시간·1시간 전 자동 푸시까지 알아서 돌아가요.</div>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-emoji">👥</span>
+        <div>
+          <div class="feature-title">멤버 관리</div>
+          <div class="feature-desc">출석률·회비 납부율·활동 참여로 기여도 점수 자동 산출. 역할 체계와 가입 승인까지.</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>
+        📋 <strong style="color:var(--text-sub)">다독다독</strong> by Praiselab<br />
+        문의: <a href="mailto:diget910@gmail.com">diget910@gmail.com</a>
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>
