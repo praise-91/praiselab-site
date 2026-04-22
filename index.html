@@ -7,28 +7,113 @@
   <meta name="description" content="Praiselab은 삶에 필요한 앱을 만드는 1인 스튜디오입니다." />
   <link rel="stylesheet" href="assets/style.css" />
   <style>
+    /* ── Hero ── */
     .hero {
-      padding: 64px 0 48px;
+      position: relative;
+      padding: 72px 0 56px;
       text-align: center;
+      overflow: hidden;
     }
-    .hero .logo { font-size: 44px; margin-bottom: 18px; display: block; }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 520px; height: 340px;
+      background: radial-gradient(ellipse at 50% 30%, rgba(255,107,46,0.11) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Stars */
+    .star {
+      position: absolute;
+      width: 3px; height: 3px;
+      background: #fff;
+      border-radius: 50%;
+      animation: star-twinkle var(--dur, 3s) ease-in-out infinite var(--delay, 0s);
+    }
+    .star:nth-child(1) { top: 12%; left: 10%;  --dur: 2.8s; --delay: 0.0s; }
+    .star:nth-child(2) { top: 20%; left: 84%;  --dur: 3.5s; --delay: 0.8s; }
+    .star:nth-child(3) { top:  7%; left: 54%;  --dur: 2.2s; --delay: 1.2s; }
+    .star:nth-child(4) { top: 38%; left:  4%;  --dur: 4.0s; --delay: 0.4s; }
+    .star:nth-child(5) { top: 16%; left: 70%;  --dur: 3.1s; --delay: 2.0s; }
+    @keyframes star-twinkle {
+      0%, 100% { opacity: 0.18; transform: scale(1);   }
+      50%       { opacity: 0.85; transform: scale(1.7); }
+    }
+
+    /* Campfire glow */
+    .hero-fire {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .hero-fire .glow {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90px; height: 90px;
+      background: radial-gradient(circle, rgba(255,107,46,0.32) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: glow-pulse 2.4s ease-in-out infinite;
+    }
+    .hero-fire .logo {
+      position: relative;
+      font-size: 54px;
+      display: block;
+      filter: drop-shadow(0 0 10px rgba(255,107,46,0.5));
+      animation: fire-flicker 2.4s ease-in-out infinite;
+    }
+    @keyframes glow-pulse {
+      0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1);   }
+      50%       { opacity: 1;   transform: translate(-50%, -50%) scale(1.45); }
+    }
+    @keyframes fire-flicker {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(255,107,46,0.5)); }
+      50%       { filter: drop-shadow(0 0 20px rgba(255,179,71,0.75)); }
+    }
+
+    /* Hero badge */
+    .hero-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--text-sub);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 14px;
+      margin-bottom: 20px;
+    }
+
     .hero h1 {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 700;
       color: var(--text);
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       line-height: 1.35;
     }
     .hero h1 span { color: var(--fire-orange); }
     .hero p {
       font-size: 15px;
       color: var(--text-sub);
-      max-width: 400px;
-      margin: 0 auto 28px;
-      line-height: 1.7;
+      max-width: 380px;
+      margin: 0 auto;
+      line-height: 1.75;
     }
 
-    /* 앱 카드 */
+    /* ── Section title ── */
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      margin-bottom: 14px;
+    }
+
+    /* ── App card ── */
     .app-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -39,46 +124,75 @@
       gap: 18px;
       margin-bottom: 14px;
       text-decoration: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
     }
-    .app-card:hover { border-color: rgba(255,107,46,0.4); }
+    .app-card:hover {
+      border-color: rgba(255,107,46,0.45);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,107,46,0.1);
+    }
     .app-icon {
-      font-size: 36px;
-      width: 60px;
-      height: 60px;
-      background: rgba(255,107,46,0.1);
+      font-size: 30px;
+      width: 60px; height: 60px;
+      background: rgba(255,107,46,0.08);
       border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
+      border: 1px solid rgba(255,107,46,0.18);
+      box-shadow: 0 0 14px rgba(255,107,46,0.12);
+      transition: box-shadow 0.25s;
+    }
+    .app-card:hover .app-icon {
+      box-shadow: 0 0 24px rgba(255,107,46,0.3);
     }
     .app-info { flex: 1; }
-    .app-name { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-    .app-desc { font-size: 13px; color: var(--text-sub); line-height: 1.5; }
-    .app-arrow { color: var(--text-sub); font-size: 18px; flex-shrink: 0; }
-
-    /* 섹션 */
-    .section-title {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-sub);
-      margin-bottom: 14px;
+    .app-name {
+      font-size: 16px; font-weight: 700; color: var(--text);
+      margin-bottom: 5px;
+      display: flex; align-items: center; gap: 8px;
     }
+    .app-desc { font-size: 13px; color: var(--text-sub); line-height: 1.55; }
+    .app-arrow {
+      color: var(--text-sub);
+      font-size: 20px;
+      flex-shrink: 0;
+      transition: transform 0.2s, color 0.2s;
+    }
+    .app-card:hover .app-arrow { transform: translateX(3px); color: var(--fire-orange); }
 
-    /* 소개 */
+    /* ── About card ── */
     .about-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 24px;
+      padding: 24px 24px 20px;
+    }
+    .about-intro {
       font-size: 14px;
       color: var(--text-sub);
-      line-height: 1.75;
+      line-height: 1.8;
+      margin-bottom: 20px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
     }
-    .about-card strong { color: var(--text); }
+    .about-intro strong { color: var(--text); }
+    .about-values { display: flex; flex-direction: column; gap: 12px; }
+    .about-value {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+    .about-value-icon {
+      font-size: 16px;
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .about-value-text { color: var(--text-sub); line-height: 1.55; }
+    .about-value-text strong { color: var(--text); }
   </style>
 </head>
 <body>
@@ -92,7 +206,19 @@
   <main class="container">
 
     <section class="hero">
-      <span class="logo">🏕️</span>
+      <span class="star"></span>
+      <span class="star"></span>
+      <span class="star"></span>
+      <span class="star"></span>
+      <span class="star"></span>
+
+      <div class="hero-badge">🏕️ 1인 개발 스튜디오</div>
+
+      <div class="hero-fire">
+        <div class="glow"></div>
+        <span class="logo">🔥</span>
+      </div>
+
       <h1>삶에 필요한<br /><span>앱</span>을 만듭니다</h1>
       <p>진짜 필요한 것들을 만드는<br />1인 개발 스튜디오</p>
     </section>
@@ -102,7 +228,10 @@
     <a href="healingcamp/index.html" class="app-card">
       <div class="app-icon">🔥</div>
       <div class="app-info">
-        <div class="app-name">힐링캠프</div>
+        <div class="app-name">
+          힐링캠프
+          <span class="badge">출시 중</span>
+        </div>
         <div class="app-desc">중독 회복 여정의 동반자.<br />금주·금연·단도박 추적 + 캠프파이어 감성</div>
       </div>
       <span class="app-arrow">›</span>
@@ -112,8 +241,24 @@
 
     <div class="section-title">스튜디오 소개</div>
     <div class="about-card">
-      <strong>Praiselab</strong>은 삶에 필요한 앱을 만드는 1인 스튜디오입니다.<br /><br />
-      완벽한 코드보다 <strong>실제로 도움이 되는 제품</strong>을 먼저 생각합니다.
+      <p class="about-intro">
+        <strong>Praiselab</strong>은 삶에 필요한 앱을 만드는 1인 스튜디오입니다.<br />
+        완벽한 코드보다 <strong>실제로 도움이 되는 제품</strong>을 먼저 생각합니다.
+      </p>
+      <div class="about-values">
+        <div class="about-value">
+          <div class="about-value-icon">🎯</div>
+          <div class="about-value-text"><strong>진짜 필요한 것만</strong> — 화려함보다 실제 삶의 문제를 풀어냅니다</div>
+        </div>
+        <div class="about-value">
+          <div class="about-value-icon">🔥</div>
+          <div class="about-value-text"><strong>완벽보다 동작</strong> — 돌아가는 제품이 계획 속 완벽보다 낫습니다</div>
+        </div>
+        <div class="about-value">
+          <div class="about-value-icon">💚</div>
+          <div class="about-value-text"><strong>1인이지만 진심</strong> — 작은 팀이라 오히려 더 깊이 집중할 수 있습니다</div>
+        </div>
+      </div>
     </div>
 
   </main>
