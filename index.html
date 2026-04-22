@@ -20,15 +20,6 @@
       text-align: center;
       overflow: hidden;
     }
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 50%;
-      transform: translateX(-50%);
-      width: 520px; height: 340px;
-      background: radial-gradient(ellipse at 50% 30%, rgba(255,107,46,0.11) 0%, transparent 70%);
-      pointer-events: none;
-    }
 
     /* Stars */
     .star {
@@ -46,37 +37,6 @@
     @keyframes star-twinkle {
       0%, 100% { opacity: 0.18; transform: scale(1);   }
       50%       { opacity: 0.85; transform: scale(1.7); }
-    }
-
-    /* Campfire glow */
-    .hero-fire {
-      position: relative;
-      display: inline-block;
-      margin-bottom: 20px;
-    }
-    .hero-fire .glow {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 90px; height: 90px;
-      background: radial-gradient(circle, rgba(255,107,46,0.32) 0%, transparent 70%);
-      border-radius: 50%;
-      animation: glow-pulse 2.4s ease-in-out infinite;
-    }
-    .hero-fire .logo {
-      position: relative;
-      font-size: 54px;
-      display: block;
-      filter: drop-shadow(0 0 10px rgba(255,107,46,0.5));
-      animation: fire-flicker 2.4s ease-in-out infinite;
-    }
-    @keyframes glow-pulse {
-      0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1);   }
-      50%       { opacity: 1;   transform: translate(-50%, -50%) scale(1.45); }
-    }
-    @keyframes fire-flicker {
-      0%, 100% { filter: drop-shadow(0 0 10px rgba(255,107,46,0.5)); }
-      50%       { filter: drop-shadow(0 0 20px rgba(255,179,71,0.75)); }
     }
 
     .hero h1 {
@@ -183,10 +143,6 @@
       <span class="star"></span>
       <span class="star"></span>
 
-      <div class="hero-fire">
-        <div class="glow"></div>
-        <span class="logo">🔥</span>
-      </div>
 
       <h1>삶에 필요한<br /><span>앱</span>을 만듭니다</h1>
       <p>진짜 필요한 것들을 만드는<br />1인 개발 스튜디오</p>
@@ -225,6 +181,7 @@
       </p>
     </div>
   </footer>
+
 
 </body>
 </html>
