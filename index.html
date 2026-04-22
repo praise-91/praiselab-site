@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Praiselab — 삶에 필요한 앱을 만듭니다</title>
   <meta name="description" content="Praiselab은 삶에 필요한 앱을 만드는 1인 스튜디오입니다." />
+  <link rel="icon" href="PRAISELAB.png" />
+  <meta property="og:title" content="Praiselab — 삶에 필요한 앱을 만듭니다" />
+  <meta property="og:description" content="진짜 필요한 것들을 만드는 1인 개발 스튜디오" />
+  <meta property="og:image" content="KakaoTalk_20260422_211304486.png" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="stylesheet" href="assets/style.css" />
   <style>
     /* ── Hero ── */
@@ -165,41 +171,27 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 24px 24px 20px;
-    }
-    .about-intro {
+      padding: 24px;
       font-size: 14px;
       color: var(--text-sub);
       line-height: 1.8;
-      margin-bottom: 20px;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--border);
     }
-    .about-intro strong { color: var(--text); }
-    .about-values { display: flex; flex-direction: column; gap: 12px; }
-    .about-value {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 13px;
+    .about-card strong { color: var(--text); }
+
+    /* ── Header logo ── */
+    .brand-logo {
+      height: 26px;
+      display: block;
+      filter: invert(1);
+      mix-blend-mode: screen;
     }
-    .about-value-icon {
-      font-size: 16px;
-      width: 36px; height: 36px;
-      background: rgba(255,255,255,0.04);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .about-value-text { color: var(--text-sub); line-height: 1.55; }
-    .about-value-text strong { color: var(--text); }
   </style>
 </head>
 <body>
 
   <header class="site-header">
     <div class="container">
-      <span class="brand">🏕️ Praiselab</span>
+      <img src="PRAISELAB.png" alt="Praiselab" class="brand-logo" />
     </div>
   </header>
 
@@ -241,24 +233,8 @@
 
     <div class="section-title">스튜디오 소개</div>
     <div class="about-card">
-      <p class="about-intro">
-        <strong>Praiselab</strong>은 삶에 필요한 앱을 만드는 1인 스튜디오입니다.<br />
-        완벽한 코드보다 <strong>실제로 도움이 되는 제품</strong>을 먼저 생각합니다.
-      </p>
-      <div class="about-values">
-        <div class="about-value">
-          <div class="about-value-icon">🎯</div>
-          <div class="about-value-text"><strong>진짜 필요한 것만</strong> — 화려함보다 실제 삶의 문제를 풀어냅니다</div>
-        </div>
-        <div class="about-value">
-          <div class="about-value-icon">🔥</div>
-          <div class="about-value-text"><strong>완벽보다 동작</strong> — 돌아가는 제품이 계획 속 완벽보다 낫습니다</div>
-        </div>
-        <div class="about-value">
-          <div class="about-value-icon">💚</div>
-          <div class="about-value-text"><strong>1인이지만 진심</strong> — 작은 팀이라 오히려 더 깊이 집중할 수 있습니다</div>
-        </div>
-      </div>
+      <strong>Praiselab</strong>은 삶에 필요한 앱을 만드는 1인 스튜디오입니다.<br />
+      완벽한 코드보다 <strong>실제로 도움이 되는 제품</strong>을 먼저 생각합니다.
     </div>
 
   </main>
