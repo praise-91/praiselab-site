@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Praiselab — 회복을 돕는 앱을 만듭니다</title>
+  <meta name="description" content="Praiselab은 중독 회복과 자기 성장을 돕는 앱을 만드는 1인 스튜디오입니다." />
+  <link rel="stylesheet" href="assets/style.css" />
+  <style>
+    .hero {
+      padding: 64px 0 48px;
+      text-align: center;
+    }
+    .hero .logo { font-size: 44px; margin-bottom: 18px; display: block; }
+    .hero h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      line-height: 1.35;
+    }
+    .hero h1 span { color: var(--fire-orange); }
+    .hero p {
+      font-size: 15px;
+      color: var(--text-sub);
+      max-width: 400px;
+      margin: 0 auto 28px;
+      line-height: 1.7;
+    }
+
+    /* 앱 카드 */
+    .app-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 14px;
+      text-decoration: none;
+      transition: border-color 0.2s;
+    }
+    .app-card:hover { border-color: rgba(255,107,46,0.4); }
+    .app-icon {
+      font-size: 36px;
+      width: 60px;
+      height: 60px;
+      background: rgba(255,107,46,0.1);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .app-info { flex: 1; }
+    .app-name { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .app-desc { font-size: 13px; color: var(--text-sub); line-height: 1.5; }
+    .app-arrow { color: var(--text-sub); font-size: 18px; flex-shrink: 0; }
+
+    /* 섹션 */
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      margin-bottom: 14px;
+    }
+
+    /* 소개 */
+    .about-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.75;
+    }
+    .about-card strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <span class="brand">🏕️ Praiselab</span>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <section class="hero">
+      <span class="logo">🏕️</span>
+      <h1>회복을 돕는<br /><span>앱</span>을 만듭니다</h1>
+      <p>중독 회복과 자기 성장을 위한<br />따뜻한 디지털 동반자를 개발하는 1인 스튜디오</p>
+    </section>
+
+    <div class="section-title">앱</div>
+
+    <a href="healingcamp/index.html" class="app-card">
+      <div class="app-icon">🔥</div>
+      <div class="app-info">
+        <div class="app-name">힐링캠프</div>
+        <div class="app-desc">중독 회복 여정의 동반자.<br />금주·금연·단도박 추적 + 캠프파이어 감성</div>
+      </div>
+      <span class="app-arrow">›</span>
+    </a>
+
+    <hr class="divider" />
+
+    <div class="section-title">스튜디오 소개</div>
+    <div class="about-card">
+      <strong>Praiselab</strong>은 중독 회복 경험을 바탕으로<br />
+      진짜 필요한 앱을 만드는 1인 개발 스튜디오입니다.<br /><br />
+      완벽한 코드보다 <strong>실제로 도움이 되는 제품</strong>을 먼저 생각합니다.
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>
+        🏕️ <strong style="color:var(--text-sub)">Praiselab</strong><br />
+        문의: <a href="mailto:diget910@gmail.com">diget910@gmail.com</a><br />
+        <a href="healingcamp/privacy.html">개인정보처리방침</a>
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>
