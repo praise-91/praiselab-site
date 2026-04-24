@@ -766,7 +766,7 @@ function spawnEmber() {
   };
 }
 
-for (let i = 0; i < 18; i++) {
+for (let i = 0; i < 9; i++) {
   const e = spawnEmber();
   e.y = rnd(0, H);
   embers.push(e);
@@ -774,7 +774,7 @@ for (let i = 0; i < 18; i++) {
 
 function draw() {
   ctx.clearRect(0, 0, W, H);
-  if (Math.random() < 0.22) embers.push(spawnEmber());
+  if (Math.random() < 0.11) embers.push(spawnEmber());
   embers = embers.filter(e => e.alpha > 0.01);
 
   embers.forEach(e => {
