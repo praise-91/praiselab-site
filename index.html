@@ -5,188 +5,573 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Praiselab — 삶에 필요한 앱을 만듭니다</title>
   <meta name="description" content="Praiselab은 삶에 필요한 앱을 만드는 1인 스튜디오입니다." />
-  <link rel="icon" href="PRAISELAB.png" />
-  <meta property="og:title" content="Praiselab — 삶에 필요한 앱을 만듭니다" />
-  <meta property="og:description" content="진짜 필요한 것들을 만드는 1인 개발 스튜디오" />
-  <meta property="og:image" content="KakaoTalk_20260422_211304486.png" />
-  <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <link rel="stylesheet" href="assets/style.css" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
   <style>
-    /* ── Hero ── */
-    .hero {
-      position: relative;
-      padding: 72px 0 56px;
-      text-align: center;
-      overflow: hidden;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0D1117;
+      --surface: #161B27;
+      --surface2: #1E2535;
+      --border: rgba(255,255,255,0.06);
+      --border-hover: rgba(255,107,46,0.35);
+      --fire-orange: #FF6B2E;
+      --fire-yellow: #FFB347;
+      --forest: #4CAF80;
+      --text: #E8EAF0;
+      --text-sub: #7A8599;
+      --text-dim: rgba(232,234,240,0.35);
+      --radius: 16px;
+      --glow: 0 0 40px rgba(255,107,46,0.12);
     }
 
-    /* Stars */
-    .star {
-      position: absolute;
-      width: 3px; height: 3px;
-      background: #fff;
-      border-radius: 50%;
-      animation: star-twinkle var(--dur, 3s) ease-in-out infinite var(--delay, 0s);
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Pretendard Variable', 'Pretendard', -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-    .star:nth-child(1) { top: 12%; left: 10%;  --dur: 2.8s; --delay: 0.0s; }
-    .star:nth-child(2) { top: 20%; left: 84%;  --dur: 3.5s; --delay: 0.8s; }
-    .star:nth-child(3) { top:  7%; left: 54%;  --dur: 2.2s; --delay: 1.2s; }
-    .star:nth-child(4) { top: 38%; left:  4%;  --dur: 4.0s; --delay: 0.4s; }
-    .star:nth-child(5) { top: 16%; left: 70%;  --dur: 3.1s; --delay: 2.0s; }
-    @keyframes star-twinkle {
-      0%, 100% { opacity: 0.18; transform: scale(1);   }
-      50%       { opacity: 0.85; transform: scale(1.7); }
+
+    /* ── Canvas background ── */
+    #ember-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.7;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(13, 17, 23, 0.72);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--fire-orange), var(--fire-yellow));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+
+    .header-link {
+      font-size: 13px;
+      color: var(--text-sub);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .header-link:hover { color: var(--text); }
+
+    /* ── Main container ── */
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 88px 0 64px;
+      text-align: center;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--fire-orange);
+      background: rgba(255,107,46,0.08);
+      border: 1px solid rgba(255,107,46,0.2);
+      border-radius: 100px;
+      padding: 5px 14px;
+      margin-bottom: 28px;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--fire-orange);
+      box-shadow: 0 0 6px var(--fire-orange);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.7); }
     }
 
     .hero h1 {
-      font-size: 28px;
-      font-weight: 700;
+      font-size: clamp(32px, 8vw, 44px);
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
       color: var(--text);
-      margin-bottom: 14px;
-      line-height: 1.35;
+      margin-bottom: 18px;
     }
-    .hero h1 span { color: var(--fire-orange); }
-    .hero p {
+
+    .hero h1 .highlight {
+      background: linear-gradient(135deg, var(--fire-orange) 0%, var(--fire-yellow) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
       font-size: 15px;
       color: var(--text-sub);
-      max-width: 380px;
-      margin: 0 auto;
-      line-height: 1.75;
+      line-height: 1.8;
+      max-width: 320px;
+      margin: 0 auto 36px;
     }
 
-    /* ── Section title ── */
-    .section-title {
+    .hero-scroll-hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 48px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .hero-scroll-hint svg {
+      animation: bounce-down 1.5s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+
+    @keyframes bounce-down {
+      0%, 100% { transform: translateY(0); opacity: 0.4; }
+      50% { transform: translateY(4px); opacity: 1; }
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       font-size: 11px;
       font-weight: 600;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       color: var(--text-sub);
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
 
-    /* ── App card ── */
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── App cards ── */
+    .apps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 48px;
+    }
+
     .app-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 24px;
+      padding: 20px;
       display: flex;
       align-items: center;
-      gap: 18px;
-      margin-bottom: 14px;
+      gap: 16px;
       text-decoration: none;
-      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  border-color 0.25s ease,
+                  box-shadow 0.3s ease;
     }
+
+    .app-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,107,46,0.04) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
     .app-card:hover {
-      border-color: rgba(255,107,46,0.45);
-      transform: translateY(-3px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,107,46,0.1);
+      transform: translateY(-4px);
+      border-color: var(--border-hover);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,107,46,0.08), 0 0 30px rgba(255,107,46,0.06);
     }
+
+    .app-card:hover::before { opacity: 1; }
+
+    .app-card--soon {
+      opacity: 0.7;
+    }
+
+    .app-card--soon:hover {
+      opacity: 1;
+      border-color: rgba(255,255,255,0.1);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+    }
+
+    .app-card--soon:hover::before { opacity: 0; }
+
     .app-icon {
-      font-size: 30px;
-      width: 60px; height: 60px;
-      background: rgba(255,107,46,0.08);
+      width: 56px; height: 56px;
       border-radius: 14px;
       display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
       flex-shrink: 0;
-      border: 1px solid rgba(255,107,46,0.18);
-      box-shadow: 0 0 14px rgba(255,107,46,0.12);
-      transition: box-shadow 0.25s;
+      position: relative;
     }
-    .app-card:hover .app-icon {
-      box-shadow: 0 0 24px rgba(255,107,46,0.3);
+
+    .app-icon--fire {
+      background: linear-gradient(145deg, rgba(255,107,46,0.15), rgba(255,107,46,0.05));
+      border: 1px solid rgba(255,107,46,0.2);
+      box-shadow: 0 0 20px rgba(255,107,46,0.1);
     }
-    .app-info { flex: 1; }
+
+    .app-card:hover .app-icon--fire {
+      box-shadow: 0 0 32px rgba(255,107,46,0.25);
+    }
+
+    .app-icon--clipboard {
+      background: linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .app-info { flex: 1; min-width: 0; }
+
     .app-name {
-      font-size: 16px; font-weight: 700; color: var(--text);
-      margin-bottom: 5px;
-      display: flex; align-items: center; gap: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .app-desc { font-size: 13px; color: var(--text-sub); line-height: 1.55; }
-    .app-arrow {
+
+    .badge {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 100px;
+    }
+
+    .badge--live {
+      background: rgba(76,175,128,0.12);
+      color: var(--forest);
+      border: 1px solid rgba(76,175,128,0.25);
+    }
+
+    .badge--soon {
+      background: rgba(255,255,255,0.05);
       color: var(--text-sub);
-      font-size: 20px;
-      flex-shrink: 0;
-      transition: transform 0.2s, color 0.2s;
+      border: 1px solid rgba(255,255,255,0.08);
     }
-    .app-card:hover .app-arrow { transform: translateX(3px); color: var(--fire-orange); }
+
+    .app-desc {
+      font-size: 13px;
+      color: var(--text-sub);
+      line-height: 1.6;
+    }
+
+    .app-arrow {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.25s;
+    }
+
+    .app-arrow svg {
+      color: var(--text-sub);
+      transition: transform 0.25s, color 0.25s;
+    }
+
+    .app-card:hover .app-arrow {
+      background: rgba(255,107,46,0.1);
+      border-color: rgba(255,107,46,0.3);
+    }
+
+    .app-card:hover .app-arrow svg {
+      color: var(--fire-orange);
+      transform: translateX(2px);
+    }
 
     /* ── About card ── */
+    .about-section {
+      margin-bottom: 64px;
+    }
+
     .about-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 24px;
+    }
+
+    .about-card p {
       font-size: 14px;
       color: var(--text-sub);
-      line-height: 1.8;
+      line-height: 1.9;
     }
+
     .about-card strong { color: var(--text); }
 
+    /* ── Footer ── */
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px 48px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer-brand {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 10px;
+    }
+
+    .footer-links a {
+      font-size: 12px;
+      color: var(--text-sub);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text); }
+
+    .footer-sep {
+      color: var(--border);
+      font-size: 12px;
+    }
+
+    /* ── Reveal animations ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
   </style>
 </head>
 <body>
 
-  <header class="site-header">
-    <div class="container">
-      <span class="brand">🏕️ Praiselab</span>
-    </div>
-  </header>
+<canvas id="ember-canvas"></canvas>
 
-  <main class="container">
+<header class="site-header">
+  <div class="brand">
+    <div class="brand-icon">🏕️</div>
+    Praiselab
+  </div>
+  <a href="/cdn-cgi/l/email-protection#97f3fef0f2e3aea6a7d7f0faf6fefbb9f4f8fa" class="header-link">문의하기</a>
+</header>
 
-    <section class="hero">
-      <span class="star"></span>
-      <span class="star"></span>
-      <span class="star"></span>
-      <span class="star"></span>
-      <span class="star"></span>
+<main>
+  <div class="container">
 
-
-      <h1>삶에 필요한<br /><span>앱</span>을 만듭니다</h1>
-      <p>진짜 필요한 것들을 만드는<br />1인 개발 스튜디오</p>
+    <!-- Hero -->
+    <section class="hero reveal">
+      <div class="hero-eyebrow">1인 개발 스튜디오</div>
+      <h1>삶에 필요한<br /><span class="highlight">앱</span>을 만듭니다</h1>
+      <p class="hero-sub">진짜 필요한 것들을 조용히, 꾸준히.<br />작지만 단단한 도구들</p>
+      <div class="hero-scroll-hint">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 2v10M3 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        앱 보기
+      </div>
     </section>
 
-    <div class="section-title">앱</div>
+    <!-- Apps -->
+    <section class="reveal" style="transition-delay: 0.1s;">
+      <div class="section-label">앱</div>
+      <div class="apps-list">
 
-    <a href="healingcamp/index.html" class="app-card">
-      <div class="app-icon">🔥</div>
-      <div class="app-info">
-        <div class="app-name">
-          힐링캠프
-          <span class="badge">출시 중</span>
-        </div>
-        <div class="app-desc">중독 회복 여정의 동반자.<br />금주·금연·단도박 추적 + 캠프파이어 감성</div>
+        <a href="healingcamp/index.html" class="app-card">
+          <div class="app-icon app-icon--fire">🔥</div>
+          <div class="app-info">
+            <div class="app-name">
+              힐링캠프
+              <span class="badge badge--live">출시 중</span>
+            </div>
+            <div class="app-desc">중독 회복 여정의 동반자.<br />금주·금연·단도박 추적 + 캠프파이어 감성</div>
+          </div>
+          <div class="app-arrow">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </a>
+
+        <a href="dadokdadok/index.html" class="app-card app-card--soon">
+          <div class="app-icon app-icon--clipboard">📋</div>
+          <div class="app-info">
+            <div class="app-name">
+              다독다독
+              <span class="badge badge--soon">준비 중</span>
+            </div>
+            <div class="app-desc">모임 관리자의 행정 부하를 줄여주는 운영 도구.<br />출석·회비·일정을 한 앱에서</div>
+          </div>
+          <div class="app-arrow">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </a>
+
       </div>
-      <span class="app-arrow">›</span>
-    </a>
-
-    <a href="dadokdadok/index.html" class="app-card app-card--soon">
-      <div class="app-icon app-icon--soon">📋</div>
-      <div class="app-info">
-        <div class="app-name">
-          다독다독
-          <span class="badge badge--soon">준비 중</span>
-        </div>
-        <div class="app-desc">모임 관리자의 행정 부하를 줄여주는 모임 운영 도구.<br />출석·회비·일정을 한 앱에서</div>
-      </div>
-      <span class="app-arrow">›</span>
-    </a>
+    </section>
 
 
-  </main>
 
-  <footer class="site-footer">
-    <div class="container">
-      <p>
-        🏕️ <strong style="color:var(--text-sub)">Praiselab</strong><br />
-        문의: <a href="mailto:diget910@gmail.com">diget910@gmail.com</a><br />
-        <a href="healingcamp/privacy.html">개인정보처리방침</a>
-      </p>
-    </div>
-  </footer>
+  </div>
+</main>
 
+<footer class="site-footer">
+  <div class="footer-brand">🏕️ Praiselab</div>
+  <div class="footer-links">
+    <a href="/cdn-cgi/l/email-protection#ed89848a8899d4dcddad8a808c8481c38e8280"><span class="__cf_email__" data-cfemail="13777a7476672a222353747e727a7f3d707c7e">[email&#160;protected]</span></a>
+    <span class="footer-sep">·</span>
+    <a href="healingcamp/privacy.html">개인정보처리방침</a>
+  </div>
+</footer>
 
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ── Ember particle animation ──
+const canvas = document.getElementById('ember-canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H, embers = [];
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function randomBetween(a, b) { return a + Math.random() * (b - a); }
+
+function createEmber() {
+  return {
+    x: randomBetween(W * 0.2, W * 0.8),
+    y: H + 10,
+    vx: randomBetween(-0.4, 0.4),
+    vy: randomBetween(-0.8, -1.8),
+    size: randomBetween(1.2, 2.8),
+    alpha: randomBetween(0.4, 0.9),
+    decay: randomBetween(0.003, 0.007),
+    hue: randomBetween(15, 40), // orange to yellow
+  };
+}
+
+// Seed initial embers
+for (let i = 0; i < 35; i++) {
+  const e = createEmber();
+  e.y = randomBetween(0, H);
+  embers.push(e);
+}
+
+function animateEmbers() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Spawn new embers
+  if (Math.random() < 0.4) embers.push(createEmber());
+
+  embers = embers.filter(e => e.alpha > 0.01);
+
+  embers.forEach(e => {
+    e.x += e.vx;
+    e.y += e.vy;
+    e.vy *= 0.998; // slight deceleration
+    e.vx += randomBetween(-0.02, 0.02); // drift
+    e.alpha -= e.decay;
+
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${e.hue}, 90%, 65%, ${e.alpha})`;
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = `hsla(${e.hue}, 90%, 65%, 0.6)`;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+
+  requestAnimationFrame(animateEmbers);
+}
+animateEmbers();
+
+// ── Scroll reveal ──
+const revealEls = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1 });
+
+revealEls.forEach(el => observer.observe(el));
+</script>
 </body>
 </html>

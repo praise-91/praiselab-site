@@ -6,211 +6,438 @@
   <title>다독다독 — 모임 관리, 이제 앱 하나로</title>
   <meta name="description" content="출석·회비·일정을 하나의 앱으로. 모임 관리자의 행정 부하를 줄여주는 올인원 도구." />
   <link rel="icon" href="../PRAISELAB.png" />
-  <link rel="stylesheet" href="../assets/style.css" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
   <style>
-    /* 라이트 테마 — 흰 배경 + 밝은 주황 */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #F8F9FC;
+      --surface: #FFFFFF;
+      --surface2: #F0F2F7;
+      --border: rgba(0,0,0,0.07);
+      --border-hover: rgba(255,107,46,0.3);
+      --dadok: #FF6B2E;
+      --dadok-soft: rgba(255,107,46,0.07);
+      --dadok-border: rgba(255,107,46,0.2);
+      --text: #141520;
+      --text-sub: #6B7385;
+      --text-dim: rgba(20,21,32,0.35);
+      --radius: 16px;
+      --radius-sm: 12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
     body {
-      --bg:       #FFFFFF;
-      --surface:  #F5F7FA;
-      --surface2: #ECEEF2;
-      --border:   rgba(0,0,0,0.08);
-      --text:     #1A1A2E;
-      --text-sub: #666E82;
-      --text-dim: rgba(26,26,46,0.4);
       background: var(--bg);
       color: var(--text);
-    }
-    :root {
-      --dadok: #FF6B2E;
-      --dadok-soft: rgba(255,107,46,0.08);
-      --dadok-border: rgba(255,107,46,0.22);
+      font-family: 'Pretendard Variable', 'Pretendard', -apple-system, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
     }
 
-    /* ── 히어로 ── */
-    .hero {
-      padding: 56px 0 40px;
-      text-align: center;
-    }
-    .hero-icon { font-size: 56px; display: block; margin-bottom: 20px; }
-    .hero h1 {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--text);
-      line-height: 1.35;
-      margin-bottom: 14px;
-    }
-    .hero h1 span { color: var(--dadok); }
-    .hero p {
-      font-size: 15px;
-      color: var(--text-sub);
-      max-width: 380px;
-      margin: 0 auto 32px;
-      line-height: 1.75;
-    }
-
-    /* ── 준비 중 배너 ── */
-    .soon-banner {
-      display: inline-flex;
+    /* ── Header ── */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(248,249,252,0.85);
+      border-bottom: 1px solid var(--border);
+      height: 56px;
+      display: flex;
       align-items: center;
-      gap: 10px;
-      background: var(--dadok-soft);
-      border: 1px solid var(--dadok-border);
-      border-radius: 12px;
-      padding: 14px 24px;
-      font-size: 14px;
+      padding: 0 24px;
+      justify-content: space-between;
+    }
+
+    .header-back {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-sub);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .header-back:hover { color: var(--text); }
+
+    .header-cta {
+      font-size: 13px;
       font-weight: 600;
       color: var(--dadok);
+      text-decoration: none;
+      background: var(--dadok-soft);
+      border: 1px solid var(--dadok-border);
+      border-radius: 100px;
+      padding: 6px 16px;
+      transition: all 0.2s;
     }
-    .soon-banner a {
-      color: var(--text-sub);
-      font-size: 13px;
-      font-weight: 400;
-      text-decoration: underline;
-      text-underline-offset: 3px;
+    .header-cta:hover {
+      background: rgba(255,107,46,0.13);
+      border-color: rgba(255,107,46,0.4);
     }
-    .soon-banner a:hover { color: var(--dadok); }
 
-    /* ── 섹션 타이틀 ── */
-    .section-title {
+    /* ── Container ── */
+    .container {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section { position: relative; }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 72px 0 64px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       font-size: 11px;
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--text-sub);
-      margin-bottom: 14px;
+      color: var(--dadok);
+      background: var(--dadok-soft);
+      border: 1px solid var(--dadok-border);
+      border-radius: 100px;
+      padding: 5px 14px;
+      margin-bottom: 32px;
     }
 
-    /* ── 대체 도구 그리드 ── */
+    .hero-icon {
+      font-size: 60px;
+      display: block;
+      margin-bottom: 24px;
+      animation: float-icon 4s ease-in-out infinite;
+    }
+
+    @keyframes float-icon {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-7px); }
+    }
+
+    .hero h1 {
+      font-size: clamp(30px, 8vw, 46px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.2;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 .accent {
+      color: var(--dadok);
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      color: var(--text-sub);
+      line-height: 1.8;
+      max-width: 320px;
+      margin: 0 auto 40px;
+    }
+
+    /* ── Soon banner ── */
+    .soon-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .soon-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .soon-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--dadok);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(255,107,46,0.4); }
+      50% { opacity: 0.7; transform: scale(0.9); box-shadow: 0 0 0 6px rgba(255,107,46,0); }
+    }
+
+    .soon-card a {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--dadok);
+      text-decoration: none;
+      background: var(--dadok-soft);
+      border: 1px solid var(--dadok-border);
+      border-radius: 100px;
+      padding: 7px 18px;
+      transition: all 0.2s;
+    }
+    .soon-card a:hover {
+      background: rgba(255,107,46,0.13);
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      margin-bottom: 16px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Replace grid ── */
+    .replace-section { margin: 56px 0 48px; }
+
     .replace-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
-      margin-bottom: 4px;
     }
+
     .replace-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
+      border-radius: var(--radius-sm);
       padding: 18px 12px;
       text-align: center;
+      transition: border-color 0.25s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .replace-icon  { font-size: 26px; display: block; margin-bottom: 8px; }
-    .replace-from  { font-size: 11px; color: var(--text-sub); margin-bottom: 4px; text-decoration: line-through; opacity: 0.6; }
-    .replace-to    { font-size: 13px; font-weight: 700; color: var(--dadok); }
+    .replace-card:hover {
+      border-color: var(--dadok-border);
+      transform: translateY(-3px);
+    }
 
-    /* ── 기능 목록 ── */
-    .feature-list { display: flex; flex-direction: column; gap: 12px; }
+    .replace-icon { font-size: 26px; display: block; margin-bottom: 10px; }
+    .replace-from {
+      font-size: 11px;
+      color: var(--text-sub);
+      text-decoration: line-through;
+      opacity: 0.6;
+      margin-bottom: 5px;
+    }
+    .replace-to {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--dadok);
+    }
+
+    /* ── Feature list ── */
+    .features-section { margin-bottom: 56px; }
+
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
     .feature-item {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px 20px;
+      border-radius: var(--radius-sm);
+      padding: 20px;
       display: flex;
       align-items: flex-start;
       gap: 16px;
+      transition: border-color 0.25s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .feature-emoji { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
-    .feature-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-    .feature-desc  { font-size: 13px; color: var(--text-sub); line-height: 1.6; }
     .feature-item:hover {
       border-color: var(--dadok-border);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
     }
 
-    @media (max-width: 480px) {
-      .replace-grid { gap: 8px; }
-      .replace-card { padding: 14px 8px; }
-      .hero h1 { font-size: 24px; }
+    .feature-emoji {
+      font-size: 24px;
+      flex-shrink: 0;
+      width: 44px; height: 44px;
+      background: var(--dadok-soft);
+      border: 1px solid var(--dadok-border);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .feature-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+    .feature-desc {
+      font-size: 13px;
+      color: var(--text-sub);
+      line-height: 1.65;
+    }
+
+    /* ── Footer ── */
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 24px 40px;
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .footer-links a {
+      font-size: 12px;
+      color: var(--text-sub);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--text); }
+    .footer-sep { color: var(--border); font-size: 12px; }
+
+    /* ── Reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
     }
   </style>
 </head>
 <body>
 
-  <header class="site-header">
-    <div class="container">
-      <a href="../index.html" class="brand">🏕️ Praiselab</a>
-    </div>
-  </header>
+<header class="site-header">
+  <a href="../index.html" class="header-back">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M10 4l-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Praiselab
+  </a>
+  <a href="mailto:diget910@gmail.com?subject=다독다독 출시 알림 신청" class="header-cta">출시 알림 받기</a>
+</header>
 
-  <main class="container">
+<main>
+  <div class="container">
 
-    <!-- 히어로 -->
-    <section class="hero">
+    <!-- Hero -->
+    <section class="hero reveal">
+      <div class="hero-badge">준비 중</div>
       <span class="hero-icon">📋</span>
-      <h1>모임 관리,<br /><span>이제 앱 하나로</span></h1>
-      <p>카카오톡·엑셀·모임통장을 대체하는<br />모임 관리자를 위한 올인원 도구</p>
-      <div class="soon-banner">
-        🛠 출시 준비 중이에요 &nbsp;·&nbsp;
-        <a href="mailto:diget910@gmail.com?subject=다독다독 출시 알림 신청">출시 알림 받기</a>
+      <h1>모임 관리,<br /><span class="accent">이제 앱 하나로</span></h1>
+      <p class="hero-sub">카카오톡·엑셀·네이버폼을 대체하는<br />모임 관리자를 위한 올인원 도구</p>
+      <div class="soon-card">
+        <div class="soon-label">
+          <span class="soon-dot"></span>
+          출시 준비 중이에요
+        </div>
+        <a href="mailto:diget910@gmail.com?subject=다독다독 출시 알림 신청">출시 알림 신청하기 →</a>
       </div>
     </section>
 
-    <hr class="divider" />
-
-    <!-- 무엇을 대체하나요 -->
-    <div class="section-title">무엇을 대체하나요</div>
-    <div class="replace-grid">
-      <div class="replace-card">
-        <span class="replace-icon">💬</span>
-        <div class="replace-from">카카오톡 공지</div>
-        <div class="replace-to">모임 공지</div>
-      </div>
-      <div class="replace-card">
-        <span class="replace-icon">📊</span>
-        <div class="replace-from">엑셀 장부</div>
-        <div class="replace-to">회비 관리</div>
-      </div>
-      <div class="replace-card">
-        <span class="replace-icon">📝</span>
-        <div class="replace-from">네이버폼</div>
-        <div class="replace-to">출석 체크</div>
-      </div>
-    </div>
-
-    <hr class="divider" />
-
-    <!-- 주요 기능 -->
-    <div class="section-title">주요 기능</div>
-    <div class="feature-list">
-      <div class="feature-item">
-        <span class="feature-emoji">📱</span>
-        <div>
-          <div class="feature-title">QR 출석 체크</div>
-          <div class="feature-desc">관리자 화면에 QR을 띄우면 멤버가 스캔하는 것만으로 즉시 체크인. 수동 마킹도 OK.</div>
+    <!-- Replace -->
+    <section class="replace-section reveal" style="transition-delay:0.05s;">
+      <div class="section-label">무엇을 대체하나요</div>
+      <div class="replace-grid">
+        <div class="replace-card">
+          <span class="replace-icon">💬</span>
+          <div class="replace-from">카카오톡 공지</div>
+          <div class="replace-to">모임 공지</div>
+        </div>
+        <div class="replace-card">
+          <span class="replace-icon">📊</span>
+          <div class="replace-from">엑셀 장부</div>
+          <div class="replace-to">회비 관리</div>
+        </div>
+        <div class="replace-card">
+          <span class="replace-icon">📝</span>
+          <div class="replace-from">네이버폼</div>
+          <div class="replace-to">출석 체크</div>
         </div>
       </div>
-      <div class="feature-item">
-        <span class="feature-emoji">💰</span>
-        <div>
-          <div class="feature-title">회비 관리</div>
-          <div class="feature-desc">납부 현황 한눈에 파악, 미납자 자동 알림. D-3·D-1·D-day에 푸시가 대신 챙겨줘요.</div>
-        </div>
-      </div>
-      <div class="feature-item">
-        <span class="feature-emoji">📅</span>
-        <div>
-          <div class="feature-title">일정 & 리마인더</div>
-          <div class="feature-desc">일정 생성, RSVP 참석 의향 수집, 24시간·1시간 전 자동 푸시까지 알아서 돌아가요.</div>
-        </div>
-      </div>
-      <div class="feature-item">
-        <span class="feature-emoji">👥</span>
-        <div>
-          <div class="feature-title">멤버 관리</div>
-          <div class="feature-desc">출석률·회비 납부율·활동 참여로 기여도 점수 자동 산출. 역할 체계와 가입 승인까지.</div>
-        </div>
-      </div>
-    </div>
+    </section>
 
-  </main>
+    <!-- Features -->
+    <section class="features-section reveal" style="transition-delay:0.1s;">
+      <div class="section-label">주요 기능</div>
+      <div class="feature-list">
 
-  <footer class="site-footer">
-    <div class="container">
-      <p>
-        📋 <strong style="color:var(--text-sub)">다독다독</strong> by Praiselab<br />
-        문의: <a href="mailto:diget910@gmail.com">diget910@gmail.com</a>
-      </p>
-    </div>
-  </footer>
+        <div class="feature-item">
+          <span class="feature-emoji">📱</span>
+          <div>
+            <div class="feature-title">QR 출석 체크</div>
+            <div class="feature-desc">관리자 화면에 QR을 띄우면 멤버가 스캔하는 것만으로 즉시 체크인. 수동 마킹도 OK.</div>
+          </div>
+        </div>
 
+        <div class="feature-item">
+          <span class="feature-emoji">💰</span>
+          <div>
+            <div class="feature-title">회비 관리</div>
+            <div class="feature-desc">납부 현황 한눈에 파악, 미납자 자동 알림. D-3·D-1·D-day에 푸시가 대신 챙겨줘요.</div>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <span class="feature-emoji">📅</span>
+          <div>
+            <div class="feature-title">일정 & 리마인더</div>
+            <div class="feature-desc">일정 생성, RSVP 참석 의향 수집, 24시간·1시간 전 자동 푸시까지 알아서 돌아가요.</div>
+          </div>
+        </div>
+
+        <div class="feature-item">
+          <span class="feature-emoji">👥</span>
+          <div>
+            <div class="feature-title">멤버 관리</div>
+            <div class="feature-desc">출석률·회비 납부율로 기여도 자동 산출. 역할 체계와 가입 승인까지.</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-links">
+    <a href="../index.html">🏕️ Praiselab</a>
+    <span class="footer-sep">·</span>
+    <a href="mailto:diget910@gmail.com">diget910@gmail.com</a>
+  </div>
+</footer>
+
+<script>
+const els = document.querySelectorAll('.reveal');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.08 });
+els.forEach(el => obs.observe(el));
+</script>
 </body>
 </html>
