@@ -44,16 +44,17 @@
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      background: var(--fire-orange);
-      color: #fff;
+      background: #fff;
+      color: #1a1a1a;
       font-size: 15px;
       font-weight: 700;
       padding: 14px 28px;
       border-radius: 12px;
       text-decoration: none;
       transition: opacity 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     }
-    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:hover { opacity: 0.9; }
     .btn-secondary {
       display: inline-flex;
       align-items: center;
@@ -180,7 +181,13 @@
       <p>금주·금연·단도박.<br />혼자가 아닌 회복 여정을 함께합니다.</p>
       <div class="cta-group">
         <a href="https://play.google.com/store/apps/details?id=pray.healingcamp.app" target="_blank" rel="noopener" class="btn-primary">
-          ▶ Google Play에서 다운로드
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" style="flex-shrink:0">
+            <path d="M3.18 23.76c.33.18.7.24 1.08.14l12.35-7.13-2.9-2.9-10.53 9.89z" fill="#EA4335"/>
+            <path d="M22.35 10.56L19.4 8.85l-3.27 3.15 3.27 3.15 2.97-1.72c.85-.49.85-1.38-.02-1.87z" fill="#FBBC04"/>
+            <path d="M3.26.24C2.88.14 2.51.2 2.18.38L13.6 11.8l2.9-2.9L3.26.24z" fill="#4285F4"/>
+            <path d="M2.18.38C1.69.65 1.37 1.2 1.37 1.99v20.02c0 .79.32 1.34.81 1.61l11.42-11.62L2.18.38z" fill="#34A853"/>
+          </svg>
+          Google Play에서 다운로드
         </a>
         <a href="./impact.html" class="btn-secondary">
           🌱 기부 현황 확인하기
