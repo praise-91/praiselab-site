@@ -563,7 +563,7 @@
       </div>
       <div class="stat-item">
         <span class="stat-number">4종</span>
-        <span class="stat-label">금주·금연·단도박·기타(사용자설정)</span>
+        <span class="stat-label">금주·금연·단도박·기타</span>
       </div>
       <div class="stat-item">
         <span class="stat-number">무료</span>
@@ -589,6 +589,11 @@
           <span class="type-emoji">🎰</span>
           <div class="type-name">단도박</div>
           <div class="type-detail">도박 끊기</div>
+        </div>
+        <div class="type-card" style="grid-column: 1 / -1;">
+          <span class="type-emoji">⚙️</span>
+          <div class="type-name">기타</div>
+          <div class="type-detail">직접 설정하는 나만의 항목</div>
         </div>
       </div>
     </section>
@@ -724,7 +729,7 @@
     <span class="footer-sep">·</span>
     <a href="privacy.html">개인정보처리방침</a>
     <span class="footer-sep">·</span>
-    <a href="/cdn-cgi/l/email-protection#086c616f6d7c313938486f65696164266b6765"><span class="__cf_email__" data-cfemail="f09499979584c9c1c0b0979d91999cde939f9d">[email&#160;protected]</span></a>
+    <a href="/cdn-cgi/l/email-protection#d3b7bab4b6a7eae2e393b4beb2babffdb0bcbe"><span class="__cf_email__" data-cfemail="2b4f424c4e5f121a1b6b4c464a424705484446">[email&#160;protected]</span></a>
   </div>
 </footer>
 
@@ -744,19 +749,24 @@ window.addEventListener('resize', resize);
 function rnd(a, b) { return a + Math.random() * (b - a); }
 
 function spawnEmber() {
+  const isSpark = Math.random() < 0.3; // 30% 확률로 밝은 스파크
   return {
     x: rnd(W * 0.15, W * 0.85),
     y: H + 8,
     vx: rnd(-0.25, 0.25),
-    vy: rnd(-0.52, -1.1),
-    size: rnd(1.0, 2.6),
-    alpha: rnd(0.3, 0.85),
-    decay: rnd(0.0015, 0.0035),
-    hue: rnd(12, 38),
+    vy: rnd(-0.4, -0.85),
+    size: isSpark ? rnd(0.8, 1.6) : rnd(1.2, 2.8),
+    alpha: rnd(0.4, 1.0),
+    decay: rnd(0.0015, 0.004),
+    hue: rnd(10, 42),
+    isSpark,
+    twinkleSpeed: rnd(0.03, 0.08),
+    twinkleOffset: rnd(0, Math.PI * 2),
+    age: 0,
   };
 }
 
-for (let i = 0; i < 15; i++) {
+for (let i = 0; i < 18; i++) {
   const e = spawnEmber();
   e.y = rnd(0, H);
   embers.push(e);
@@ -764,19 +774,43 @@ for (let i = 0; i < 15; i++) {
 
 function draw() {
   ctx.clearRect(0, 0, W, H);
-  if (Math.random() < 0.25) embers.push(spawnEmber());
+  if (Math.random() < 0.22) embers.push(spawnEmber());
   embers = embers.filter(e => e.alpha > 0.01);
 
   embers.forEach(e => {
-    e.x += e.vx + rnd(-0.03, 0.03);
+    e.x += e.vx + rnd(-0.02, 0.02);
     e.y += e.vy;
     e.alpha -= e.decay;
+    e.age += 1;
 
+    // 반짝임 효과: sin 파형으로 밝기 변조
+    const twinkle = 0.5 + 0.5 * Math.sin(e.age * e.twinkleSpeed + e.twinkleOffset);
+    const brightness = e.isSpark ? 0.6 + 0.4 * twinkle : 0.75 + 0.25 * twinkle;
+    const currentAlpha = e.alpha * brightness;
+    const glowSize = e.isSpark
+      ? e.size * (3 + 4 * twinkle)
+      : e.size * (2 + 2 * twinkle);
+
+    // 외부 글로우 레이어 (넓고 부드럽게)
+    const grad = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, glowSize * 3);
+    grad.addColorStop(0, `hsla(${e.hue}, 100%, 80%, ${currentAlpha * 0.6})`);
+    grad.addColorStop(0.3, `hsla(${e.hue}, 95%, 65%, ${currentAlpha * 0.25})`);
+    grad.addColorStop(1, `hsla(${e.hue}, 90%, 50%, 0)`);
     ctx.beginPath();
-    ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
-    ctx.fillStyle = `hsla(${e.hue}, 92%, 62%, ${e.alpha})`;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = `hsla(${e.hue}, 92%, 62%, 0.5)`;
+    ctx.arc(e.x, e.y, glowSize * 3, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // 중심 코어 (하얗게 빛나는 중심)
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.size * brightness, 0, Math.PI * 2);
+    ctx.shadowBlur = e.isSpark ? 18 + 14 * twinkle : 12 + 8 * twinkle;
+    ctx.shadowColor = `hsla(${e.hue}, 100%, 75%, ${currentAlpha})`;
+    // 스파크는 화이트 코어, 일반 엠버는 주황 코어
+    const coreColor = e.isSpark
+      ? `hsla(${e.hue}, 60%, 95%, ${currentAlpha})`
+      : `hsla(${e.hue}, 95%, 72%, ${currentAlpha})`;
+    ctx.fillStyle = coreColor;
     ctx.fill();
     ctx.shadowBlur = 0;
   });
