@@ -185,6 +185,57 @@
       <p>앱 내 유료 서비스 수익의 5%가 회복의 불꽃을 더 멀리 밝힙니다.</p>
     </section>
 
+    <!-- 기부 현황 — Seed Phase (데이터 없을 때) -->
+    <div class="section-title">기부 현황</div>
+
+    <div class="seed-card">
+      <span class="seed-icon">🌱</span>
+      <h3>Seed Phase</h3>
+      <p>
+        첫 유료 서비스 수익을 쌓고 있어요.<br />
+        캠퍼 한 분 한 분의 이용이 쌓여<br />
+        회복의 불꽃을 더 넓은 곳까지 밝힐 거예요.
+      </p>
+      <span class="first-report">✨ 2026 Q3 · 첫 리포트 공개 예정</span>
+    </div>
+
+    <!-- 리포트 테이블 — 데이터 생기면 아래 섹션을 display:block 으로, seed-card 숨기기 -->
+    <div class="report-section">
+      <div class="card" style="padding: 0; overflow: hidden;">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>연도</th>
+              <th>분기</th>
+              <th>기부처</th>
+              <th>금액</th>
+              <th>내역</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- 데이터 행 예시 (실제 기부 후 채우기):
+            <tr>
+              <td>2026</td>
+              <td><span class="badge">Q3</span></td>
+              <td>KARF</td>
+              <td class="amount-cell">₩12,500</td>
+              <td><a href="#" class="receipt-link">영수증 보기 →</a></td>
+            </tr>
+            -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 업데이트 주기 안내 -->
+    <div class="update-notice">
+      <span>🕐</span>
+      <p>리포트는 <strong style="color:var(--text)">매 분기 첫 주(1·4·7·10월 1~7일)</strong>에 업데이트됩니다.
+         업데이트 후 힐링캠프 앱 내 상점에서도 변경 사항이 반영됩니다.</p>
+    </div>
+
+    <hr class="divider" />
+
     <!-- 기부 정책 -->
     <div class="section-title">기부 정책</div>
     <div class="card">
@@ -239,57 +290,6 @@
       <a href="https://www.karf.or.kr" target="_blank" rel="noopener" class="karf-link">
         🔗 KARF 공식 사이트 →
       </a>
-    </div>
-
-    <hr class="divider" />
-
-    <!-- 기부 현황 — Seed Phase (데이터 없을 때) -->
-    <div class="section-title">기부 현황</div>
-
-    <div class="seed-card">
-      <span class="seed-icon">🌱</span>
-      <h3>Seed Phase</h3>
-      <p>
-        첫 유료 서비스 수익을 쌓고 있어요.<br />
-        캠퍼 한 분 한 분의 이용이 쌓여<br />
-        회복의 불꽃을 더 넓은 곳까지 밝힐 거예요.
-      </p>
-      <span class="first-report">✨ 2026 Q3 · 첫 리포트 공개 예정</span>
-    </div>
-
-    <!-- 리포트 테이블 — 데이터 생기면 아래 섹션을 display:block 으로, seed-card 숨기기 -->
-    <div class="report-section">
-      <div class="card" style="padding: 0; overflow: hidden;">
-        <table class="report-table">
-          <thead>
-            <tr>
-              <th>연도</th>
-              <th>분기</th>
-              <th>기부처</th>
-              <th>금액</th>
-              <th>내역</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- 데이터 행 예시 (실제 기부 후 채우기):
-            <tr>
-              <td>2026</td>
-              <td><span class="badge">Q3</span></td>
-              <td>KARF</td>
-              <td class="amount-cell">₩12,500</td>
-              <td><a href="#" class="receipt-link">영수증 보기 →</a></td>
-            </tr>
-            -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 업데이트 주기 안내 -->
-    <div class="update-notice">
-      <span>🕐</span>
-      <p>리포트는 <strong style="color:var(--text)">매 분기 첫 주(1·4·7·10월 1~7일)</strong>에 업데이트됩니다.
-         업데이트 후 힐링캠프 앱 내 상점에서도 변경 사항이 반영됩니다.</p>
     </div>
 
   </main>
