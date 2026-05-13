@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공구·자재 대여 기록</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+  :root {
+    --orange: #FF6B2B;
+    --orange-dark: #E05520;
+    --steel: #1A1E2E;
+    --steel-mid: #252A3D;
+    --steel-light: #2E3450;
+    --text: #F0F2FF;
+    --text-dim: #8892B0;
+    --give: #3BE88A;
+    --take: #FF6B2B;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--steel);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,107,43,0.04) 39px, rgba(255,107,43,0.04) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,107,43,0.04) 39px, rgba(255,107,43,0.04) 40px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    padding: 32px 0 28px;
+  }
+
+  .header-icon {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 0 12px rgba(255,107,43,0.5));
+  }
+
+  header h1 {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+
+  .form-card {
+    background: var(--steel-mid);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .toggle-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .toggle-btn {
+    padding: 14px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: var(--steel-light);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .toggle-btn span.emoji { font-size: 22px; }
+
+  .toggle-btn.give.active {
+    background: rgba(59,232,138,0.12);
+    border-color: var(--give);
+    color: var(--give);
+  }
+
+  .toggle-btn.take.active {
+    background: rgba(255,107,43,0.12);
+    border-color: var(--take);
+    color: var(--take);
+  }
+
+  .field { margin-bottom: 18px; }
+
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .field input, .field select {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--steel-light);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+
+  .field input::placeholder { color: var(--text-dim); }
+
+  .field input:focus, .field select:focus {
+    border-color: var(--orange);
+  }
+
+  .field select option { background: var(--steel-mid); }
+
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--orange);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 900;
+    cursor: pointer;
+    letter-spacing: -0.3px;
+    transition: all 0.2s;
+    margin-top: 4px;
+  }
+
+  .submit-btn:hover { background: var(--orange-dark); transform: translateY(-1px); }
+  .submit-btn:active { transform: translateY(0); }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .toast {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--give);
+    color: #0a1a0f;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 700;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+    z-index: 999;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .records-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding: 0 2px;
+  }
+
+  .records-header h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+  }
+
+  .records-header span {
+    font-size: 12px;
+    color: var(--text-dim);
+    background: var(--steel-mid);
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  .clear-btn {
+    font-size: 12px;
+    color: #ff4444;
+    background: none;
+    border: 1px solid rgba(255,68,68,0.3);
+    border-radius: 20px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  .clear-btn:hover { background: rgba(255,68,68,0.1); }
+
+  .record-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .record-card {
+    background: var(--steel-mid);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .record-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .badge-give { background: rgba(59,232,138,0.15); color: var(--give); }
+  .badge-take { background: rgba(255,107,43,0.15); color: var(--take); }
+
+  .record-info { flex: 1; min-width: 0; }
+
+  .record-item {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .record-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .record-time {
+    font-size: 11px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  .empty-state .empty-icon { font-size: 36px; display: block; margin-bottom: 12px; opacity: 0.4; }
+
+  .export-btn {
+    width: 100%;
+    padding: 13px;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 14px;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .export-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  .sync-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    padding: 0 2px;
+  }
+
+  .sync-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--give);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast">✅ 기록 저장 완료!</div>
+
+<div class="container">
+  <header>
+    <span class="header-icon">🔧</span>
+    <h1>공구·자재 대여 기록</h1>
+    <p>팀 간 대여 내역을 간편하게 기록해요</p>
+  </header>
+
+  <div class="form-card">
+    <div class="toggle-wrap">
+      <button class="toggle-btn give active" id="btn-give" onclick="setType('give')">
+        <span class="emoji">📤</span>
+        빌려줬어요
+      </button>
+      <button class="toggle-btn take" id="btn-take" onclick="setType('take')">
+        <span class="emoji">📥</span>
+        빌려왔어요
+      </button>
+    </div>
+
+    <div class="field">
+      <label>상대 팀명</label>
+      <input type="text" id="team" placeholder="예: 전기1팀, 기계팀, 소방팀…" />
+    </div>
+
+    <div class="field">
+      <label id="name-label">빌려준 사람 이름</label>
+      <input type="text" id="person" placeholder="이름 입력" />
+    </div>
+
+    <div class="field">
+      <label>물건 이름</label>
+      <input type="text" id="item" placeholder="예: 전동드릴, 16sq 케이블 5m…" />
+    </div>
+
+    <button class="submit-btn" id="submit-btn" onclick="save()">기록 저장 →</button>
+  </div>
+
+  <div class="sync-indicator">
+    <span class="sync-dot"></span>
+    실시간 공유 중 — 팀원이 기록하면 바로 반영돼요
+  </div>
+
+  <div class="records-header">
+    <h2>📋 저장된 기록</h2>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="count">0건</span>
+      <button class="clear-btn" onclick="clearAll()">전체 삭제</button>
+    </div>
+  </div>
+
+  <div class="record-list" id="record-list"></div>
+
+  <button class="export-btn" onclick="exportCSV()">📂 CSV로 내보내기</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyAIPHUtjoIEjVDmgMgXD3-Moq5oz--2_xY",
+    authDomain: "healingcamp-51eb0.firebaseapp.com",
+    projectId: "healingcamp-51eb0",
+  });
+
+  const db = firebase.firestore();
+  const col = db.collection('tool_rentals');
+
+  let type = 'give';
+  let records = [];
+
+  function setType(t) {
+    type = t;
+    document.getElementById('btn-give').classList.toggle('active', t === 'give');
+    document.getElementById('btn-take').classList.toggle('active', t === 'take');
+    document.getElementById('name-label').textContent =
+      t === 'give' ? '빌려준 사람 이름' : '빌려온 사람 이름';
+  }
+
+  function save() {
+    const team = document.getElementById('team').value.trim();
+    const person = document.getElementById('person').value.trim();
+    const item = document.getElementById('item').value.trim();
+
+    if (!team || !person || !item) {
+      alert('팀명, 이름, 물건 이름을 모두 입력해주세요!');
+      return;
+    }
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+
+    col.add({
+      type,
+      team,
+      person,
+      item,
+      ts: firebase.firestore.FieldValue.serverTimestamp(),
+    })
+    .then(() => {
+      document.getElementById('team').value = '';
+      document.getElementById('person').value = '';
+      document.getElementById('item').value = '';
+      showToast();
+    })
+    .catch(() => alert('저장 실패. 인터넷 연결을 확인해주세요.'))
+    .finally(() => { btn.disabled = false; });
+  }
+
+  function showToast() {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function clearAll() {
+    if (!records.length) return;
+    if (!confirm('전체 기록을 삭제할까요?')) return;
+
+    const batch = db.batch();
+    records.forEach(r => batch.delete(col.doc(r.id)));
+    batch.commit().catch(() => alert('삭제 실패. 다시 시도해주세요.'));
+  }
+
+  function formatTime(ts) {
+    if (!ts) return '저장 중…';
+    const d = ts.toDate();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${mm}/${dd} ${hh}:${min}`;
+  }
+
+  function render() {
+    const list = document.getElementById('record-list');
+    document.getElementById('count').textContent = records.length + '건';
+
+    if (!records.length) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">🗂️</span>아직 기록이 없어요</div>';
+      return;
+    }
+
+    list.innerHTML = records.map(r => `
+      <div class="record-card">
+        <span class="record-badge ${r.type === 'give' ? 'badge-give' : 'badge-take'}">
+          ${r.type === 'give' ? '📤 빌려줌' : '📥 빌려옴'}
+        </span>
+        <div class="record-info">
+          <div class="record-item">🔩 ${r.item}</div>
+          <div class="record-meta">${r.team} · ${r.person}</div>
+        </div>
+        <div class="record-time">${formatTime(r.ts)}</div>
+      </div>
+    `).join('');
+  }
+
+  function exportCSV() {
+    if (!records.length) { alert('내보낼 기록이 없어요!'); return; }
+    const header = '구분,팀명,이름,물건,시간\n';
+    const rows = records.map(r =>
+      `${r.type === 'give' ? '빌려줌' : '빌려옴'},${r.team},${r.person},${r.item},${formatTime(r.ts)}`
+    ).join('\n');
+    const blob = new Blob(['﻿' + header + rows], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '공구대여기록.csv';
+    a.click();
+  }
+
+  // 실시간 리스너 — Firestore 변경 즉시 반영
+  col.orderBy('ts', 'desc').onSnapshot(snapshot => {
+    records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    render();
+  }, () => {
+    document.getElementById('record-list').innerHTML =
+      '<div class="empty-state"><span class="empty-icon">⚠️</span>연결 오류. 새로고침 해주세요.</div>';
+  });
+</script>
+</body>
+</html>
