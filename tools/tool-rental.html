@@ -67,12 +67,6 @@
     color: var(--text);
   }
 
-  header p {
-    font-size: 13px;
-    color: var(--text-dim);
-    margin-top: 6px;
-  }
-
   .form-card {
     background: var(--steel-mid);
     border: 1px solid var(--border);
@@ -131,7 +125,7 @@
     margin-bottom: 8px;
   }
 
-  .field input, .field select {
+  .field input {
     width: 100%;
     padding: 14px 16px;
     background: var(--steel-light);
@@ -145,13 +139,7 @@
     -webkit-appearance: none;
   }
 
-  .field input::placeholder { color: var(--text-dim); }
-
-  .field input:focus, .field select:focus {
-    border-color: var(--orange);
-  }
-
-  .field select option { background: var(--steel-mid); }
+  .field input:focus { border-color: var(--orange); }
 
   .submit-btn {
     width: 100%;
@@ -230,15 +218,74 @@
 
   .record-list { display: flex; flex-direction: column; gap: 10px; }
 
+  /* 카드 */
   .record-card {
     background: var(--steel-mid);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 14px 16px;
+    animation: slideIn 0.3s ease;
+    transition: opacity 0.3s;
+  }
+
+  .record-card.returned {
+    opacity: 0.4;
+  }
+
+  .card-top {
     display: flex;
     gap: 14px;
     align-items: flex-start;
-    animation: slideIn 0.3s ease;
+    margin-bottom: 12px;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .return-btn {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1.5px solid rgba(59,232,138,0.4);
+    background: rgba(59,232,138,0.06);
+    color: var(--give);
+  }
+
+  .return-btn:hover { background: rgba(59,232,138,0.15); }
+
+  .return-btn.is-returned {
+    border-color: rgba(136,146,176,0.3);
+    background: transparent;
+    color: var(--text-dim);
+  }
+
+  .return-btn.is-returned:hover { background: rgba(255,255,255,0.04); }
+
+  .delete-btn {
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1.5px solid rgba(255,68,68,0.25);
+    background: transparent;
+    color: rgba(255,68,68,0.5);
+    flex-shrink: 0;
+  }
+
+  .delete-btn:hover {
+    background: rgba(255,68,68,0.1);
+    color: #ff4444;
+    border-color: rgba(255,68,68,0.5);
   }
 
   @keyframes slideIn {
@@ -315,8 +362,6 @@
     gap: 6px;
     font-size: 11px;
     color: var(--text-dim);
-    margin-bottom: 10px;
-    padding: 0 2px;
   }
 
   .sync-dot {
@@ -325,6 +370,7 @@
     border-radius: 50%;
     background: var(--give);
     animation: pulse 2s infinite;
+    flex-shrink: 0;
   }
 
   @keyframes pulse {
@@ -431,6 +477,7 @@
       team,
       person,
       item,
+      returned: false,
       ts: firebase.firestore.FieldValue.serverTimestamp(),
     })
     .then(() => {
@@ -447,6 +494,17 @@
     const t = document.getElementById('toast');
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function toggleReturn(id, isReturned) {
+    col.doc(id).update({ returned: !isReturned })
+      .catch(() => alert('변경 실패. 다시 시도해주세요.'));
+  }
+
+  function deleteOne(id) {
+    if (!confirm('이 기록을 삭제할까요?')) return;
+    col.doc(id).delete()
+      .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
   }
 
   function clearAll() {
@@ -477,25 +535,40 @@
       return;
     }
 
-    list.innerHTML = records.map(r => `
-      <div class="record-card">
-        <span class="record-badge ${r.type === 'give' ? 'badge-give' : 'badge-take'}">
-          ${r.type === 'give' ? '📤 빌려줌' : '📥 빌려옴'}
-        </span>
-        <div class="record-info">
-          <div class="record-item">🔩 ${r.item}</div>
-          <div class="record-meta">${r.team} · ${r.person}</div>
+    // 미반납 먼저, 반납완료는 하단
+    const sorted = [
+      ...records.filter(r => !r.returned),
+      ...records.filter(r => r.returned),
+    ];
+
+    list.innerHTML = sorted.map(r => `
+      <div class="record-card ${r.returned ? 'returned' : ''}">
+        <div class="card-top">
+          <span class="record-badge ${r.type === 'give' ? 'badge-give' : 'badge-take'}">
+            ${r.type === 'give' ? '📤 빌려줌' : '📥 빌려옴'}
+          </span>
+          <div class="record-info">
+            <div class="record-item">🔩 ${r.item}</div>
+            <div class="record-meta">${r.team} · ${r.person}</div>
+          </div>
+          <div class="record-time">${formatTime(r.ts)}</div>
         </div>
-        <div class="record-time">${formatTime(r.ts)}</div>
+        <div class="card-actions">
+          <button class="return-btn ${r.returned ? 'is-returned' : ''}"
+            onclick="toggleReturn('${r.id}', ${r.returned})">
+            ${r.returned ? '↩ 반납취소' : '✅ 반납완료'}
+          </button>
+          <button class="delete-btn" onclick="deleteOne('${r.id}')">🗑</button>
+        </div>
       </div>
     `).join('');
   }
 
   function exportCSV() {
     if (!records.length) { alert('내보낼 기록이 없어요!'); return; }
-    const header = '구분,팀명,이름,물건,시간\n';
+    const header = '구분,팀명,이름,물건,시간,반납여부\n';
     const rows = records.map(r =>
-      `${r.type === 'give' ? '빌려줌' : '빌려옴'},${r.team},${r.person},${r.item},${formatTime(r.ts)}`
+      `${r.type === 'give' ? '빌려줌' : '빌려옴'},${r.team},${r.person},${r.item},${formatTime(r.ts)},${r.returned ? '반납완료' : '대여중'}`
     ).join('\n');
     const blob = new Blob(['﻿' + header + rows], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
@@ -504,7 +577,7 @@
     a.click();
   }
 
-  // 실시간 리스너 — Firestore 변경 즉시 반영
+  // 실시간 리스너
   col.orderBy('ts', 'desc').onSnapshot(snapshot => {
     records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     render();
