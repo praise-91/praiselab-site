@@ -356,6 +356,47 @@
 
   .export-btn:hover { border-color: var(--orange); color: var(--orange); }
 
+  /* 상단 네비 */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(26, 30, 46, 0.8);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    margin: -20px -16px 20px;
+  }
+
+  .brand {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .brand:hover { opacity: 0.75; }
+
+  .brand-icon {
+    width: 26px;
+    height: 26px;
+    background: linear-gradient(135deg, #FF6B2E, #FFB347);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+  }
+
   .sync-indicator {
     display: flex;
     align-items: center;
@@ -382,6 +423,13 @@
 <body>
 
 <div class="toast" id="toast">✅ 기록 저장 완료!</div>
+
+<header class="site-header">
+  <a href="https://praiselab.net/" class="brand">
+    <div class="brand-icon">🏕️</div>
+    Praiselab
+  </a>
+</header>
 
 <div class="container">
   <header>
