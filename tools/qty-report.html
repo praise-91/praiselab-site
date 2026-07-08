@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>물량보고</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+  :root {
+    --orange: #FF6B2B;
+    --orange-dark: #E05520;
+    --steel: #1A1E2E;
+    --steel-mid: #252A3D;
+    --steel-light: #2E3450;
+    --text: #F0F2FF;
+    --text-dim: #8892B0;
+    --give: #3BE88A;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--steel);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+  }
+
+  .container { max-width: 480px; margin: 0 auto; }
+
+  /* ── 상단 브랜드 네비 ── */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(26, 30, 46, 0.8);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -20px -16px 20px;
+  }
+
+  .brand {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+
+  .brand-icon {
+    width: 26px; height: 26px;
+    background: linear-gradient(135deg, #FF6B2E, #FFB347);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+
+  .whoami {
+    font-size: 12px;
+    color: var(--text-dim);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .whoami:hover { border-color: var(--orange); color: var(--orange); }
+
+  header.page-head { text-align: center; padding: 28px 0 24px; }
+  .header-icon { font-size: 40px; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 12px rgba(255,107,43,0.5)); }
+  header.page-head h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+  .page-sub { font-size: 13px; color: var(--text-dim); margin-top: 6px; }
+
+  .sync-indicator {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; margin-top: 10px;
+    font-size: 11px; color: var(--text-dim);
+  }
+  .sync-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--give);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── 화면 전환 ── */
+  .view { display: none; }
+  .view.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── 뒤로가기 헤더 ── */
+  .view-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .back-btn {
+    width: 38px; height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--steel-mid);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .view-head h2 { font-size: 18px; font-weight: 900; }
+
+  /* ── 카드 ── */
+  .card {
+    background: var(--steel-mid);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+  }
+
+  /* ── 이름 선택 ── */
+  .worker-list { display: flex; flex-direction: column; gap: 8px; }
+  .worker-row { display: flex; gap: 8px; align-items: center; }
+  .worker-btn {
+    flex: 1;
+    padding: 15px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    background: var(--steel-light);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .worker-btn:hover { border-color: var(--orange); }
+
+  .del-btn {
+    width: 38px; height: 38px;
+    border: 1px solid rgba(255,68,68,0.25);
+    border-radius: 10px;
+    background: transparent;
+    color: rgba(255,68,68,0.5);
+    font-size: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .del-btn:hover { background: rgba(255,68,68,0.1); color: #ff4444; }
+
+  /* ── + 추가 입력줄 ── */
+  .add-row { display: flex; gap: 8px; margin-top: 12px; }
+  .add-row input {
+    flex: 1;
+    padding: 13px 14px;
+    background: var(--steel-light);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 15px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  .add-row input:focus { border-color: var(--orange); }
+  .add-btn {
+    padding: 0 18px;
+    background: var(--orange);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .add-btn:hover { background: var(--orange-dark); }
+  .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── 대분류 그리드 ── */
+  .cat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .cat-btn {
+    padding: 22px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    background: var(--steel-mid);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .cat-btn:hover { border-color: var(--orange); transform: translateY(-1px); }
+  .cat-btn .cat-emoji { font-size: 24px; }
+  .cat-btn .cat-unit { font-size: 11px; color: var(--text-dim); }
+
+  /* ── 자재 리스트 ── */
+  .search-input {
+    width: 100%;
+    padding: 13px 14px;
+    background: var(--steel-light);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 15px;
+    outline: none;
+    margin-bottom: 12px;
+    -webkit-appearance: none;
+  }
+  .search-input:focus { border-color: var(--orange); }
+
+  .item-list { display: flex; flex-direction: column; gap: 8px; }
+  .item-row { display: flex; gap: 8px; align-items: center; }
+  .item-btn {
+    flex: 1;
+    padding: 14px 16px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    background: var(--steel-light);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.15s;
+  }
+  .item-btn:hover { border-color: var(--orange); }
+  .item-unit {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--orange);
+    background: rgba(255,107,43,0.12);
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 36px 20px;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .empty-state .empty-icon { font-size: 32px; display: block; margin-bottom: 10px; opacity: 0.4; }
+
+  /* ── 토스트 ── */
+  .toast {
+    position: fixed;
+    top: 24px; left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--give);
+    color: #0a1a0f;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 14px; font-weight: 700;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+    z-index: 999;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast">✅ 저장 완료!</div>
+
+<header class="site-header">
+  <a href="https://praiselab.net/" class="brand">
+    <div class="brand-icon">🏕️</div>
+    Praiselab
+  </a>
+  <button class="whoami" id="whoami" onclick="changeWorker()" style="display:none;"></button>
+</header>
+
+<div class="container">
+
+  <!-- ① 이름 선택 -->
+  <div class="view" id="view-worker">
+    <header class="page-head">
+      <span class="header-icon">📋</span>
+      <h1>물량보고</h1>
+      <div class="page-sub">이름을 선택하고 시작하세요</div>
+      <div class="sync-indicator"><span class="sync-dot"></span>실시간 공유 중</div>
+    </header>
+
+    <div class="card">
+      <div class="section-label">작업자 선택</div>
+      <div class="worker-list" id="worker-list"></div>
+      <div class="add-row">
+        <input type="text" id="new-worker" placeholder="이름 입력" />
+        <button class="add-btn" id="add-worker-btn" onclick="addWorker()">+ 등록</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 홈: 대분류 -->
+  <div class="view" id="view-home">
+    <header class="page-head">
+      <span class="header-icon">📋</span>
+      <h1>물량보고</h1>
+      <div class="sync-indicator"><span class="sync-dot"></span>실시간 공유 중</div>
+    </header>
+
+    <div class="section-label">작업 대분류 선택</div>
+    <div class="cat-grid" id="cat-grid"></div>
+  </div>
+
+  <!-- ③ 자재 목록 -->
+  <div class="view" id="view-items">
+    <div class="view-head">
+      <button class="back-btn" onclick="go('view-home')">‹</button>
+      <h2 id="items-title"></h2>
+    </div>
+
+    <input type="text" class="search-input" id="item-search" placeholder="자재 검색" oninput="renderItems()" />
+
+    <div class="item-list" id="item-list"></div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="section-label">목록에 없어요?</div>
+      <div class="add-row" style="margin-top:0;">
+        <input type="text" id="new-item" placeholder="자재명 입력 (예: 후강전선관 28mm)" />
+        <button class="add-btn" id="add-item-btn" onclick="addItem()">+ 추가</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyAIPHUtjoIEjVDmgMgXD3-Moq5oz--2_xY",
+    authDomain: "healingcamp-51eb0.firebaseapp.com",
+    projectId: "healingcamp-51eb0",
+  });
+
+  const db = firebase.firestore();
+  const colWorkers = db.collection('qty_workers');
+  const colCategories = db.collection('qty_categories');
+  const colItems = db.collection('qty_items');
+
+  // ── 기본 데이터 (Firestore가 비어 있으면 최초 1회 심는다) ──
+  const DEFAULT_CATEGORIES = [
+    { name: '트레이',   unit: 'M',  emoji: '🪜', order: 1 },
+    { name: '덕트',     unit: 'M',  emoji: '📦', order: 2 },
+    { name: '부스덕트', unit: 'M',  emoji: '🔌', order: 3 },
+    { name: '배관',     unit: 'M',  emoji: '🧵', order: 4 },
+    { name: 'R/W',      unit: 'M',  emoji: '🛤️', order: 5 },
+    { name: '단말',     unit: 'EA', emoji: '🔗', order: 6 },
+    { name: '기구설치', unit: 'EA', emoji: '💡', order: 7 },
+  ];
+
+  const DEFAULT_ITEMS = [
+    { category: '트레이', name: '사다리형 트레이 100W' },
+    { category: '트레이', name: '사다리형 트레이 200W' },
+    { category: '배관',   name: '후강전선관 16mm' },
+    { category: '배관',   name: '후강전선관 22mm' },
+    { category: 'R/W',    name: '레이스웨이 100W' },
+    { category: 'R/W',    name: '레이스웨이 150W' },
+    { category: '기구설치', name: '스피커' },
+    { category: '기구설치', name: '감지기' },
+  ];
+
+  // ── 상태 ──
+  let workers = [];
+  let categories = [];
+  let items = [];
+  let currentWorker = localStorage.getItem('qty_worker') || '';
+  let currentCategory = null; // { name, unit }
+
+  // 사용자 입력을 innerHTML에 넣기 전 반드시 이 함수를 거친다 (XSS 방지)
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ── 화면 전환 ──
+  function go(viewId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function updateWhoami() {
+    const btn = document.getElementById('whoami');
+    if (currentWorker) {
+      btn.style.display = '';
+      btn.textContent = '👷 ' + currentWorker;
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+
+  function changeWorker() {
+    currentWorker = '';
+    localStorage.removeItem('qty_worker');
+    updateWhoami();
+    go('view-worker');
+  }
+
+  // ── ① 작업자 ──
+  function selectWorker(name) {
+    currentWorker = name;
+    localStorage.setItem('qty_worker', name);
+    updateWhoami();
+    go('view-home');
+  }
+
+  function addWorker() {
+    const input = document.getElementById('new-worker');
+    const name = input.value.trim();
+    if (!name) { alert('이름을 입력해주세요!'); return; }
+    if (workers.some(w => w.name === name)) { alert('이미 등록된 이름이에요.'); return; }
+
+    const btn = document.getElementById('add-worker-btn');
+    btn.disabled = true;
+    colWorkers.add({ name, ts: firebase.firestore.FieldValue.serverTimestamp() })
+      .then(() => { input.value = ''; showToast('✅ 이름 등록 완료!'); })
+      .catch(() => alert('등록 실패. 인터넷 연결을 확인해주세요.'))
+      .finally(() => { btn.disabled = false; });
+  }
+
+  function deleteWorker(id, name) {
+    if (!confirm(`'${name}' 이름을 삭제할까요?`)) return;
+    colWorkers.doc(id).delete()
+      .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
+  }
+
+  function renderWorkers() {
+    const list = document.getElementById('worker-list');
+    if (!workers.length) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">👷</span>아직 등록된 이름이 없어요.<br>아래에서 이름을 등록해주세요.</div>';
+      return;
+    }
+    list.innerHTML = workers.map(w => `
+      <div class="worker-row">
+        <button class="worker-btn" onclick="selectWorker('${escapeHtml(w.name)}')">👷 ${escapeHtml(w.name)}</button>
+        <button class="del-btn" onclick="deleteWorker('${w.id}', '${escapeHtml(w.name)}')">✕</button>
+      </div>
+    `).join('');
+  }
+
+  // ── ② 대분류 ──
+  function openCategory(name, unit) {
+    currentCategory = { name, unit };
+    document.getElementById('items-title').textContent = name;
+    document.getElementById('item-search').value = '';
+    renderItems();
+    go('view-items');
+  }
+
+  function renderCategories() {
+    const grid = document.getElementById('cat-grid');
+    if (!categories.length) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><span class="empty-icon">⏳</span>목록 불러오는 중…</div>';
+      return;
+    }
+    grid.innerHTML = categories.map(c => `
+      <button class="cat-btn" onclick="openCategory('${escapeHtml(c.name)}', '${escapeHtml(c.unit)}')">
+        <span class="cat-emoji">${escapeHtml(c.emoji || '🔧')}</span>
+        ${escapeHtml(c.name)}
+        <span class="cat-unit">${escapeHtml(c.unit)} 단위</span>
+      </button>
+    `).join('');
+  }
+
+  // ── ③ 자재 ──
+  function addItem() {
+    const input = document.getElementById('new-item');
+    const name = input.value.trim();
+    if (!name) { alert('자재명을 입력해주세요!'); return; }
+    if (items.some(i => i.category === currentCategory.name && i.name === name)) {
+      alert('이미 등록된 자재예요.');
+      return;
+    }
+
+    const btn = document.getElementById('add-item-btn');
+    btn.disabled = true;
+    colItems.add({
+      category: currentCategory.name,
+      name,
+      ts: firebase.firestore.FieldValue.serverTimestamp(),
+    })
+      .then(() => { input.value = ''; showToast('✅ 자재 추가 완료! 팀 전체에 공유됐어요'); })
+      .catch(() => alert('추가 실패. 인터넷 연결을 확인해주세요.'))
+      .finally(() => { btn.disabled = false; });
+  }
+
+  function selectItem(name) {
+    // 2단계에서 수량 입력 화면으로 연결된다
+    showToast('📐 ' + name + ' — 수량 입력은 다음 단계!');
+  }
+
+  function renderItems() {
+    if (!currentCategory) return;
+    const list = document.getElementById('item-list');
+    const keyword = document.getElementById('item-search').value.trim();
+    const filtered = items.filter(i =>
+      i.category === currentCategory.name &&
+      (!keyword || i.name.includes(keyword))
+    );
+
+    if (!filtered.length) {
+      const msg = keyword ? '검색 결과가 없어요' : '등록된 자재가 없어요.<br>아래에서 추가해주세요.';
+      list.innerHTML = `<div class="empty-state"><span class="empty-icon">🗂️</span>${msg}</div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(i => `
+      <button class="item-btn" onclick="selectItem('${escapeHtml(i.name)}')">
+        ${escapeHtml(i.name)}
+        <span class="item-unit">${escapeHtml(currentCategory.unit)}</span>
+      </button>
+    `).join('');
+  }
+
+  // ── 최초 1회 기본 데이터 심기 ──
+  function seedIfEmpty() {
+    colCategories.limit(1).get().then(snap => {
+      if (!snap.empty) return;
+      const batch = db.batch();
+      DEFAULT_CATEGORIES.forEach(c => batch.set(colCategories.doc(), c));
+      DEFAULT_ITEMS.forEach(i => batch.set(colItems.doc(), {
+        ...i,
+        ts: firebase.firestore.FieldValue.serverTimestamp(),
+      }));
+      batch.commit();
+    });
+  }
+
+  // ── 실시간 리스너 ──
+  colWorkers.orderBy('name').onSnapshot(snap => {
+    workers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderWorkers();
+  }, () => {
+    document.getElementById('worker-list').innerHTML =
+      '<div class="empty-state"><span class="empty-icon">⚠️</span>연결 오류. 새로고침 해주세요.</div>';
+  });
+
+  colCategories.orderBy('order').onSnapshot(snap => {
+    categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderCategories();
+  });
+
+  colItems.orderBy('name').onSnapshot(snap => {
+    items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderItems();
+  });
+
+  // ── 시작 ──
+  seedIfEmpty();
+  updateWhoami();
+  go(currentWorker ? 'view-home' : 'view-worker');
+</script>
+</body>
+</html>
