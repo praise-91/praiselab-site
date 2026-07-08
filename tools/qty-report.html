@@ -667,20 +667,31 @@
     return { category, name: 'ㄱ앵글', unit: 'M', spec1: { label: '사이즈', options: ANGLE_SIZES }, order };
   }
 
+  const BOLT_SIZES = ['산부(3/8)', '연부(1/2)'];
+
+  function boltType(category, order) {
+    return { category, name: '전산볼트', unit: 'EA', spec1: { label: '규격', options: BOLT_SIZES }, order };
+  }
+
   const DEFAULT_TYPES = [
     ...trayDuctTypes('트레이', true),
     angleType('트레이', 8),
+    boltType('트레이', 9),
     ...trayDuctTypes('덕트', false),
     angleType('덕트', 5),
+    boltType('덕트', 6),
     angleType('부스덕트', 1),
+    boltType('부스덕트', 2),
     { category: '배관', name: '강제전선관', unit: 'M', spec1: { label: '사이즈', options: STEEL_SIZES }, order: 1 },
     { category: '배관', name: 'EMT-무나사', unit: 'M', spec1: { label: '사이즈', options: EMT_SIZES }, order: 2 },
     ...PIPE_ACCESSORIES.map((n, i) => ({ category: '배관', name: n, unit: 'EA', spec1: { label: '사이즈', options: STEEL_SIZES }, order: 3 + i })),
+    boltType('배관', 9),
     { category: '레이스웨이', name: '바디', unit: 'M', spec1: { label: '폭', options: RW_WIDTHS }, order: 1 },
     { category: '레이스웨이', name: '커버', unit: 'M', spec1: { label: '폭', options: RW_WIDTHS }, order: 2 },
     ...['엘보박스', 'T박스', 'Cross박스'].map((n, i) => ({ category: '레이스웨이', name: n, unit: 'EA', spec1: { label: '폭', options: RW_WIDTHS }, order: 3 + i })),
     { category: '레이스웨이', name: 'Offset', unit: 'EA', spec1: { label: '각도', options: DEGREES }, spec2: { label: '폭', options: RW_WIDTHS }, order: 6 },
     { category: '레이스웨이', name: 'HFIX', unit: 'M', spec1: { label: '굵기', options: HFIX_SIZES }, spec2: { label: '색상', options: HFIX_COLORS }, order: 7 },
+    boltType('레이스웨이', 8),
     { category: '단말', name: '케이블', unit: 'M', spec1: { label: '굵기', options: SQ_SIZES }, order: 1 },
     { category: '단말', name: '터미널', unit: 'EA', spec1: { label: '굵기', options: SQ_SIZES }, order: 2 },
     { category: '단말', name: '터미널 (2홀)', unit: 'EA', spec1: { label: '굵기', options: ['120sq', '150sq', '240sq', '300sq'] }, order: 3 },
