@@ -639,11 +639,13 @@
   const STEEL_SIZES = ['16mm', '22mm', '28mm', '36mm', '42mm', '54mm'];
   const EMT_SIZES = ['E15', 'E19', 'E25', 'E31', 'E39', 'E51', 'E63', 'E75']; // KS 박강전선관(EMT) 규격
   const RW_WIDTHS = ['70mm', '110mm'];
+  const HFIX_SIZES = ['2.5sq', '4sq'];
+  const HFIX_COLORS = ['흑', '백', '청', '녹', '적', '황'];
   const SQ_SIZES = ['1.5sq', '2sq', '4sq', '6sq', '10sq', '16sq', '35sq', '50sq', '75sq', '90sq', '120sq', '150sq', '240sq', '300sq'];
 
   function trayDuctTypes(category, withAccessories) {
     const types = [
-      { category, name: '직선', unit: 'M', hideTypeInName: true, spec1: { label: '폭', options: TRAY_WIDTHS }, order: 1 },
+      { category, name: '스트레이트', unit: 'M', hideTypeInName: true, spec1: { label: '폭', options: TRAY_WIDTHS }, order: 1 },
       { category, name: 'H-엘보', unit: 'EA', spec1: { label: '폭', options: TRAY_WIDTHS }, spec2: { label: '각도', options: DEGREES }, order: 2 },
       { category, name: 'V-엘보', unit: 'EA', spec1: { label: '폭', options: TRAY_WIDTHS }, spec2: { label: '각도', options: DEGREES }, order: 3 },
       { category, name: 'Cross', unit: 'EA', spec1: { label: '폭', options: TRAY_WIDTHS }, order: 4 },
@@ -670,6 +672,7 @@
     { category: '레이스웨이', name: '커버', unit: 'M', spec1: { label: '폭', options: RW_WIDTHS }, order: 2 },
     ...['엘보박스', 'T박스', 'Cross박스'].map((n, i) => ({ category: '레이스웨이', name: n, unit: 'EA', spec1: { label: '폭', options: RW_WIDTHS }, order: 3 + i })),
     { category: '레이스웨이', name: 'Offset', unit: 'EA', spec1: { label: '각도', options: DEGREES }, spec2: { label: '폭', options: RW_WIDTHS }, order: 6 },
+    { category: '레이스웨이', name: 'HFIX', unit: 'M', spec1: { label: '굵기', options: HFIX_SIZES }, spec2: { label: '색상', options: HFIX_COLORS }, order: 7 },
     { category: '단말', name: '케이블', unit: 'M', spec1: { label: '굵기', options: SQ_SIZES }, order: 1 },
     { category: '단말', name: '터미널', unit: 'EA', spec1: { label: '굵기', options: SQ_SIZES }, order: 2 },
     { category: '단말', name: '터미널 (2홀)', unit: 'EA', spec1: { label: '굵기', options: ['120sq', '150sq', '240sq', '300sq'] }, order: 3 },
