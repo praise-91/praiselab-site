@@ -408,6 +408,49 @@
   }
   .export-btn:hover { border-color: var(--orange); color: var(--orange); }
 
+  /* ── 최근 입력 원터치 ── */
+  .recent-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .recent-btn {
+    padding: 10px 14px;
+    border: 1.5px solid rgba(255,107,43,0.4);
+    border-radius: 20px;
+    background: rgba(255,107,43,0.08);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .recent-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* ── 규격 선택 그리드 ── */
+  .spec-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .spec-btn {
+    padding: 20px 8px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    background: var(--steel-mid);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .spec-btn:hover { border-color: var(--orange); transform: translateY(-1px); }
+
+  .chev { color: var(--text-dim); font-weight: 900; margin-left: 6px; }
+
   /* ── 토스트 ── */
   .toast {
     position: fixed;
@@ -468,6 +511,11 @@
 
     <button class="summary-link-btn" onclick="openSummary()">📊 합산 보기</button>
 
+    <div id="recent-wrap" style="display:none;">
+      <div class="section-label">⚡ 최근 입력 — 누르면 바로 수량 입력</div>
+      <div class="recent-list" id="recent-list"></div>
+    </div>
+
     <div class="section-label">작업 대분류 선택</div>
     <div class="cat-grid" id="cat-grid"></div>
 
@@ -494,10 +542,20 @@
     <div class="card" style="margin-top:14px;">
       <div class="section-label">목록에 없어요?</div>
       <div class="add-row" style="margin-top:0;">
-        <input type="text" id="new-item" placeholder="자재명 입력 (예: 후강전선관 28mm)" />
+        <input type="text" id="new-item" placeholder="자재명 입력 (예: 새들 22mm)" />
         <button class="add-btn" id="add-item-btn" onclick="addItem()">+ 추가</button>
       </div>
     </div>
+  </div>
+
+  <!-- ③-b 규격 선택 -->
+  <div class="view" id="view-spec">
+    <div class="view-head">
+      <button class="back-btn" onclick="specBack()">‹</button>
+      <h2 id="spec-title"></h2>
+    </div>
+    <div class="section-label" id="spec-step-label"></div>
+    <div class="spec-grid" id="spec-grid"></div>
   </div>
 
   <!-- ④ 수량 입력 -->
@@ -572,65 +630,49 @@
     { name: '기타',       unit: 'EA', emoji: '📁', order: 8 },
   ];
 
-  // 트레이/덕트 공통: 폭별 직선재(M) + 엘보/Cross 피팅류(EA)
-  function trayDuctItems(category) {
-    const widths = [100, 200, 300, 400, 600, 900, 1200];
-    const degrees = [15, 30, 45, 90];
-    const items = widths.map(w => ({ category, name: `W${w}` }));
-    ['Horizontal elbow', 'Vertical elbow'].forEach(type => {
-      degrees.forEach(d => items.push({ category, name: `${type} ${d}°`, unit: 'EA' }));
-    });
-    items.push({ category, name: 'Cross', unit: 'EA' });
-    return items;
+  // ── 자재 "종류" 문서 구조 ──
+  // 자재명 = 종류 × 규격 조합. 긴 리스트 대신 큰버튼 2단 선택으로 도달한다.
+  // { category, name, unit, spec1?: {label, options[]}, spec2?: {...}, hideTypeInName?, order }
+  // spec 없으면 종류 버튼 → 바로 수량 입력. hideTypeInName이면 자재명에 종류명 생략 (예: "W300")
+  const TRAY_WIDTHS = ['W100', 'W200', 'W300', 'W400', 'W600', 'W900', 'W1200'];
+  const DEGREES = ['15°', '30°', '45°', '90°'];
+  const STEEL_SIZES = ['16mm', '22mm', '28mm', '36mm', '42mm', '54mm'];
+  const EMT_SIZES = ['E15', 'E19', 'E25', 'E31', 'E39', 'E51', 'E63', 'E75']; // KS 박강전선관(EMT) 규격
+  const RW_WIDTHS = ['70mm', '110mm'];
+  const SQ_SIZES = ['1.5sq', '2sq', '4sq', '6sq', '10sq', '16sq', '35sq', '50sq', '75sq', '90sq', '120sq', '150sq', '240sq', '300sq'];
+
+  function trayDuctTypes(category, withAccessories) {
+    const types = [
+      { category, name: '직선', unit: 'M', hideTypeInName: true, spec1: { label: '폭', options: TRAY_WIDTHS }, order: 1 },
+      { category, name: 'H-엘보', unit: 'EA', spec1: { label: '폭', options: TRAY_WIDTHS }, spec2: { label: '각도', options: DEGREES }, order: 2 },
+      { category, name: 'V-엘보', unit: 'EA', spec1: { label: '폭', options: TRAY_WIDTHS }, spec2: { label: '각도', options: DEGREES }, order: 3 },
+      { category, name: 'Cross', unit: 'EA', spec1: { label: '폭', options: TRAY_WIDTHS }, order: 4 },
+    ];
+    if (withAccessories) {
+      types.push(
+        { category, name: '본딩접지', unit: 'EA', order: 5 },
+        { category, name: '홀다운클램프', unit: 'EA', order: 6 },
+        { category, name: '이형조인트', unit: 'EA', order: 7 },
+      );
+    }
+    return types;
   }
 
-  // 배관: 강제전선관/EMT 직관(M) + 부속자재(강제전선관 사이즈 기준, EA)
-  function pipeItems() {
-    const items = [];
-    const steelSizes = [16, 22, 28, 36, 42, 54];
-    const emtSizes = [15, 19, 25, 31, 39, 51, 63, 75]; // KS 박강전선관(EMT) 규격
-    const accessories = ['레듀샤', '환형박스', '풀박스', '곤지레다', '찬넬클램프', '원형클램프'];
+  const PIPE_ACCESSORIES = ['레듀샤', '환형박스', '풀박스', '곤지레다', '찬넬클램프', '원형클램프'];
 
-    steelSizes.forEach(s => items.push({ category: '배관', name: `강제전선관 ${s}mm` }));
-    emtSizes.forEach(s => items.push({ category: '배관', name: `EMT-무나사 E${s}` }));
-    accessories.forEach(a => {
-      steelSizes.forEach(s => items.push({ category: '배관', name: `${a} ${s}mm`, unit: 'EA' }));
-    });
-    return items;
-  }
-
-  // 레이스웨이: 바디/커버(M) + 박스·Offset(EA), 70mm/110mm 두 규격
-  function racewayItems() {
-    const items = [];
-    const widths = [70, 110];
-    const boxTypes = ['엘보', 'T', 'Cross'];
-    const degrees = [15, 30, 45, 90];
-
-    widths.forEach(w => items.push({ category: '레이스웨이', name: `바디 ${w}mm` }));
-    widths.forEach(w => items.push({ category: '레이스웨이', name: `커버 ${w}mm` }));
-    widths.forEach(w => boxTypes.forEach(t => items.push({ category: '레이스웨이', name: `${t}박스 ${w}mm`, unit: 'EA' })));
-    widths.forEach(w => degrees.forEach(d => items.push({ category: '레이스웨이', name: `Offset ${d}° ${w}mm`, unit: 'EA' })));
-    return items;
-  }
-
-  // 단말: 케이블(M) + 터미널(EA), 120sq부터 2홀 터미널 추가
-  function terminalItems() {
-    const items = [];
-    const sqSizes = [1.5, 2, 4, 6, 10, 16, 35, 50, 75, 90, 120, 150, 240, 300];
-    const dualHoleSizes = [120, 150, 240, 300];
-
-    sqSizes.forEach(s => items.push({ category: '단말', name: `케이블 ${s}sq`, unit: 'M' }));
-    sqSizes.forEach(s => items.push({ category: '단말', name: `터미널 ${s}sq`, unit: 'EA' }));
-    dualHoleSizes.forEach(s => items.push({ category: '단말', name: `터미널 ${s}sq (2홀)`, unit: 'EA' }));
-    return items;
-  }
-
-  const DEFAULT_ITEMS = [
-    ...trayDuctItems('트레이'),
-    ...trayDuctItems('덕트'),
-    ...pipeItems(),
-    ...racewayItems(),
-    ...terminalItems(),
+  const DEFAULT_TYPES = [
+    ...trayDuctTypes('트레이', true),
+    ...trayDuctTypes('덕트', false),
+    { category: '배관', name: '강제전선관', unit: 'M', spec1: { label: '사이즈', options: STEEL_SIZES }, order: 1 },
+    { category: '배관', name: 'EMT-무나사', unit: 'M', spec1: { label: '사이즈', options: EMT_SIZES }, order: 2 },
+    ...PIPE_ACCESSORIES.map((n, i) => ({ category: '배관', name: n, unit: 'EA', spec1: { label: '사이즈', options: STEEL_SIZES }, order: 3 + i })),
+    { category: '레이스웨이', name: '바디', unit: 'M', spec1: { label: '폭', options: RW_WIDTHS }, order: 1 },
+    { category: '레이스웨이', name: '커버', unit: 'M', spec1: { label: '폭', options: RW_WIDTHS }, order: 2 },
+    ...['엘보박스', 'T박스', 'Cross박스'].map((n, i) => ({ category: '레이스웨이', name: n, unit: 'EA', spec1: { label: '폭', options: RW_WIDTHS }, order: 3 + i })),
+    { category: '레이스웨이', name: 'Offset', unit: 'EA', spec1: { label: '각도', options: DEGREES }, spec2: { label: '폭', options: RW_WIDTHS }, order: 6 },
+    { category: '단말', name: '케이블', unit: 'M', spec1: { label: '굵기', options: SQ_SIZES }, order: 1 },
+    { category: '단말', name: '터미널', unit: 'EA', spec1: { label: '굵기', options: SQ_SIZES }, order: 2 },
+    { category: '단말', name: '터미널 (2홀)', unit: 'EA', spec1: { label: '굵기', options: ['120sq', '150sq', '240sq', '300sq'] }, order: 3 },
   ];
 
   // ── 상태 ──
@@ -642,6 +684,8 @@
   let currentWorker = localStorage.getItem('qty_worker') || '';
   let currentCategory = null; // { name, unit }
   let currentItem = null; // { name, unit }
+  let currentType = null; // 선택된 종류 문서
+  let pickedSpec1 = null; // 2단 규격에서 1번째 선택값
 
   function todayStr() {
     const d = new Date();
@@ -704,6 +748,7 @@
     updateWhoami();
     renderTodayEntries();
     renderCompletionCard();
+    renderRecent();
     go('view-home');
   }
 
@@ -796,6 +841,96 @@
     document.getElementById('entry-qty').focus();
   }
 
+  // ── ③-b 종류 → 규격 선택 ──
+  function composeItemName(type, s1, s2) {
+    const parts = [];
+    if (!type.hideTypeInName) parts.push(type.name);
+    if (s1) parts.push(s1);
+    if (s2) parts.push(s2);
+    return parts.join(' ');
+  }
+
+  function selectType(typeId) {
+    const type = items.find(t => t.id === typeId);
+    if (!type) return;
+    currentType = type;
+    pickedSpec1 = null;
+    const unit = type.unit || currentCategory.unit;
+
+    if (!type.spec1) {
+      selectItem(composeItemName(type), unit);
+      return;
+    }
+    renderSpec();
+    go('view-spec');
+  }
+
+  function pickSpec(option) {
+    const type = currentType;
+    const unit = type.unit || currentCategory.unit;
+
+    if (type.spec2 && pickedSpec1 === null) {
+      pickedSpec1 = option;
+      renderSpec();
+      return;
+    }
+    if (type.spec2) {
+      selectItem(composeItemName(type, pickedSpec1, option), unit);
+    } else {
+      selectItem(composeItemName(type, option), unit);
+    }
+  }
+
+  function specBack() {
+    if (currentType && currentType.spec2 && pickedSpec1 !== null) {
+      pickedSpec1 = null;
+      renderSpec();
+      return;
+    }
+    go('view-items');
+  }
+
+  function renderSpec() {
+    const type = currentType;
+    const onSpec2 = type.spec2 && pickedSpec1 !== null;
+    const spec = onSpec2 ? type.spec2 : type.spec1;
+
+    document.getElementById('spec-title').textContent =
+      onSpec2 ? `${type.name} ${pickedSpec1}` : type.name;
+    document.getElementById('spec-step-label').textContent = `${spec.label} 선택`;
+    document.getElementById('spec-grid').innerHTML = spec.options.map(o => `
+      <button class="spec-btn" onclick="pickSpec('${escapeHtml(o)}')">${escapeHtml(o)}</button>
+    `).join('');
+  }
+
+  // ── 최근 입력 원터치 ──
+  function renderRecent() {
+    const wrap = document.getElementById('recent-wrap');
+    if (!wrap) return;
+    const seen = new Set();
+    const recent = [];
+    for (const e of entries) { // entries는 ts 내림차순
+      if (e.worker !== currentWorker || seen.has(e.item)) continue;
+      seen.add(e.item);
+      recent.push(e);
+      if (recent.length >= 5) break;
+    }
+    if (!recent.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    document.getElementById('recent-list').innerHTML = recent.map(e => `
+      <button class="recent-btn" onclick="selectRecent('${escapeHtml(e.item)}', '${escapeHtml(e.unit)}', '${escapeHtml(e.category)}')">${escapeHtml(e.item)}</button>
+    `).join('');
+  }
+
+  function selectRecent(name, unit, category) {
+    const c = categories.find(x => x.name === category);
+    currentCategory = { name: category, unit: c ? c.unit : unit };
+    document.getElementById('items-title').textContent = category;
+    document.getElementById('item-search').value = '';
+    renderItems();
+    selectItem(name, unit);
+  }
+
   function renderItems() {
     if (!currentCategory) return;
     const list = document.getElementById('item-list');
@@ -811,12 +946,14 @@
       return;
     }
 
-    list.innerHTML = filtered.map(i => {
-      const unit = i.unit || currentCategory.unit;
+    filtered.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name, 'ko'));
+
+    list.innerHTML = filtered.map(t => {
+      const unit = t.unit || currentCategory.unit;
       return `
-      <button class="item-btn" onclick="selectItem('${escapeHtml(i.name)}', '${escapeHtml(unit)}')">
-        ${escapeHtml(i.name)}
-        <span class="item-unit">${escapeHtml(unit)}</span>
+      <button class="item-btn" onclick="selectType('${t.id}')">
+        ${escapeHtml(t.name)}
+        <span><span class="item-unit">${escapeHtml(unit)}</span>${t.spec1 ? '<span class="chev">›</span>' : ''}</span>
       </button>
     `;
     }).join('');
@@ -1008,8 +1145,13 @@
       if (!snap.empty) return;
       const batch = db.batch();
       DEFAULT_CATEGORIES.forEach(c => batch.set(colCategories.doc(), c));
-      DEFAULT_ITEMS.forEach(i => batch.set(colItems.doc(), {
-        ...i,
+      batch.commit();
+    });
+    colItems.limit(1).get().then(snap => {
+      if (!snap.empty) return;
+      const batch = db.batch();
+      DEFAULT_TYPES.forEach(t => batch.set(colItems.doc(), {
+        ...t,
         ts: firebase.firestore.FieldValue.serverTimestamp(),
       }));
       batch.commit();
@@ -1038,6 +1180,7 @@
   colEntries.orderBy('ts', 'desc').onSnapshot(snap => {
     entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderTodayEntries();
+    renderRecent();
   });
 
   colCompletions.onSnapshot(snap => {
