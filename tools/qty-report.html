@@ -351,6 +351,63 @@
     font-size: 14px;
   }
 
+  /* ── 합산 보기 링크 ── */
+  .summary-link-btn {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 20px;
+    background: var(--steel-mid);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .summary-link-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* ── 합산 화면 ── */
+  .date-range-row { display: flex; gap: 12px; }
+  .summary-list { display: flex; flex-direction: column; gap: 6px; }
+  .summary-group-title {
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--orange);
+    margin: 16px 0 8px;
+  }
+  .summary-group-title:first-child { margin-top: 0; }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--steel-mid);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+  }
+  .summary-item-name { font-weight: 500; }
+  .summary-qty { font-weight: 900; color: var(--give); white-space: nowrap; }
+
+  .export-btn {
+    width: 100%;
+    padding: 13px;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 14px;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .export-btn:hover { border-color: var(--orange); color: var(--orange); }
+
   /* ── 토스트 ── */
   .toast {
     position: fixed;
@@ -409,6 +466,8 @@
       <div class="sync-indicator"><span class="sync-dot"></span>실시간 공유 중</div>
     </header>
 
+    <button class="summary-link-btn" onclick="openSummary()">📊 합산 보기</button>
+
     <div class="section-label">작업 대분류 선택</div>
     <div class="cat-grid" id="cat-grid"></div>
 
@@ -455,6 +514,32 @@
       </div>
       <button class="submit-btn" id="entry-save-btn" onclick="saveEntry()">저장 →</button>
     </div>
+  </div>
+
+  <!-- ⑤ 합산 보기 -->
+  <div class="view" id="view-summary">
+    <div class="view-head">
+      <button class="back-btn" onclick="go('view-home')">‹</button>
+      <h2>합산 보기</h2>
+    </div>
+
+    <div class="card">
+      <div class="date-range-row">
+        <div class="field" style="margin-bottom:0;">
+          <label>시작일</label>
+          <input type="date" id="summary-start" onchange="renderSummary()" />
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>종료일</label>
+          <input type="date" id="summary-end" onchange="renderSummary()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">자재별 합계</div>
+    <div class="summary-list" id="summary-list"></div>
+
+    <button class="export-btn" onclick="exportSummaryCSV()">📂 CSV로 내보내기</button>
   </div>
 
 </div>
@@ -839,6 +924,82 @@
       btn.style.display = '';
       badge.style.display = 'none';
     }
+  }
+
+  // ── ⑤ 합산 보기 ──
+  function openSummary() {
+    const today = todayStr();
+    document.getElementById('summary-start').value = today;
+    document.getElementById('summary-end').value = today;
+    renderSummary();
+    go('view-summary');
+  }
+
+  // 소수점 불필요한 0 제거 (부동소수점 오차 방지용 반올림 포함)
+  function formatQty(n) {
+    return Math.round(n * 100) / 100;
+  }
+
+  function getSummaryData() {
+    const start = document.getElementById('summary-start').value || todayStr();
+    const end = document.getElementById('summary-end').value || todayStr();
+    const filtered = entries.filter(e => e.date >= start && e.date <= end);
+
+    const map = new Map();
+    filtered.forEach(e => {
+      const key = `${e.category}||${e.item}||${e.unit}`;
+      if (!map.has(key)) map.set(key, { category: e.category, item: e.item, unit: e.unit, qty: 0 });
+      map.get(key).qty += e.qty;
+    });
+
+    const catOrder = new Map(categories.map(c => [c.name, c.order]));
+    return [...map.values()].sort((a, b) => {
+      const oa = catOrder.get(a.category) ?? 999;
+      const ob = catOrder.get(b.category) ?? 999;
+      if (oa !== ob) return oa - ob;
+      return a.item.localeCompare(b.item, 'ko');
+    });
+  }
+
+  function renderSummary() {
+    const list = document.getElementById('summary-list');
+    const rows = getSummaryData();
+
+    if (!rows.length) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">📊</span>선택한 기간에 입력된 물량이 없어요</div>';
+      return;
+    }
+
+    let currentCat = null;
+    let html = '';
+    rows.forEach(r => {
+      if (r.category !== currentCat) {
+        currentCat = r.category;
+        html += `<div class="summary-group-title">${escapeHtml(currentCat)}</div>`;
+      }
+      html += `
+        <div class="summary-row">
+          <span class="summary-item-name">${escapeHtml(r.item)}</span>
+          <span class="summary-qty">${formatQty(r.qty)}${escapeHtml(r.unit)}</span>
+        </div>
+      `;
+    });
+    list.innerHTML = html;
+  }
+
+  // CSV 내보내기: BOM('﻿')을 붙여야 엑셀에서 한글이 안 깨진다
+  function exportSummaryCSV() {
+    const rows = getSummaryData();
+    if (!rows.length) { alert('내보낼 데이터가 없어요!'); return; }
+    const start = document.getElementById('summary-start').value;
+    const end = document.getElementById('summary-end').value;
+    const header = '대분류,자재명,단위,합계수량\n';
+    const body = rows.map(r => `${r.category},${r.item},${r.unit},${formatQty(r.qty)}`).join('\n');
+    const blob = new Blob(['﻿' + header + body], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `물량합산_${start}_${end}.csv`;
+    a.click();
   }
 
   // ── 최초 1회 기본 데이터 심기 ──
