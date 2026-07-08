@@ -661,10 +661,18 @@
   }
 
   const PIPE_ACCESSORIES = ['레듀샤', '환형박스', '풀박스', '곤지레다', '찬넬클램프', '원형클램프'];
+  const ANGLE_SIZES = ['50mm', '75mm'];
+
+  function angleType(category, order) {
+    return { category, name: 'ㄱ앵글', unit: 'M', spec1: { label: '사이즈', options: ANGLE_SIZES }, order };
+  }
 
   const DEFAULT_TYPES = [
     ...trayDuctTypes('트레이', true),
+    angleType('트레이', 8),
     ...trayDuctTypes('덕트', false),
+    angleType('덕트', 5),
+    angleType('부스덕트', 1),
     { category: '배관', name: '강제전선관', unit: 'M', spec1: { label: '사이즈', options: STEEL_SIZES }, order: 1 },
     { category: '배관', name: 'EMT-무나사', unit: 'M', spec1: { label: '사이즈', options: EMT_SIZES }, order: 2 },
     ...PIPE_ACCESSORIES.map((n, i) => ({ category: '배관', name: n, unit: 'EA', spec1: { label: '사이즈', options: STEEL_SIZES }, order: 3 + i })),
