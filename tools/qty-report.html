@@ -339,6 +339,18 @@
     white-space: nowrap;
   }
 
+  /* ── 물량완료 ── */
+  .locked-badge {
+    text-align: center;
+    padding: 14px;
+    border-radius: 12px;
+    background: rgba(59,232,138,0.1);
+    border: 1px solid rgba(59,232,138,0.3);
+    color: var(--give);
+    font-weight: 700;
+    font-size: 14px;
+  }
+
   /* ── 토스트 ── */
   .toast {
     position: fixed;
@@ -402,6 +414,11 @@
 
     <div class="section-label" style="margin-top:24px;">오늘 입력한 물량</div>
     <div class="entry-list" id="today-list"></div>
+
+    <div class="card" id="completion-card" style="margin-top:16px; display:none;">
+      <button class="submit-btn" id="complete-btn" onclick="completeToday()">✅ 오늘 물량완료</button>
+      <div class="locked-badge" id="locked-badge" style="display:none;">🔒 오늘 물량이 완료 처리됐어요</div>
+    </div>
   </div>
 
   <!-- ③ 자재 목록 -->
@@ -456,6 +473,7 @@
   const colCategories = db.collection('qty_categories');
   const colItems = db.collection('qty_items');
   const colEntries = db.collection('qty_entries');
+  const colCompletions = db.collection('qty_completions');
 
   // ── 기본 데이터 (Firestore가 비어 있으면 최초 1회 심는다) ──
   const DEFAULT_CATEGORIES = [
@@ -535,6 +553,7 @@
   let categories = [];
   let items = [];
   let entries = [];
+  let completions = [];
   let currentWorker = localStorage.getItem('qty_worker') || '';
   let currentCategory = null; // { name, unit }
   let currentItem = null; // { name, unit }
@@ -545,6 +564,11 @@
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function isTodayLocked() {
+    const today = todayStr();
+    return completions.some(c => c.worker === currentWorker && c.date === today);
   }
 
   // 사용자 입력을 innerHTML에 넣기 전 반드시 이 함수를 거친다 (XSS 방지)
@@ -594,6 +618,7 @@
     localStorage.setItem('qty_worker', name);
     updateWhoami();
     renderTodayEntries();
+    renderCompletionCard();
     go('view-home');
   }
 
@@ -714,6 +739,11 @@
 
   // ── ④ 수량 입력 ──
   function saveEntry() {
+    if (isTodayLocked()) {
+      alert('오늘 물량이 이미 완료됐어요. 수정하려면 관리자에게 문의하세요.');
+      go('view-home');
+      return;
+    }
     const qtyInput = document.getElementById('entry-qty');
     const qty = parseFloat(qtyInput.value);
     if (!qty || qty <= 0) { alert('수량을 입력해주세요!'); return; }
@@ -738,6 +768,10 @@
   }
 
   function deleteEntry(id) {
+    if (isTodayLocked()) {
+      alert('완료된 물량은 삭제할 수 없어요. 수정하려면 관리자에게 문의하세요.');
+      return;
+    }
     if (!confirm('이 입력 내역을 삭제할까요?')) return;
     colEntries.doc(id).delete()
       .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
@@ -748,9 +782,11 @@
     if (!list) return;
     const today = todayStr();
     const mine = entries.filter(e => e.worker === currentWorker && e.date === today);
+    const locked = isTodayLocked();
 
     if (!mine.length) {
       list.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span>아직 입력한 물량이 없어요</div>';
+      renderCompletionCard();
       return;
     }
 
@@ -761,9 +797,48 @@
           <div class="entry-meta">${escapeHtml(e.category)}</div>
         </div>
         <div class="entry-qty">${e.qty}${escapeHtml(e.unit)}</div>
-        <button class="del-btn" onclick="deleteEntry('${e.id}')">✕</button>
+        ${locked ? '' : `<button class="del-btn" onclick="deleteEntry('${e.id}')">✕</button>`}
       </div>
     `).join('');
+    renderCompletionCard();
+  }
+
+  // ── 물량완료 ──
+  function completeToday() {
+    if (!confirm('오늘 입력한 물량을 완료할까요?\n완료 후 수정하려면 관리자에게 문의하세요.')) return;
+
+    const btn = document.getElementById('complete-btn');
+    btn.disabled = true;
+    const id = `${todayStr()}_${currentWorker}`;
+    colCompletions.doc(id).set({
+      worker: currentWorker,
+      date: todayStr(),
+      ts: firebase.firestore.FieldValue.serverTimestamp(),
+    })
+      .then(() => showToast('✅ 오늘 물량이 완료 처리됐어요!'))
+      .catch(() => alert('처리 실패. 인터넷 연결을 확인해주세요.'))
+      .finally(() => { btn.disabled = false; });
+  }
+
+  function renderCompletionCard() {
+    const card = document.getElementById('completion-card');
+    const btn = document.getElementById('complete-btn');
+    const badge = document.getElementById('locked-badge');
+    if (!card) return;
+
+    const today = todayStr();
+    const hasEntries = entries.some(e => e.worker === currentWorker && e.date === today);
+
+    if (!hasEntries) { card.style.display = 'none'; return; }
+    card.style.display = '';
+
+    if (isTodayLocked()) {
+      btn.style.display = 'none';
+      badge.style.display = '';
+    } else {
+      btn.style.display = '';
+      badge.style.display = 'none';
+    }
   }
 
   // ── 최초 1회 기본 데이터 심기 ──
@@ -801,6 +876,11 @@
 
   colEntries.orderBy('ts', 'desc').onSnapshot(snap => {
     entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderTodayEntries();
+  });
+
+  colCompletions.onSnapshot(snap => {
+    completions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderTodayEntries();
   });
 
