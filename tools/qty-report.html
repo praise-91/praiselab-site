@@ -450,6 +450,7 @@
   .spec-btn:hover { border-color: var(--orange); transform: translateY(-1px); }
 
   .chev { color: var(--text-dim); font-weight: 900; margin-left: 6px; }
+  .group-count { font-size: 11px; color: var(--text-dim); }
 
   /* ── 토스트 ── */
   .toast {
@@ -531,7 +532,7 @@
   <!-- ③ 자재 목록 -->
   <div class="view" id="view-items">
     <div class="view-head">
-      <button class="back-btn" onclick="go('view-home')">‹</button>
+      <button class="back-btn" onclick="itemsBack()">‹</button>
       <h2 id="items-title"></h2>
     </div>
 
@@ -646,9 +647,9 @@
   function trayDuctTypes(category, withAccessories) {
     const types = [
       { category, name: '스트레이트', unit: 'M', hideTypeInName: true, spec1: { label: '폭', options: TRAY_WIDTHS }, order: 1 },
-      { category, name: 'H-엘보', unit: 'EA', spec1: { label: '폭', options: TRAY_WIDTHS }, spec2: { label: '각도', options: DEGREES }, order: 2 },
-      { category, name: 'V-엘보', unit: 'EA', spec1: { label: '폭', options: TRAY_WIDTHS }, spec2: { label: '각도', options: DEGREES }, order: 3 },
-      { category, name: 'Cross', unit: 'EA', spec1: { label: '폭', options: TRAY_WIDTHS }, order: 4 },
+      { category, name: 'H-엘보', unit: 'EA', group: '피팅류', spec1: { label: '폭', options: TRAY_WIDTHS }, spec2: { label: '각도', options: DEGREES }, order: 2 },
+      { category, name: 'V-엘보', unit: 'EA', group: '피팅류', spec1: { label: '폭', options: TRAY_WIDTHS }, spec2: { label: '각도', options: DEGREES }, order: 3 },
+      { category, name: 'Cross', unit: 'EA', group: '피팅류', spec1: { label: '폭', options: TRAY_WIDTHS }, order: 4 },
     ];
     if (withAccessories) {
       types.push(
@@ -708,6 +709,7 @@
   let currentItem = null; // { name, unit }
   let currentType = null; // 선택된 종류 문서
   let pickedSpec1 = null; // 2단 규격에서 1번째 선택값
+  let currentGroup = null; // 자재 목록 화면에서 열어본 그룹(예: 피팅류), null이면 최상위
 
   function todayStr() {
     const d = new Date();
@@ -811,10 +813,29 @@
   // ── ② 대분류 ──
   function openCategory(name, unit) {
     currentCategory = { name, unit };
+    currentGroup = null;
     document.getElementById('items-title').textContent = name;
     document.getElementById('item-search').value = '';
     renderItems();
     go('view-items');
+  }
+
+  function openGroup(name) {
+    currentGroup = name;
+    document.getElementById('items-title').textContent = `${currentCategory.name} · ${name}`;
+    document.getElementById('item-search').value = '';
+    renderItems();
+  }
+
+  function itemsBack() {
+    if (currentGroup) {
+      currentGroup = null;
+      document.getElementById('items-title').textContent = currentCategory.name;
+      document.getElementById('item-search').value = '';
+      renderItems();
+      return;
+    }
+    go('view-home');
   }
 
   function renderCategories() {
@@ -947,38 +968,70 @@
   function selectRecent(name, unit, category) {
     const c = categories.find(x => x.name === category);
     currentCategory = { name: category, unit: c ? c.unit : unit };
+    currentGroup = null;
     document.getElementById('items-title').textContent = category;
     document.getElementById('item-search').value = '';
     renderItems();
     selectItem(name, unit);
   }
 
-  function renderItems() {
-    if (!currentCategory) return;
-    const list = document.getElementById('item-list');
-    const keyword = document.getElementById('item-search').value.trim();
-    const filtered = items.filter(i =>
-      i.category === currentCategory.name &&
-      (!keyword || i.name.includes(keyword))
-    );
-
-    if (!filtered.length) {
-      const msg = keyword ? '검색 결과가 없어요' : '등록된 자재가 없어요.<br>아래에서 추가해주세요.';
-      list.innerHTML = `<div class="empty-state"><span class="empty-icon">🗂️</span>${msg}</div>`;
-      return;
-    }
-
-    filtered.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name, 'ko'));
-
-    list.innerHTML = filtered.map(t => {
-      const unit = t.unit || currentCategory.unit;
-      return `
+  function typeButtonHtml(t) {
+    const unit = t.unit || currentCategory.unit;
+    return `
       <button class="item-btn" onclick="selectType('${t.id}')">
         ${escapeHtml(t.name)}
         <span><span class="item-unit">${escapeHtml(unit)}</span>${t.spec1 ? '<span class="chev">›</span>' : ''}</span>
       </button>
     `;
-    }).join('');
+  }
+
+  function renderItems() {
+    if (!currentCategory) return;
+    const list = document.getElementById('item-list');
+    const keyword = document.getElementById('item-search').value.trim();
+    const inCategory = items.filter(i => i.category === currentCategory.name);
+
+    // 검색 중엔 그룹 구분 없이 카테고리 전체에서 찾는다
+    if (keyword) {
+      const found = inCategory.filter(i => i.name.includes(keyword));
+      if (!found.length) {
+        list.innerHTML = '<div class="empty-state"><span class="empty-icon">🗂️</span>검색 결과가 없어요</div>';
+        return;
+      }
+      found.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name, 'ko'));
+      list.innerHTML = found.map(typeButtonHtml).join('');
+      return;
+    }
+
+    if (currentGroup) {
+      const grouped = inCategory.filter(i => i.group === currentGroup);
+      grouped.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name, 'ko'));
+      list.innerHTML = grouped.map(typeButtonHtml).join('');
+      return;
+    }
+
+    // 최상위: 그룹 없는 종류 + 그룹 묶음 버튼
+    const top = inCategory.filter(i => !i.group);
+    const groupNames = [...new Set(inCategory.filter(i => i.group).map(i => i.group))];
+
+    if (!top.length && !groupNames.length) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">🗂️</span>등록된 자재가 없어요.<br>아래에서 추가해주세요.</div>';
+      return;
+    }
+
+    top.sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name, 'ko'));
+
+    const groupButtons = groupNames.map(g => {
+      const count = inCategory.filter(i => i.group === g).length;
+      return `
+        <button class="item-btn" onclick="openGroup('${escapeHtml(g)}')">
+          🗂 ${escapeHtml(g)}
+          <span><span class="group-count">${count}종</span><span class="chev">›</span></span>
+        </button>
+      `;
+    });
+
+    list.innerHTML = top.map(typeButtonHtml).join('') + groupButtons.join('');
   }
 
   // ── ④ 수량 입력 ──
