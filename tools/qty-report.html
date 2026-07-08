@@ -379,24 +379,75 @@
 
   // ── 기본 데이터 (Firestore가 비어 있으면 최초 1회 심는다) ──
   const DEFAULT_CATEGORIES = [
-    { name: '트레이',   unit: 'M',  emoji: '🪜', order: 1 },
-    { name: '덕트',     unit: 'M',  emoji: '📦', order: 2 },
-    { name: '부스덕트', unit: 'M',  emoji: '🔌', order: 3 },
-    { name: '배관',     unit: 'M',  emoji: '🧵', order: 4 },
-    { name: 'R/W',      unit: 'M',  emoji: '🛤️', order: 5 },
-    { name: '단말',     unit: 'EA', emoji: '🔗', order: 6 },
-    { name: '기구설치', unit: 'EA', emoji: '💡', order: 7 },
+    { name: '트레이',     unit: 'M',  emoji: '🪜', order: 1 },
+    { name: '덕트',       unit: 'M',  emoji: '📦', order: 2 },
+    { name: '부스덕트',   unit: 'M',  emoji: '🔌', order: 3 },
+    { name: '배관',       unit: 'M',  emoji: '🧵', order: 4 },
+    { name: '레이스웨이', unit: 'M',  emoji: '🛤️', order: 5 },
+    { name: '단말',       unit: 'EA', emoji: '🔗', order: 6 },
+    { name: '기구설치',   unit: 'EA', emoji: '💡', order: 7 },
+    { name: '기타',       unit: 'EA', emoji: '📁', order: 8 },
   ];
 
+  // 트레이/덕트 공통: 폭별 직선재(M) + 엘보/Cross 피팅류(EA)
+  function trayDuctItems(category) {
+    const widths = [100, 200, 300, 400, 600, 900, 1200];
+    const degrees = [15, 30, 45, 90];
+    const items = widths.map(w => ({ category, name: `W${w}` }));
+    ['Horizontal elbow', 'Vertical elbow'].forEach(type => {
+      degrees.forEach(d => items.push({ category, name: `${type} ${d}°`, unit: 'EA' }));
+    });
+    items.push({ category, name: 'Cross', unit: 'EA' });
+    return items;
+  }
+
+  // 배관: 강제전선관/EMT 직관(M) + 부속자재(강제전선관 사이즈 기준, EA)
+  function pipeItems() {
+    const items = [];
+    const steelSizes = [16, 22, 28, 36, 42, 54];
+    const emtSizes = [15, 19, 25, 31, 39, 51, 63, 75]; // KS 박강전선관(EMT) 규격
+    const accessories = ['레듀샤', '환형박스', '풀박스', '곤지레다', '찬넬클램프', '원형클램프'];
+
+    steelSizes.forEach(s => items.push({ category: '배관', name: `강제전선관 ${s}mm` }));
+    emtSizes.forEach(s => items.push({ category: '배관', name: `EMT-무나사 E${s}` }));
+    accessories.forEach(a => {
+      steelSizes.forEach(s => items.push({ category: '배관', name: `${a} ${s}mm`, unit: 'EA' }));
+    });
+    return items;
+  }
+
+  // 레이스웨이: 바디/커버(M) + 박스·Offset(EA), 70mm/110mm 두 규격
+  function racewayItems() {
+    const items = [];
+    const widths = [70, 110];
+    const boxTypes = ['엘보', 'T', 'Cross'];
+    const degrees = [15, 30, 45, 90];
+
+    widths.forEach(w => items.push({ category: '레이스웨이', name: `바디 ${w}mm` }));
+    widths.forEach(w => items.push({ category: '레이스웨이', name: `커버 ${w}mm` }));
+    widths.forEach(w => boxTypes.forEach(t => items.push({ category: '레이스웨이', name: `${t}박스 ${w}mm`, unit: 'EA' })));
+    widths.forEach(w => degrees.forEach(d => items.push({ category: '레이스웨이', name: `Offset ${d}° ${w}mm`, unit: 'EA' })));
+    return items;
+  }
+
+  // 단말: 케이블(M) + 터미널(EA), 120sq부터 2홀 터미널 추가
+  function terminalItems() {
+    const items = [];
+    const sqSizes = [1.5, 2, 4, 6, 10, 16, 35, 50, 75, 90, 120, 150, 240, 300];
+    const dualHoleSizes = [120, 150, 240, 300];
+
+    sqSizes.forEach(s => items.push({ category: '단말', name: `케이블 ${s}sq`, unit: 'M' }));
+    sqSizes.forEach(s => items.push({ category: '단말', name: `터미널 ${s}sq`, unit: 'EA' }));
+    dualHoleSizes.forEach(s => items.push({ category: '단말', name: `터미널 ${s}sq (2홀)`, unit: 'EA' }));
+    return items;
+  }
+
   const DEFAULT_ITEMS = [
-    { category: '트레이', name: '사다리형 트레이 100W' },
-    { category: '트레이', name: '사다리형 트레이 200W' },
-    { category: '배관',   name: '후강전선관 16mm' },
-    { category: '배관',   name: '후강전선관 22mm' },
-    { category: 'R/W',    name: '레이스웨이 100W' },
-    { category: 'R/W',    name: '레이스웨이 150W' },
-    { category: '기구설치', name: '스피커' },
-    { category: '기구설치', name: '감지기' },
+    ...trayDuctItems('트레이'),
+    ...trayDuctItems('덕트'),
+    ...pipeItems(),
+    ...racewayItems(),
+    ...terminalItems(),
   ];
 
   // ── 상태 ──
@@ -535,9 +586,9 @@
       .finally(() => { btn.disabled = false; });
   }
 
-  function selectItem(name) {
+  function selectItem(name, unit) {
     // 2단계에서 수량 입력 화면으로 연결된다
-    showToast('📐 ' + name + ' — 수량 입력은 다음 단계!');
+    showToast('📐 ' + name + ' (' + unit + ') — 수량 입력은 다음 단계!');
   }
 
   function renderItems() {
@@ -555,12 +606,15 @@
       return;
     }
 
-    list.innerHTML = filtered.map(i => `
-      <button class="item-btn" onclick="selectItem('${escapeHtml(i.name)}')">
+    list.innerHTML = filtered.map(i => {
+      const unit = i.unit || currentCategory.unit;
+      return `
+      <button class="item-btn" onclick="selectItem('${escapeHtml(i.name)}', '${escapeHtml(unit)}')">
         ${escapeHtml(i.name)}
-        <span class="item-unit">${escapeHtml(currentCategory.unit)}</span>
+        <span class="item-unit">${escapeHtml(unit)}</span>
       </button>
-    `).join('');
+    `;
+    }).join('');
   }
 
   // ── 최초 1회 기본 데이터 심기 ──
