@@ -279,6 +279,66 @@
   }
   .empty-state .empty-icon { font-size: 32px; display: block; margin-bottom: 10px; opacity: 0.4; }
 
+  /* ── 수량 입력 폼 ── */
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block;
+    font-size: 12px; font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+  }
+  .field input {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--steel-light);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 700;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  .field input:focus { border-color: var(--orange); }
+
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--orange);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-family: inherit;
+    font-size: 16px; font-weight: 900;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .submit-btn:hover { background: var(--orange-dark); }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── 오늘 입력 내역 ── */
+  .entry-list { display: flex; flex-direction: column; gap: 8px; }
+  .entry-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--steel-mid);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .entry-info { flex: 1; min-width: 0; }
+  .entry-name { font-size: 14px; font-weight: 700; }
+  .entry-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .entry-qty {
+    font-size: 15px; font-weight: 900;
+    color: var(--orange);
+    white-space: nowrap;
+  }
+
   /* ── 토스트 ── */
   .toast {
     position: fixed;
@@ -339,6 +399,9 @@
 
     <div class="section-label">작업 대분류 선택</div>
     <div class="cat-grid" id="cat-grid"></div>
+
+    <div class="section-label" style="margin-top:24px;">오늘 입력한 물량</div>
+    <div class="entry-list" id="today-list"></div>
   </div>
 
   <!-- ③ 자재 목록 -->
@@ -361,6 +424,22 @@
     </div>
   </div>
 
+  <!-- ④ 수량 입력 -->
+  <div class="view" id="view-entry">
+    <div class="view-head">
+      <button class="back-btn" onclick="go('view-items')">‹</button>
+      <h2 id="entry-title"></h2>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label id="entry-qty-label">수량</label>
+        <input type="number" id="entry-qty" inputmode="decimal" step="0.1" min="0" placeholder="0" />
+      </div>
+      <button class="submit-btn" id="entry-save-btn" onclick="saveEntry()">저장 →</button>
+    </div>
+  </div>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -376,6 +455,7 @@
   const colWorkers = db.collection('qty_workers');
   const colCategories = db.collection('qty_categories');
   const colItems = db.collection('qty_items');
+  const colEntries = db.collection('qty_entries');
 
   // ── 기본 데이터 (Firestore가 비어 있으면 최초 1회 심는다) ──
   const DEFAULT_CATEGORIES = [
@@ -454,8 +534,18 @@
   let workers = [];
   let categories = [];
   let items = [];
+  let entries = [];
   let currentWorker = localStorage.getItem('qty_worker') || '';
   let currentCategory = null; // { name, unit }
+  let currentItem = null; // { name, unit }
+
+  function todayStr() {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
 
   // 사용자 입력을 innerHTML에 넣기 전 반드시 이 함수를 거친다 (XSS 방지)
   function escapeHtml(s) {
@@ -503,6 +593,7 @@
     currentWorker = name;
     localStorage.setItem('qty_worker', name);
     updateWhoami();
+    renderTodayEntries();
     go('view-home');
   }
 
@@ -587,8 +678,12 @@
   }
 
   function selectItem(name, unit) {
-    // 2단계에서 수량 입력 화면으로 연결된다
-    showToast('📐 ' + name + ' (' + unit + ') — 수량 입력은 다음 단계!');
+    currentItem = { name, unit };
+    document.getElementById('entry-title').textContent = name;
+    document.getElementById('entry-qty-label').textContent = `수량 (${unit})`;
+    document.getElementById('entry-qty').value = '';
+    go('view-entry');
+    document.getElementById('entry-qty').focus();
   }
 
   function renderItems() {
@@ -615,6 +710,60 @@
       </button>
     `;
     }).join('');
+  }
+
+  // ── ④ 수량 입력 ──
+  function saveEntry() {
+    const qtyInput = document.getElementById('entry-qty');
+    const qty = parseFloat(qtyInput.value);
+    if (!qty || qty <= 0) { alert('수량을 입력해주세요!'); return; }
+
+    const btn = document.getElementById('entry-save-btn');
+    btn.disabled = true;
+    colEntries.add({
+      worker: currentWorker,
+      category: currentCategory.name,
+      item: currentItem.name,
+      unit: currentItem.unit,
+      qty,
+      date: todayStr(),
+      ts: firebase.firestore.FieldValue.serverTimestamp(),
+    })
+      .then(() => {
+        showToast(`✅ ${currentItem.name} ${qty}${currentItem.unit} 저장 완료!`);
+        go('view-items');
+      })
+      .catch(() => alert('저장 실패. 인터넷 연결을 확인해주세요.'))
+      .finally(() => { btn.disabled = false; });
+  }
+
+  function deleteEntry(id) {
+    if (!confirm('이 입력 내역을 삭제할까요?')) return;
+    colEntries.doc(id).delete()
+      .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
+  }
+
+  function renderTodayEntries() {
+    const list = document.getElementById('today-list');
+    if (!list) return;
+    const today = todayStr();
+    const mine = entries.filter(e => e.worker === currentWorker && e.date === today);
+
+    if (!mine.length) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span>아직 입력한 물량이 없어요</div>';
+      return;
+    }
+
+    list.innerHTML = mine.map(e => `
+      <div class="entry-card">
+        <div class="entry-info">
+          <div class="entry-name">${escapeHtml(e.item)}</div>
+          <div class="entry-meta">${escapeHtml(e.category)}</div>
+        </div>
+        <div class="entry-qty">${e.qty}${escapeHtml(e.unit)}</div>
+        <button class="del-btn" onclick="deleteEntry('${e.id}')">✕</button>
+      </div>
+    `).join('');
   }
 
   // ── 최초 1회 기본 데이터 심기 ──
@@ -648,6 +797,11 @@
   colItems.orderBy('name').onSnapshot(snap => {
     items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderItems();
+  });
+
+  colEntries.orderBy('ts', 'desc').onSnapshot(snap => {
+    entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderTodayEntries();
   });
 
   // ── 시작 ──
