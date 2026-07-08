@@ -339,18 +339,6 @@
     white-space: nowrap;
   }
 
-  /* ── 물량완료 ── */
-  .locked-badge {
-    text-align: center;
-    padding: 14px;
-    border-radius: 12px;
-    background: rgba(59,232,138,0.1);
-    border: 1px solid rgba(59,232,138,0.3);
-    color: var(--give);
-    font-weight: 700;
-    font-size: 14px;
-  }
-
   /* ── 합산 보기 링크 ── */
   .summary-link-btn {
     width: 100%;
@@ -369,7 +357,14 @@
   .summary-link-btn:hover { border-color: var(--orange); color: var(--orange); }
 
   /* ── 합산 화면 ── */
-  .date-range-row { display: flex; gap: 12px; }
+  .date-range-row { display: flex; gap: 10px; }
+  .date-range-row .field { flex: 1 1 0; min-width: 0; }
+  .date-range-row .field input {
+    width: 100%;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 8px;
+  }
   .summary-list { display: flex; flex-direction: column; gap: 6px; }
   .summary-group-title {
     font-size: 13px;
@@ -522,11 +517,6 @@
 
     <div class="section-label" style="margin-top:24px;">오늘 입력한 물량</div>
     <div class="entry-list" id="today-list"></div>
-
-    <div class="card" id="completion-card" style="margin-top:16px; display:none;">
-      <button class="submit-btn" id="complete-btn" onclick="completeToday()">✅ 오늘 물량완료</button>
-      <div class="locked-badge" id="locked-badge" style="display:none;">🔒 오늘 물량이 완료 처리됐어요</div>
-    </div>
   </div>
 
   <!-- ③ 자재 목록 -->
@@ -599,6 +589,7 @@
     <div class="summary-list" id="summary-list"></div>
 
     <button class="export-btn" onclick="exportSummaryCSV()">📂 CSV로 내보내기</button>
+    <button class="export-btn" onclick="shareSummary()">💬 공유하기 (카카오톡 등)</button>
   </div>
 
 </div>
@@ -617,7 +608,6 @@
   const colCategories = db.collection('qty_categories');
   const colItems = db.collection('qty_items');
   const colEntries = db.collection('qty_entries');
-  const colCompletions = db.collection('qty_completions');
 
   // ── 기본 데이터 (Firestore가 비어 있으면 최초 1회 심는다) ──
   const DEFAULT_CATEGORIES = [
@@ -703,7 +693,6 @@
   let categories = [];
   let items = [];
   let entries = [];
-  let completions = [];
   let currentWorker = localStorage.getItem('qty_worker') || '';
   let currentCategory = null; // { name, unit }
   let currentItem = null; // { name, unit }
@@ -717,11 +706,6 @@
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
-  }
-
-  function isTodayLocked() {
-    const today = todayStr();
-    return completions.some(c => c.worker === currentWorker && c.date === today);
   }
 
   // 사용자 입력을 innerHTML에 넣기 전 반드시 이 함수를 거친다 (XSS 방지)
@@ -771,7 +755,6 @@
     localStorage.setItem('qty_worker', name);
     updateWhoami();
     renderTodayEntries();
-    renderCompletionCard();
     renderRecent();
     go('view-home');
   }
@@ -1036,11 +1019,6 @@
 
   // ── ④ 수량 입력 ──
   function saveEntry() {
-    if (isTodayLocked()) {
-      alert('오늘 물량이 이미 완료됐어요. 수정하려면 관리자에게 문의하세요.');
-      go('view-home');
-      return;
-    }
     const qtyInput = document.getElementById('entry-qty');
     const qty = parseFloat(qtyInput.value);
     if (!qty || qty <= 0) { alert('수량을 입력해주세요!'); return; }
@@ -1065,10 +1043,6 @@
   }
 
   function deleteEntry(id) {
-    if (isTodayLocked()) {
-      alert('완료된 물량은 삭제할 수 없어요. 수정하려면 관리자에게 문의하세요.');
-      return;
-    }
     if (!confirm('이 입력 내역을 삭제할까요?')) return;
     colEntries.doc(id).delete()
       .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
@@ -1079,11 +1053,9 @@
     if (!list) return;
     const today = todayStr();
     const mine = entries.filter(e => e.worker === currentWorker && e.date === today);
-    const locked = isTodayLocked();
 
     if (!mine.length) {
       list.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span>아직 입력한 물량이 없어요</div>';
-      renderCompletionCard();
       return;
     }
 
@@ -1094,48 +1066,9 @@
           <div class="entry-meta">${escapeHtml(e.category)}</div>
         </div>
         <div class="entry-qty">${e.qty}${escapeHtml(e.unit)}</div>
-        ${locked ? '' : `<button class="del-btn" onclick="deleteEntry('${e.id}')">✕</button>`}
+        <button class="del-btn" onclick="deleteEntry('${e.id}')">✕</button>
       </div>
     `).join('');
-    renderCompletionCard();
-  }
-
-  // ── 물량완료 ──
-  function completeToday() {
-    if (!confirm('오늘 입력한 물량을 완료할까요?\n완료 후 수정하려면 관리자에게 문의하세요.')) return;
-
-    const btn = document.getElementById('complete-btn');
-    btn.disabled = true;
-    const id = `${todayStr()}_${currentWorker}`;
-    colCompletions.doc(id).set({
-      worker: currentWorker,
-      date: todayStr(),
-      ts: firebase.firestore.FieldValue.serverTimestamp(),
-    })
-      .then(() => showToast('✅ 오늘 물량이 완료 처리됐어요!'))
-      .catch(() => alert('처리 실패. 인터넷 연결을 확인해주세요.'))
-      .finally(() => { btn.disabled = false; });
-  }
-
-  function renderCompletionCard() {
-    const card = document.getElementById('completion-card');
-    const btn = document.getElementById('complete-btn');
-    const badge = document.getElementById('locked-badge');
-    if (!card) return;
-
-    const today = todayStr();
-    const hasEntries = entries.some(e => e.worker === currentWorker && e.date === today);
-
-    if (!hasEntries) { card.style.display = 'none'; return; }
-    card.style.display = '';
-
-    if (isTodayLocked()) {
-      btn.style.display = 'none';
-      badge.style.display = '';
-    } else {
-      btn.style.display = '';
-      badge.style.display = 'none';
-    }
   }
 
   // ── ⑤ 합산 보기 ──
@@ -1199,19 +1132,63 @@
     list.innerHTML = html;
   }
 
-  // CSV 내보내기: BOM('﻿')을 붙여야 엑셀에서 한글이 안 깨진다
+  // BOM('﻿')을 붙여야 엑셀에서 한글이 안 깨진다
+  function buildSummaryCSVBlob(rows) {
+    const header = '대분류,자재명,단위,합계수량\n';
+    const body = rows.map(r => `${r.category},${r.item},${r.unit},${formatQty(r.qty)}`).join('\n');
+    return new Blob(['﻿' + header + body], { type: 'text/csv;charset=utf-8;' });
+  }
+
+  function buildSummaryText(rows, start, end) {
+    let text = `📊 물량 합산 (${start} ~ ${end})\n`;
+    let cat = null;
+    rows.forEach(r => {
+      if (r.category !== cat) { cat = r.category; text += `\n[${cat}]\n`; }
+      text += `${r.item} ${formatQty(r.qty)}${r.unit}\n`;
+    });
+    return text.trim();
+  }
+
   function exportSummaryCSV() {
     const rows = getSummaryData();
     if (!rows.length) { alert('내보낼 데이터가 없어요!'); return; }
     const start = document.getElementById('summary-start').value;
     const end = document.getElementById('summary-end').value;
-    const header = '대분류,자재명,단위,합계수량\n';
-    const body = rows.map(r => `${r.category},${r.item},${r.unit},${formatQty(r.qty)}`).join('\n');
-    const blob = new Blob(['﻿' + header + body], { type: 'text/csv;charset=utf-8;' });
+    const blob = buildSummaryCSVBlob(rows);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `물량합산_${start}_${end}.csv`;
     a.click();
+  }
+
+  // 카카오 개발자 앱 등록 없이, 브라우저 공유 시트로 CSV 파일을 넘긴다.
+  // 카카오톡을 포함해 어떤 앱으로 보낼지는 폰이 띄우는 공유 목록에서 사용자가 직접 고른다.
+  async function shareSummary() {
+    const rows = getSummaryData();
+    if (!rows.length) { alert('공유할 데이터가 없어요!'); return; }
+    const start = document.getElementById('summary-start').value;
+    const end = document.getElementById('summary-end').value;
+    const fileName = `물량합산_${start}_${end}.csv`;
+    const file = new File([buildSummaryCSVBlob(rows)], fileName, { type: 'text/csv' });
+    const text = buildSummaryText(rows, start, end);
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: '물량 합산', text });
+      } catch (e) {
+        if (e.name !== 'AbortError') alert('공유에 실패했어요.');
+      }
+      return;
+    }
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: '물량 합산', text });
+      } catch (e) {
+        if (e.name !== 'AbortError') alert('공유에 실패했어요.');
+      }
+      return;
+    }
+    alert('이 브라우저는 공유하기를 지원하지 않아요. CSV로 내보낸 뒤 카톡에 직접 첨부해주세요.');
   }
 
   // ── 최초 1회 기본 데이터 심기 ──
@@ -1256,11 +1233,6 @@
     entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderTodayEntries();
     renderRecent();
-  });
-
-  colCompletions.onSnapshot(snap => {
-    completions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderTodayEntries();
   });
 
   // ── 시작 ──
