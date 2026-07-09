@@ -552,7 +552,7 @@
   <!-- ④ 수량 입력 -->
   <div class="view" id="view-entry">
     <div class="view-head">
-      <button class="back-btn" onclick="go('view-items')">‹</button>
+      <button class="back-btn" onclick="history.back()">‹</button>
       <h2 id="entry-title"></h2>
     </div>
 
@@ -568,7 +568,7 @@
   <!-- ⑤ 합산 보기 -->
   <div class="view" id="view-summary">
     <div class="view-head">
-      <button class="back-btn" onclick="go('view-home')">‹</button>
+      <button class="back-btn" onclick="history.back()">‹</button>
       <h2>합산 보기</h2>
     </div>
 
@@ -732,6 +732,71 @@
     window.scrollTo(0, 0);
   }
 
+  // ── 브라우저 히스토리 연동 ──
+  // 화면을 옮길 때마다 history.pushState로 기록해둬야, 폰 뒤로가기를 눌렀을 때
+  // 앱이 통째로 종료되지 않고 이전 화면으로 돌아간다. 뒤로가기(popstate)가 오면
+  // 저장해둔 상태값으로 전역 변수를 되돌리고 다시 렌더링한다.
+  function captureState(view) {
+    return { view, category: currentCategory, group: currentGroup, type: currentType, specStep1: pickedSpec1, item: currentItem };
+  }
+
+  function pushHistory(view) {
+    history.pushState(captureState(view), '');
+  }
+
+  function replaceHistory(view) {
+    history.replaceState(captureState(view), '');
+  }
+
+  function applyState(state) {
+    if (!state) return;
+    currentCategory = state.category || null;
+    currentGroup = state.group || null;
+    currentType = state.type || null;
+    pickedSpec1 = state.specStep1 || null;
+    currentItem = state.item || null;
+
+    switch (state.view) {
+      case 'view-worker':
+        go('view-worker');
+        break;
+      case 'view-home':
+        renderTodayEntries();
+        renderRecent();
+        go('view-home');
+        break;
+      case 'view-items':
+        if (currentCategory) {
+          document.getElementById('items-title').textContent =
+            currentGroup ? `${currentCategory.name} · ${currentGroup}` : currentCategory.name;
+        }
+        document.getElementById('item-search').value = '';
+        renderItems();
+        go('view-items');
+        break;
+      case 'view-spec':
+        renderSpec();
+        go('view-spec');
+        break;
+      case 'view-entry':
+        if (currentItem) {
+          document.getElementById('entry-title').textContent = currentItem.name;
+          document.getElementById('entry-qty-label').textContent = `수량 (${currentItem.unit})`;
+        }
+        document.getElementById('entry-qty').value = '';
+        go('view-entry');
+        break;
+      case 'view-summary':
+        renderSummary();
+        go('view-summary');
+        break;
+      default:
+        go('view-home');
+    }
+  }
+
+  window.addEventListener('popstate', e => applyState(e.state));
+
   function updateWhoami() {
     const btn = document.getElementById('whoami');
     if (currentWorker) {
@@ -747,6 +812,7 @@
     localStorage.removeItem('qty_worker');
     updateWhoami();
     go('view-worker');
+    pushHistory('view-worker');
   }
 
   // ── ① 작업자 ──
@@ -757,6 +823,7 @@
     renderTodayEntries();
     renderRecent();
     go('view-home');
+    pushHistory('view-home');
   }
 
   function addWorker() {
@@ -801,6 +868,7 @@
     document.getElementById('item-search').value = '';
     renderItems();
     go('view-items');
+    pushHistory('view-items');
   }
 
   function openGroup(name) {
@@ -808,17 +876,11 @@
     document.getElementById('items-title').textContent = `${currentCategory.name} · ${name}`;
     document.getElementById('item-search').value = '';
     renderItems();
+    pushHistory('view-items');
   }
 
   function itemsBack() {
-    if (currentGroup) {
-      currentGroup = null;
-      document.getElementById('items-title').textContent = currentCategory.name;
-      document.getElementById('item-search').value = '';
-      renderItems();
-      return;
-    }
-    go('view-home');
+    history.back();
   }
 
   function renderCategories() {
@@ -864,6 +926,7 @@
     document.getElementById('entry-qty-label').textContent = `수량 (${unit})`;
     document.getElementById('entry-qty').value = '';
     go('view-entry');
+    pushHistory('view-entry');
     document.getElementById('entry-qty').focus();
   }
 
@@ -889,6 +952,7 @@
     }
     renderSpec();
     go('view-spec');
+    pushHistory('view-spec');
   }
 
   function pickSpec(option) {
@@ -898,6 +962,7 @@
     if (type.spec2 && pickedSpec1 === null) {
       pickedSpec1 = option;
       renderSpec();
+      pushHistory('view-spec');
       return;
     }
     if (type.spec2) {
@@ -908,12 +973,7 @@
   }
 
   function specBack() {
-    if (currentType && currentType.spec2 && pickedSpec1 !== null) {
-      pickedSpec1 = null;
-      renderSpec();
-      return;
-    }
-    go('view-items');
+    history.back();
   }
 
   function renderSpec() {
@@ -1046,6 +1106,7 @@
       .then(() => {
         showToast(`✅ ${currentItem.name} ${qty}${currentItem.unit} 저장 완료!`);
         go('view-items');
+        replaceHistory('view-items');
       })
       .catch(() => alert('저장 실패. 인터넷 연결을 확인해주세요.'))
       .finally(() => { btn.disabled = false; });
@@ -1087,6 +1148,7 @@
     document.getElementById('summary-end').value = today;
     renderSummary();
     go('view-summary');
+    pushHistory('view-summary');
   }
 
   // 소수점 불필요한 0 제거 (부동소수점 오차 방지용 반올림 포함)
@@ -1247,7 +1309,9 @@
   // ── 시작 ──
   seedIfEmpty();
   updateWhoami();
-  go(currentWorker ? 'view-home' : 'view-worker');
+  const initialView = currentWorker ? 'view-home' : 'view-worker';
+  go(initialView);
+  history.replaceState(captureState(initialView), '');
 </script>
 </body>
 </html>
