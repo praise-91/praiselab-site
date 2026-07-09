@@ -536,61 +536,6 @@
 
   <!-- ── 탭: 퀘스트 ── -->
   <div class="tab-panel" id="tab-quest" hidden>
-    <!-- 퀘스트 추가 -->
-    <div class="window">
-      <div class="window-title">NEW QUEST</div>
-      <div class="field">
-        <label>할 일</label>
-        <input type="text" id="q-name" placeholder="할 일을 입력하세요">
-      </div>
-      <div class="field-row field">
-        <div>
-          <label>올릴 능력치</label>
-          <select id="q-stat"></select>
-        </div>
-        <div>
-          <label>단위</label>
-          <select id="q-unit">
-            <option value="min">시간 (분)</option>
-            <option value="count">횟수 (회)</option>
-          </select>
-        </div>
-      </div>
-      <div class="field" id="q-mode-field">
-        <label>측정 방식</label>
-        <select id="q-mode">
-          <option value="estimate">예상 시간 직접 입력</option>
-          <option value="timer">⏱ 타이머로 실제 시간 측정</option>
-        </select>
-      </div>
-      <div class="field" id="q-amount-field">
-        <label id="q-amount-label">예상 시간 (분)</label>
-        <input type="number" id="q-amount" min="1" step="5" value="30">
-      </div>
-      <div class="field">
-        <label>유형</label>
-        <select id="q-type">
-          <option value="once">일회성 — 한 번 하고 끝</option>
-          <option value="daily">매일 반복 (🔥 스트릭 보너스)</option>
-          <option value="weekly">요일 선택 반복 (🔥 스트릭 보너스)</option>
-          <option value="interval">며칠마다 반복 (🔥 스트릭 보너스)</option>
-        </select>
-      </div>
-      <div class="field" id="q-weekly-field" hidden>
-        <label>반복할 요일</label>
-        <div class="weekday-picker" id="q-weekday-picker"></div>
-      </div>
-      <div class="field" id="q-interval-field" hidden>
-        <label>반복 주기</label>
-        <div style="display:flex; align-items:center; gap:8px">
-          <span style="font-size:14px; color:var(--dim)">매</span>
-          <input type="number" id="q-interval" min="2" max="30" value="2" style="width:70px">
-          <span style="font-size:14px; color:var(--dim)">일마다 (예: 2 = 이틀에 한번)</span>
-        </div>
-      </div>
-      <button class="btn" id="q-add">＋ 퀘스트 등록</button>
-    </div>
-
     <!-- 매일/반복 습관 -->
     <div class="window">
       <div class="window-title">DAILY QUEST</div>
@@ -601,6 +546,64 @@
     <div class="window">
       <div class="window-title">QUEST LOG</div>
       <div id="quest-list"></div>
+    </div>
+
+    <!-- 퀘스트 추가 -->
+    <div class="window">
+      <div class="window-title">NEW QUEST</div>
+      <button class="btn" id="new-quest-toggle">＋ 새 퀘스트 등록</button>
+      <div id="new-quest-form" hidden>
+        <div class="field">
+          <label>할 일</label>
+          <input type="text" id="q-name" placeholder="할 일을 입력하세요">
+        </div>
+        <div class="field-row field">
+          <div>
+            <label>올릴 능력치</label>
+            <select id="q-stat"></select>
+          </div>
+          <div>
+            <label>단위</label>
+            <select id="q-unit">
+              <option value="min">시간 (분)</option>
+              <option value="count">횟수 (회)</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" id="q-mode-field">
+          <label>측정 방식</label>
+          <select id="q-mode">
+            <option value="estimate">예상 시간 직접 입력</option>
+            <option value="timer">⏱ 타이머로 실제 시간 측정</option>
+          </select>
+        </div>
+        <div class="field" id="q-amount-field">
+          <label id="q-amount-label">예상 시간 (분)</label>
+          <input type="number" id="q-amount" min="1" step="5" value="30">
+        </div>
+        <div class="field">
+          <label>유형</label>
+          <select id="q-type">
+            <option value="once">일회성 — 한 번 하고 끝</option>
+            <option value="daily">매일 반복 (🔥 스트릭 보너스)</option>
+            <option value="weekly">요일 선택 반복 (🔥 스트릭 보너스)</option>
+            <option value="interval">며칠마다 반복 (🔥 스트릭 보너스)</option>
+          </select>
+        </div>
+        <div class="field" id="q-weekly-field" hidden>
+          <label>반복할 요일</label>
+          <div class="weekday-picker" id="q-weekday-picker"></div>
+        </div>
+        <div class="field" id="q-interval-field" hidden>
+          <label>반복 주기</label>
+          <div style="display:flex; align-items:center; gap:8px">
+            <span style="font-size:14px; color:var(--dim)">매</span>
+            <input type="number" id="q-interval" min="2" max="30" value="2" style="width:70px">
+            <span style="font-size:14px; color:var(--dim)">일마다 (예: 2 = 이틀에 한번)</span>
+          </div>
+        </div>
+        <button class="btn" id="q-add">＋ 퀘스트 등록</button>
+      </div>
     </div>
   </div>
 
@@ -718,12 +721,12 @@
 ===================================================== */
 const CONFIG = {
   LEVEL_COEF: 50,      // 다음 레벨 필요 경험치 = 레벨 × 50
-  EXP_PER_HOUR: 10,    // 시간당 경험치
-  CLEAR_BONUS: 5,      // 완료 보너스 (시간 무관)
+  EXP_PER_HOUR: 16,    // 시간당 경험치 (완료보너스 축소분만큼 시간 비중을 올림)
+  CLEAR_BONUS: 2,      // 완료 보너스 (시간 무관) — 짧은 항목을 여러 개 쪼개서 유리해지는 문제 때문에 축소
   STREAK_MAX: 10,      // 스트릭 보너스 상한 (연속 일수만큼 추가 EXP, 최대 10)
   NEGLECT_DAYS: 10,    // 이 기간(일) 이상 활동 없으면 '방치된 능력치'로 알림
   STAGE_EXP: 200,       // 모든 능력치 누적 EXP 합계가 이만큼 늘어날 때마다 스테이지 1단계 전진
-  EXP_PER_REP: 1,       // 횟수(회) 단위 퀘스트에서 1회당 경험치
+  EXP_PER_REP: 0.3,     // 횟수(회) 단위 퀘스트에서 1회당 경험치 (시간 기반과 저울을 맞추기 위해 축소)
   MIN_TIMER_MIN: 1,     // 타이머 완료 시 인정하는 최소 시간(분) — 너무 짧게 끝내는 것 방지
 };
 
@@ -1528,6 +1531,13 @@ $('q-weekday-picker').addEventListener('click', e => {
   }
 });
 
+// NEW QUEST 폼 접기/펼치기
+$('new-quest-toggle').addEventListener('click', () => {
+  const form = $('new-quest-form');
+  form.hidden = !form.hidden;
+  $('new-quest-toggle').textContent = form.hidden ? '＋ 새 퀘스트 등록' : '－ 접기';
+});
+
 // 유형 선택에 따라 하위 입력 필드 보이기/숨기기
 $('q-type').addEventListener('change', () => {
   const type = $('q-type').value;
@@ -1607,6 +1617,8 @@ $('q-add').addEventListener('click', () => {
   selectedWeekdays = [];
   $('q-weekday-picker').querySelectorAll('.weekday-chip').forEach(c => c.classList.remove('active'));
   updateAmountFieldVisibility();
+  $('new-quest-form').hidden = true;
+  $('new-quest-toggle').textContent = '＋ 새 퀘스트 등록';
 
   writeSave(save);
   render();
