@@ -580,11 +580,6 @@
         <div class="add-row" style="margin-top:8px;">
           <button class="add-btn" id="add-worker-btn" onclick="addWorker()" style="flex:1;padding:13px;">+ 등록</button>
         </div>
-        <div id="admin-register-row" style="display:none;margin-top:10px;padding:0 2px;">
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;">
-            <input type="checkbox" id="new-worker-admin" /> 관리자로 등록
-          </label>
-        </div>
       </div>
     </div>
   </div>
@@ -969,8 +964,6 @@
       whoami.style.display = 'none';
       if (adminBtn) adminBtn.style.display = '';
     }
-    const adminRow = document.getElementById('admin-register-row');
-    if (adminRow) adminRow.style.display = isAdmin() ? '' : 'none';
   }
 
   function changeWorker() {
@@ -1050,21 +1043,17 @@
     }
     if (workers.some(w => w.name === name)) { alert('이미 등록된 이름이에요.'); return; }
 
-    const adminCheck = document.getElementById('new-worker-admin');
-    const isAdminFlag = !!(adminCheck && isAdmin() && adminCheck.checked);
-
     const btn = document.getElementById('add-worker-btn');
     btn.disabled = true;
     colWorkers.add({
       name,
       password,
-      isAdmin: isAdminFlag,
+      isAdmin: false,
       ts: firebase.firestore.FieldValue.serverTimestamp(),
     })
       .then(() => {
         nameInput.value = '';
         pwInput.value = '';
-        if (adminCheck) adminCheck.checked = false;
         showToast('✅ 등록 완료!');
       })
       .catch(() => alert('등록 실패. 인터넷 연결을 확인해주세요.'))
@@ -1079,9 +1068,6 @@
 
   function renderWorkers() {
     const list = document.getElementById('worker-list');
-    const adminRow = document.getElementById('admin-register-row');
-    if (adminRow) adminRow.style.display = isAdmin() ? '' : 'none';
-
     const regular = workers.filter(w => !w.isAdmin);
     if (!regular.length) {
       list.innerHTML = '<div class="empty-state"><span class="empty-icon">👷</span>아직 등록된 이름이 없어요.<br>아래에서 이름을 등록해주세요.</div>';
