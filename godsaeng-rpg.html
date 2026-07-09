@@ -565,6 +565,19 @@
             <option value="timer">⏱ 타이머로 실제 시간 측정</option>
           </select>
         </div>
+        <div class="field" id="q-sets-toggle-field" hidden>
+          <label><input type="checkbox" id="q-use-sets"> 세트로 나누기</label>
+        </div>
+        <div class="field-row field" id="q-sets-fields" hidden>
+          <div>
+            <label>세트 수</label>
+            <input type="number" id="q-sets" min="1" step="1" value="3">
+          </div>
+          <div>
+            <label>세트당 횟수</label>
+            <input type="number" id="q-reps-per-set" min="1" step="1" value="10">
+          </div>
+        </div>
         <div class="field" id="q-amount-field">
           <label id="q-amount-label">예상 시간 (분)</label>
           <input type="number" id="q-amount" min="1" step="5" value="30">
@@ -860,10 +873,19 @@ function calcExpGainFor(item) {
   const amount = unit === 'count' ? item.count : item.min;
   return calcExpGain(unit, amount);
 }
-// 퀘스트/습관을 리스트에 표시할 때 쓰는 수치 텍스트 (예: "30분" / "20회")
+// 퀘스트/습관을 리스트에 표시할 때 쓰는 수치 텍스트 (예: "30분" / "20회" / "3세트×10회")
 function amountLabel(item) {
   const unit = item.unit || 'min';
+  if (unit === 'count' && item.sets) return `${item.sets}세트×${item.repsPerSet}회`;
   return unit === 'count' ? `${item.count}회` : `${item.min}분`;
+}
+
+// 세트 단위 퀘스트/습관의 "세트 1개 완료" 시 지급할 EXP
+// (완료보너스는 오늘의 첫 세트에서만 한 번 지급 — 세트마다 중복 지급하면
+//  짧은 걸 여러 번 쪼개서 유리해지는 예전 문제가 세트 단위로 재발하기 때문)
+function calcSetExpGain(item, isFirstSetToday) {
+  const repExp = Math.round(item.repsPerSet * CONFIG.EXP_PER_REP);
+  return isFirstSetToday ? repExp + CONFIG.CLEAR_BONUS : repExp;
 }
 
 // 모든 능력치의 현재 레벨 + 종합 레벨을 한번에 계산 (칭호 조건 판정용)
@@ -1417,6 +1439,12 @@ function renderQuestRow(q, i) {
   } else if (running) {
     leftBtn = `<button class="quest-check" data-quest-finish="${i}" aria-label="완료">✓</button>`;
     metaText = `${s.icon} ${s.name} · <span class="timer-elapsed" data-started="${q.startedAt}" data-target="${q.targetMin || 0}">⏱ 00:00 경과</span> · <button type="button" class="quest-cancel" data-quest-cancel="${i}">취소</button>`;
+  } else if (q.unit === 'count' && q.sets) {
+    const cur = q.currentSet || 0;
+    const nextExp = calcSetExpGain(q, cur === 0);
+    const undoBtn = cur > 0 ? ` · <button type="button" class="quest-cancel" data-set-undo="${i}">되돌리기</button>` : '';
+    leftBtn = `<button class="quest-check" data-set-clear="${i}" aria-label="세트 완료">　</button>`;
+    metaText = `${s.icon} ${s.name} · ${cur}/${q.sets}세트 (세트당 ${q.repsPerSet}회) · 이번 세트 +${nextExp} EXP${undoBtn}`;
   } else {
     leftBtn = `<button class="quest-check" data-clear="${i}" aria-label="완료">　</button>`;
     metaText = `${s.icon} ${s.name} · ${amountLabel(q)} · 완료 시 +${calcExpGainFor(q)} EXP`;
@@ -1460,6 +1488,12 @@ function renderHabitRow(h, i) {
   } else if (running) {
     leftBtn = `<button class="quest-check" data-habit-finish="${i}" aria-label="완료">✓</button>`;
     metaText = `${s.icon} ${s.name} · <span class="timer-elapsed" data-started="${h.startedAt}" data-target="${h.targetMin || 0}">⏱ 00:00 경과</span> · <button type="button" class="quest-cancel" data-habit-cancel="${i}">취소</button>`;
+  } else if (h.unit === 'count' && h.sets) {
+    const cur = h.setsDate === todayStr() ? (h.currentSet || 0) : 0;
+    const nextExp = calcSetExpGain(h, cur === 0);
+    const undoBtn = cur > 0 ? ` · <button type="button" class="quest-cancel" data-habit-set-undo="${i}">되돌리기</button>` : '';
+    leftBtn = `<button class="quest-check" data-habit-set-clear="${i}" aria-label="세트 완료">　</button>`;
+    metaText = `${s.icon} ${s.name} · ${repeatLabel(h)} · ${cur}/${h.sets}세트 (세트당 ${h.repsPerSet}회) · 🔥${shown}일 · 이번 세트 +${nextExp} EXP${undoBtn}`;
   } else {
     const preview = calcExpGainFor(h) + streakBonus(nextStreak(h));
     leftBtn = `<button class="quest-check" data-habit-clear="${i}" aria-label="완료">　</button>`;
@@ -1545,13 +1579,16 @@ $('q-type').addEventListener('change', () => {
   $('q-interval-field').hidden = type !== 'interval';
 });
 
-// 단위(분/회) · 측정방식(예상입력/타이머)에 따라 하위 입력 필드 보이기/숨기기
+// 단위(분/회) · 측정방식(예상입력/타이머) · 세트 여부에 따라 하위 입력 필드 보이기/숨기기
 function updateAmountFieldVisibility() {
   const unit = $('q-unit').value;
   const mode = $('q-mode').value;
+  const useSets = unit === 'count' && $('q-use-sets').checked;
 
   $('q-mode-field').hidden = (unit === 'count'); // 횟수 단위는 타이머 개념이 없음
-  $('q-amount-field').hidden = false; // 이제 타이머 모드에서도 '목표 시간'으로 계속 사용
+  $('q-sets-toggle-field').hidden = (unit !== 'count'); // 세트 나누기는 횟수 단위에서만
+  $('q-sets-fields').hidden = !useSets;
+  $('q-amount-field').hidden = useSets; // 세트 모드에선 총 횟수 대신 세트×세트당횟수로 입력
 
   if (unit === 'count') {
     $('q-amount-label').textContent = '횟수 (회)';
@@ -1566,6 +1603,7 @@ function updateAmountFieldVisibility() {
 }
 $('q-unit').addEventListener('change', updateAmountFieldVisibility);
 $('q-mode').addEventListener('change', updateAmountFieldVisibility);
+$('q-use-sets').addEventListener('change', updateAmountFieldVisibility);
 updateAmountFieldVisibility(); // 초기 상태 반영
 
 // 퀘스트 등록
@@ -1575,11 +1613,20 @@ $('q-add').addEventListener('click', () => {
   const unit = $('q-unit').value;                              // 'min' | 'count'
   const mode = unit === 'count' ? 'estimate' : $('q-mode').value; // 횟수 단위는 항상 예상입력 취급
   const timerMode = unit === 'min' && mode === 'timer';
+  const useSets = unit === 'count' && $('q-use-sets').checked;
 
   if (!name) { $('q-name').focus(); return; }
 
-  const amount = parseInt($('q-amount').value, 10);
-  if (!amount || amount < 1) { $('q-amount').focus(); return; }
+  let amount, setsVal, repsPerSetVal;
+  if (useSets) {
+    setsVal = parseInt($('q-sets').value, 10);
+    repsPerSetVal = parseInt($('q-reps-per-set').value, 10);
+    if (!setsVal || setsVal < 1) { $('q-sets').focus(); return; }
+    if (!repsPerSetVal || repsPerSetVal < 1) { $('q-reps-per-set').focus(); return; }
+  } else {
+    amount = parseInt($('q-amount').value, 10);
+    if (!amount || amount < 1) { $('q-amount').focus(); return; }
+  }
 
   if (type === 'weekly' && selectedWeekdays.length === 0) {
     toast('⚠️ 반복할 요일을 하나 이상 선택해 주세요.');
@@ -1588,7 +1635,14 @@ $('q-add').addEventListener('click', () => {
 
   const base = { name, statId: $('q-stat').value, unit, timerMode, startedAt: null };
   if (unit === 'count') {
-    base.count = amount;
+    if (useSets) {
+      base.sets = setsVal;
+      base.repsPerSet = repsPerSetVal;
+      base.count = setsVal * repsPerSetVal;
+      base.currentSet = 0;
+    } else {
+      base.count = amount;
+    }
   } else if (timerMode) {
     base.min = 0;          // 완료 시점에 실제 경과 시간으로 채워짐
     base.targetMin = amount; // 참고용 목표 시간 (남은 시간 표시에만 사용, EXP 계산에는 안 씀)
@@ -1600,6 +1654,7 @@ $('q-add').addEventListener('click', () => {
     save.quests.push(base);
   } else {
     const habit = { ...base, streak: 0, lastDone: null, repeatType: type };
+    if (useSets) habit.setsDate = null;
     if (type === 'weekly') habit.days = [...selectedWeekdays].sort();
     if (type === 'interval') habit.intervalDays = Math.max(2, parseInt($('q-interval').value, 10) || 2);
     save.habits.push(habit);
@@ -1610,6 +1665,9 @@ $('q-add').addEventListener('click', () => {
   $('q-unit').value = 'min';
   $('q-mode').value = 'estimate';
   $('q-amount').value = '30';
+  $('q-use-sets').checked = false;
+  $('q-sets').value = '3';
+  $('q-reps-per-set').value = '10';
   $('q-type').value = 'once';
   $('q-weekly-field').hidden = true;
   $('q-interval-field').hidden = true;
@@ -1632,6 +1690,8 @@ $('quest-list').addEventListener('click', e => {
   const startIdx = e.target.dataset.questStart;
   const finishIdx = e.target.dataset.questFinish;
   const cancelIdx = e.target.dataset.questCancel;
+  const setClearIdx = e.target.dataset.setClear;
+  const setUndoIdx = e.target.dataset.setUndo;
 
   if (clearIdx !== undefined) {
     const q = save.quests.splice(clearIdx, 1)[0];
@@ -1701,6 +1761,62 @@ $('quest-list').addEventListener('click', e => {
     writeSave(save);
     render();
   }
+
+  // 세트 완료 — 세트 1개씩 완료 처리, 목표 세트에 도달하면 퀘스트 전체 완료
+  if (setClearIdx !== undefined) {
+    const q = save.quests[setClearIdx];
+    const cur = q.currentSet || 0;
+    const isFirst = cur === 0;
+    const gained = calcSetExpGain(q, isFirst);
+    const before = calcLevel(save.exp[q.statId]).level;
+    const prevLv = getLevels();
+    const prevTotalExp = getTotalExp();
+
+    save.exp[q.statId] += gained;
+    save.gold += gained;
+    q.currentSet = cur + 1;
+    const finished = q.currentSet >= q.sets;
+    // 마지막 세트일 때만 source:'quest'로 기록 — 스테이지 보너스 전진(BONUS_STEP)이
+    // 퀘스트 1개당 1번만 인정되도록 (세트마다 기록하면 보너스가 세트 수만큼 중복됨)
+    save.doneLog.push({
+      name: q.name, statId: q.statId, gained, ts: Date.now(), source: finished ? 'quest' : 'quest-set',
+      unit: 'count', min: null, count: q.repsPerSet,
+    });
+
+    if (finished) save.quests.splice(setClearIdx, 1);
+
+    const after = calcLevel(save.exp[q.statId]).level;
+    writeSave(save);
+    render();
+
+    const s = STATS.find(x => x.id === q.statId);
+    const label = finished ? `${q.sets}/${q.sets}세트 완료!` : `${q.currentSet}/${q.sets}세트`;
+    toast(`${label} · ${s.icon} ${s.name} +${gained} EXP · 💰+${gained}G`);
+    if (after > before) setTimeout(() => toast(`LEVEL UP! ${s.name} Lv.${after} 달성!`, true), 600);
+    announceStageProgress(prevTotalExp);
+    announceNewTitles(prevLv);
+  }
+
+  // 세트 되돌리기 — 방금 완료한 세트 1개를 취소하고 EXP도 회수
+  if (setUndoIdx !== undefined) {
+    const q = save.quests[setUndoIdx];
+    const cur = q.currentSet || 0;
+    if (cur <= 0) return;
+    const wasFirst = cur === 1;
+    const lost = calcSetExpGain(q, wasFirst);
+    q.currentSet = cur - 1;
+    save.exp[q.statId] = Math.max(0, save.exp[q.statId] - lost);
+    save.gold = Math.max(0, save.gold - lost);
+    for (let li = save.doneLog.length - 1; li >= 0; li--) {
+      const l = save.doneLog[li];
+      if (l.name === q.name && l.statId === q.statId && l.source === 'quest-set' && l.gained === lost) {
+        save.doneLog.splice(li, 1);
+        break;
+      }
+    }
+    writeSave(save);
+    render();
+  }
 });
 
 // 습관 하나를 '완료 처리' — 일반 완료와 타이머 완료 둘 다 이 함수로 마무리됨
@@ -1744,6 +1860,8 @@ $('habit-list').addEventListener('click', e => {
   const startIdx = e.target.dataset.habitStart;
   const finishIdx = e.target.dataset.habitFinish;
   const cancelIdx = e.target.dataset.habitCancel;
+  const setClearIdx = e.target.dataset.habitSetClear;
+  const setUndoIdx = e.target.dataset.habitSetUndo;
 
   if (ci !== undefined) {
     const h = save.habits[ci];
@@ -1779,6 +1897,78 @@ $('habit-list').addEventListener('click', e => {
   // 타이머 취소 — 완료 처리 없이 시작 전 상태로 되돌림
   if (cancelIdx !== undefined) {
     save.habits[cancelIdx].startedAt = null;
+    writeSave(save);
+    render();
+  }
+
+  // 세트 완료 — 세트 1개씩 완료 처리, 목표 세트에 도달하면 습관 전체 완료(스트릭/lastDone 갱신)
+  if (setClearIdx !== undefined) {
+    const h = save.habits[setClearIdx];
+    if (h.lastDone === todayStr()) return; // 오늘 이미 완료
+    const today = todayStr();
+    const cur = h.setsDate === today ? (h.currentSet || 0) : 0;
+    const isFirst = cur === 0;
+    const gained = calcSetExpGain(h, isFirst);
+    const prevHabitStat = getTodayHabitStat();
+    const prevRatio = prevHabitStat ? prevHabitStat.ratio : null;
+    const before = calcLevel(save.exp[h.statId]).level;
+    const prevLv = getLevels();
+    const prevTotalExp = getTotalExp();
+
+    save.exp[h.statId] += gained;
+    save.gold += gained;
+    h.currentSet = cur + 1;
+    h.setsDate = today;
+    save.doneLog.push({
+      name: h.name, statId: h.statId, gained, ts: Date.now(), source: 'habit',
+      unit: 'count', min: null, count: h.repsPerSet,
+    });
+
+    let bonus = 0;
+    const finished = h.currentSet >= h.sets;
+    if (finished) {
+      h.streak = nextStreak(h);
+      h.lastDone = today;
+      bonus = streakBonus(h.streak);
+      save.exp[h.statId] += bonus;
+      save.gold += bonus;
+    }
+
+    const after = calcLevel(save.exp[h.statId]).level;
+    writeSave(save);
+    render();
+
+    const s = STATS.find(x => x.id === h.statId);
+    if (finished) {
+      toast(`${h.sets}/${h.sets}세트 완료! · ${s.icon} ${s.name} +${gained} EXP · 💰+${gained}G (🔥${h.streak}일차 보너스 +${bonus})`);
+    } else {
+      toast(`${h.currentSet}/${h.sets}세트 · ${s.icon} ${s.name} +${gained} EXP · 💰+${gained}G`);
+    }
+    if (after > before) setTimeout(() => toast(`LEVEL UP! ${s.name} Lv.${after} 달성!`, true), 600);
+    if (finished) announceTodayFinish(prevRatio);
+    announceStageProgress(prevTotalExp);
+    announceNewTitles(prevLv);
+  }
+
+  // 세트 되돌리기 — 방금 완료한 세트 1개를 취소하고 EXP도 회수 (완료된 습관은 되돌리기 불가)
+  if (setUndoIdx !== undefined) {
+    const h = save.habits[setUndoIdx];
+    if (h.lastDone === todayStr()) return;
+    const today = todayStr();
+    const cur = h.setsDate === today ? (h.currentSet || 0) : 0;
+    if (cur <= 0) return;
+    const wasFirst = cur === 1;
+    const lost = calcSetExpGain(h, wasFirst);
+    h.currentSet = cur - 1;
+    save.exp[h.statId] = Math.max(0, save.exp[h.statId] - lost);
+    save.gold = Math.max(0, save.gold - lost);
+    for (let li = save.doneLog.length - 1; li >= 0; li--) {
+      const l = save.doneLog[li];
+      if (l.name === h.name && l.statId === h.statId && l.source === 'habit' && l.gained === lost) {
+        save.doneLog.splice(li, 1);
+        break;
+      }
+    }
     writeSave(save);
     render();
   }
