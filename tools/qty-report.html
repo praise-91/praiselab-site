@@ -515,6 +515,19 @@
   .chev { color: var(--text-dim); font-weight: 900; margin-left: 6px; }
   .group-count { font-size: 11px; color: var(--text-dim); }
 
+  /* ── 관리자 버튼 ── */
+  .admin-btn {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .admin-btn:hover { border-color: var(--orange); color: var(--orange); }
+
   /* ── 토스트 ── */
   .toast {
     position: fixed;
@@ -542,6 +555,7 @@
     Praiselab
   </a>
   <button class="whoami" id="whoami" onclick="changeWorker()" style="display:none;"></button>
+  <button class="admin-btn" id="admin-btn" onclick="openAdminLogin()" style="display:none;">🔐 관리자</button>
 </header>
 
 <div class="container">
@@ -807,6 +821,9 @@
     { category: '단말', name: '터미널 (2홀)', unit: 'EA', spec1: { label: '굵기', options: ['120sq', '150sq', '240sq', '300sq'] }, order: 3 },
   ];
 
+  // 관리자 계정 (하드코딩 — Firestore qty_workers와 무관)
+  const ADMIN = { name: '김찬양', password: '2540', isAdmin: true };
+
   // 기본 자재 판별: isDefault 필드가 있거나 DEFAULT_TYPES 목록에 포함된 것
   const DEFAULT_TYPE_KEYS = new Set(DEFAULT_TYPES.map(t => `${t.category}||${t.name}`));
   function isDefaultItem(item) {
@@ -942,12 +959,15 @@
   window.addEventListener('popstate', e => applyState(e.state));
 
   function updateWhoami() {
-    const btn = document.getElementById('whoami');
+    const whoami = document.getElementById('whoami');
+    const adminBtn = document.getElementById('admin-btn');
     if (currentWorker) {
-      btn.style.display = '';
-      btn.textContent = (isAdmin() ? '⭐ ' : '👷 ') + currentWorker;
+      whoami.style.display = '';
+      whoami.textContent = (isAdmin() ? '⭐ ' : '👷 ') + currentWorker;
+      if (adminBtn) adminBtn.style.display = 'none';
     } else {
-      btn.style.display = 'none';
+      whoami.style.display = 'none';
+      if (adminBtn) adminBtn.style.display = '';
     }
     const adminRow = document.getElementById('admin-register-row');
     if (adminRow) adminRow.style.display = isAdmin() ? '' : 'none';
@@ -1008,6 +1028,16 @@
     alert('비밀번호: ' + (pw || '(없음)'));
   }
 
+  function openAdminLogin() {
+    pendingWorker = ADMIN;
+    document.getElementById('pw-worker-name').textContent = '🔐 관리자 로그인';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-error').style.display = 'none';
+    go('view-password');
+    pushHistory('view-password');
+    setTimeout(() => document.getElementById('pw-input').focus(), 150);
+  }
+
   function addWorker() {
     const nameInput = document.getElementById('new-worker');
     const pwInput = document.getElementById('new-worker-pw');
@@ -1052,14 +1082,15 @@
     const adminRow = document.getElementById('admin-register-row');
     if (adminRow) adminRow.style.display = isAdmin() ? '' : 'none';
 
-    if (!workers.length) {
+    const regular = workers.filter(w => !w.isAdmin);
+    if (!regular.length) {
       list.innerHTML = '<div class="empty-state"><span class="empty-icon">👷</span>아직 등록된 이름이 없어요.<br>아래에서 이름을 등록해주세요.</div>';
       return;
     }
-    list.innerHTML = workers.map(w => `
+    list.innerHTML = regular.map(w => `
       <div class="worker-row">
         <button class="worker-btn" onclick="selectWorker('${w.id}')">
-          ${w.isAdmin ? '⭐' : '👷'} ${escapeHtml(w.name)}
+          👷 ${escapeHtml(w.name)}
         </button>
         ${isAdmin() ? `<button class="pw-btn" onclick="showWorkerPw('${escapeHtml(w.password || '')}')">🔑</button>` : ''}
         <button class="del-btn" onclick="deleteWorker('${w.id}', '${escapeHtml(w.name)}')">✕</button>
@@ -1534,19 +1565,14 @@
     })).catch(() => {});
   }
 
-  // 관리자 계정 사전 등록 (한 번만)
-  function seedAdmin() {
-    const lockRef = colWorkers.doc('_admin_seed');
-    db.runTransaction(tx => tx.get(lockRef).then(snap => {
-      if (snap.exists) return;
-      tx.set(lockRef, { at: firebase.firestore.FieldValue.serverTimestamp() });
-      tx.set(colWorkers.doc(), {
-        name: '김찬양',
-        password: '2540',
-        isAdmin: true,
-        ts: firebase.firestore.FieldValue.serverTimestamp(),
-      });
-    })).catch(() => {});
+  // Firestore qty_workers에 남아있는 isAdmin 문서 일괄 삭제
+  function cleanupAdminWorkers() {
+    colWorkers.where('isAdmin', '==', true).get().then(snap => {
+      if (snap.empty) return;
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      return batch.commit();
+    }).catch(() => {});
   }
 
   // ── 실시간 리스너 ──
@@ -1584,7 +1610,7 @@
 
   // ── 시작 ──
   seedIfEmpty();
-  seedAdmin();
+  cleanupAdminWorkers();
   updateWhoami();
   const initialView = currentWorker ? 'view-home' : 'view-worker';
   go(initialView);
