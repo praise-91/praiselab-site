@@ -540,7 +540,7 @@
     <div class="window">
       <div class="window-title">NEW QUEST</div>
       <button class="btn" id="new-quest-toggle">＋ 새 퀘스트 등록</button>
-      <div id="new-quest-form" hidden>
+      <div id="new-quest-form" style="margin-top:14px" hidden>
         <div class="field">
           <label>할 일</label>
           <input type="text" id="q-name" placeholder="할 일을 입력하세요">
@@ -1579,14 +1579,19 @@ $('q-type').addEventListener('change', () => {
   $('q-interval-field').hidden = type !== 'interval';
 });
 
-// 단위(분/회) · 측정방식(예상입력/타이머) · 세트 여부에 따라 하위 입력 필드 보이기/숨기기
+// 세트 나누기는 운동 능력치(힘/체력)에서만 의미가 있음 — 공부·독서·명상 등에는 불필요
+const SET_ELIGIBLE_STATS = ['str', 'vit'];
+
+// 단위(분/회) · 측정방식(예상입력/타이머) · 능력치 · 세트 여부에 따라 하위 입력 필드 보이기/숨기기
 function updateAmountFieldVisibility() {
   const unit = $('q-unit').value;
   const mode = $('q-mode').value;
-  const useSets = unit === 'count' && $('q-use-sets').checked;
+  const setsEligible = unit === 'count' && SET_ELIGIBLE_STATS.includes($('q-stat').value);
+  if (!setsEligible) $('q-use-sets').checked = false; // 세트 불가능한 능력치로 바뀌면 세트 모드 해제
+  const useSets = setsEligible && $('q-use-sets').checked;
 
   $('q-mode-field').hidden = (unit === 'count'); // 횟수 단위는 타이머 개념이 없음
-  $('q-sets-toggle-field').hidden = (unit !== 'count'); // 세트 나누기는 횟수 단위에서만
+  $('q-sets-toggle-field').hidden = !setsEligible; // 세트 나누기는 운동 능력치의 횟수 단위에서만
   $('q-sets-fields').hidden = !useSets;
   $('q-amount-field').hidden = useSets; // 세트 모드에선 총 횟수 대신 세트×세트당횟수로 입력
 
@@ -1603,6 +1608,7 @@ function updateAmountFieldVisibility() {
 }
 $('q-unit').addEventListener('change', updateAmountFieldVisibility);
 $('q-mode').addEventListener('change', updateAmountFieldVisibility);
+$('q-stat').addEventListener('change', updateAmountFieldVisibility);
 $('q-use-sets').addEventListener('change', updateAmountFieldVisibility);
 updateAmountFieldVisibility(); // 초기 상태 반영
 
@@ -1613,7 +1619,7 @@ $('q-add').addEventListener('click', () => {
   const unit = $('q-unit').value;                              // 'min' | 'count'
   const mode = unit === 'count' ? 'estimate' : $('q-mode').value; // 횟수 단위는 항상 예상입력 취급
   const timerMode = unit === 'min' && mode === 'timer';
-  const useSets = unit === 'count' && $('q-use-sets').checked;
+  const useSets = unit === 'count' && SET_ELIGIBLE_STATS.includes($('q-stat').value) && $('q-use-sets').checked;
 
   if (!name) { $('q-name').focus(); return; }
 
