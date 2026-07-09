@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>갓생키우기 — PraiseLab</title>
+<style>
+  /* ===== 폰트: 한글 픽셀 폰트 둥근모꼴 ===== */
+  @font-face {
+    font-family: 'DungGeunMo';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2107@1.1/DungGeunMo.woff') format('woff');
+    font-weight: normal;
+    font-display: swap;
+  }
+
+  /* ===== 디자인 토큰 ===== */
+  :root {
+    --bg: #14152b;          /* 밤하늘 남색 */
+    --panel: #1f2140;       /* 패널 배경 */
+    --panel-deep: #181a33;  /* 더 어두운 패널 */
+    --line: #3d4070;        /* 테두리 */
+    --text: #e8e9f5;
+    --dim: #8a8db8;
+    --gold: #f5c542;        /* 경험치/강조 */
+    --hp-red: #e85a5a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DungGeunMo', 'Courier New', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 12px 90px;
+    image-rendering: pixelated;
+  }
+
+  .wrap { max-width: 560px; margin: 0 auto; }
+
+  /* ===== RPG 창 스타일: 이중 픽셀 테두리 ===== */
+  .window {
+    background: var(--panel);
+    border: 3px solid var(--line);
+    box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--line), 6px 8px 0 rgba(0,0,0,.45);
+    padding: 18px 16px;
+    margin-bottom: 26px;
+    position: relative;
+  }
+  .window-title {
+    position: absolute;
+    top: -14px; left: 12px;
+    background: var(--bg);
+    padding: 2px 10px;
+    font-size: 13px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    border: 2px solid var(--line);
+  }
+
+  /* ===== 캐릭터 헤더 ===== */
+  .char-head { display: flex; align-items: center; gap: 14px; }
+  .char-face {
+    width: 56px; height: 56px;
+    background: var(--panel-deep);
+    border: 2px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; flex-shrink: 0;
+    cursor: pointer;
+  }
+  .char-name { font-size: 20px; letter-spacing: 1px; }
+  .char-sub { font-size: 12px; color: var(--dim); margin-top: 4px; }
+  .char-sub b { color: var(--gold); font-weight: normal; }
+
+  .title-pill {
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--gold);
+    background: rgba(245,197,66,.12);
+    border: 1px solid var(--gold);
+    padding: 2px 8px;
+    margin-bottom: 4px;
+    cursor: pointer;
+  }
+  .title-pill:hover { background: rgba(245,197,66,.22); }
+  .gold-pill { color: #7ee787; border-color: #7ee787; background: rgba(126,231,135,.10); cursor: default; }
+
+  .shop-face-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .shop-face-item {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 10px 4px;
+    background: var(--panel-deep);
+    border: 2px solid var(--line);
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .shop-face-item .f-icon { font-size: 24px; }
+  .shop-face-item .f-cost { font-size: 10px; color: var(--dim); }
+  .shop-face-item.owned { border-color: var(--gold); }
+  .shop-face-item.owned .f-cost { color: var(--gold); }
+  .shop-face-item.locked { opacity: .5; cursor: default; }
+  .shop-face-item.affordable:not(.owned) { border-color: #7ee787; }
+
+  .reward-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+  .reward-item:last-child { border-bottom: none; }
+  .reward-item .r-name { flex: 1; font-size: 14px; min-width: 0; word-break: keep-all; }
+  .reward-item .r-cost { font-size: 12px; color: var(--gold); white-space: nowrap; }
+  .reward-buy {
+    font-family: inherit; font-size: 12px;
+    background: var(--gold); color: #1a1405;
+    border: 1px solid #b8912a; padding: 6px 10px; cursor: pointer;
+    white-space: nowrap;
+  }
+  .reward-buy:disabled { background: var(--panel-deep); color: var(--dim); border-color: var(--line); cursor: default; }
+
+  .title-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 8px; border-bottom: 1px dashed var(--line);
+    cursor: pointer;
+  }
+  .title-item:last-child { border-bottom: none; }
+  .title-item.locked { opacity: .38; cursor: default; }
+  .title-item .t-icon { font-size: 20px; width: 24px; text-align: center; flex-shrink: 0; }
+  .title-item .t-name { font-size: 14px; }
+  .title-item .t-desc { font-size: 11px; color: var(--dim); margin-top: 2px; }
+  .title-item.equipped { background: rgba(245,197,66,.08); }
+  .title-item .t-check { margin-left: auto; color: var(--gold); font-size: 13px; }
+
+  /* ===== 스탯 목록 ===== */
+  .stat-hint { font-size: 11px; color: var(--dim); margin-bottom: 12px; letter-spacing: .5px; }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: 84px 1fr 56px 16px;
+    gap: 10px;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px 8px 8px 4px;
+    margin: 0 -8px 8px -4px;
+    background: var(--panel-deep);
+    border: 1px solid var(--line);
+  }
+  .stat-row:last-child { margin-bottom: -4px; }
+  .stat-row:active { background: rgba(245,197,66,.10); border-color: var(--gold); }
+  .stat-row:hover { background: rgba(245,197,66,.06); }
+  .stat-chevron { color: var(--dim); font-size: 15px; text-align: center; }
+  .stat-label { font-size: 14px; display: flex; align-items: center; gap: 6px; }
+  .stat-icon { font-size: 15px; }
+  .bar-outer {
+    height: 16px;
+    background: var(--panel-deep);
+    border: 2px solid var(--line);
+    position: relative;
+    overflow: hidden;
+  }
+  .bar-inner {
+    height: 100%;
+    width: 0%;
+    transition: width .6s steps(12);
+    background: repeating-linear-gradient(90deg, currentColor 0 6px, rgba(255,255,255,.18) 6px 8px);
+  }
+  .stat-lv { font-size: 13px; text-align: right; color: var(--dim); }
+  .stat-lv b { color: var(--text); font-weight: normal; font-size: 15px; }
+
+  /* ===== 퀘스트(투두) 입력 ===== */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: var(--dim); margin-bottom: 5px; letter-spacing: 1px; }
+  input[type="text"], input[type="number"], select {
+    width: 100%;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--text);
+    background: var(--panel-deep);
+    border: 2px solid var(--line);
+    padding: 9px 10px;
+    outline: none;
+  }
+  input:focus, select:focus, button:focus-visible { border-color: var(--gold); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .weekday-picker { display: flex; gap: 6px; }
+  .weekday-chip {
+    flex: 1;
+    font-family: inherit;
+    font-size: 13px;
+    text-align: center;
+    padding: 9px 0;
+    background: var(--panel-deep);
+    border: 2px solid var(--line);
+    color: var(--dim);
+    cursor: pointer;
+  }
+  .weekday-chip.active { background: var(--gold); color: #1a1405; border-color: #b8912a; }
+
+  .report-toggle { display: flex; gap: 0; border: 2px solid var(--line); width: fit-content; }
+  .report-tab-btn {
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--dim);
+    background: var(--panel-deep);
+    border: none;
+    padding: 7px 16px;
+    cursor: pointer;
+  }
+  .report-tab-btn + .report-tab-btn { border-left: 2px solid var(--line); }
+  .report-tab-btn.active { background: var(--gold); color: #1a1405; }
+
+  /* ===== 스테이지 러너 (방치형 게임 요소) ===== */
+  .stage-track {
+    position: relative;
+    height: 64px;
+    overflow: hidden;
+    margin: 4px 0 14px;
+    border: 2px solid var(--line);
+    background: linear-gradient(180deg, #1b1e3d 0%, #1b1e3d 68%, #262a52 68%, #262a52 100%);
+    transition: background 0.4s ease;
+  }
+  .stage-today-caption { font-size: 11px; color: var(--dim); margin-bottom: 10px; }
+
+  /* 캐릭터 좌우 위치는 JS가 style.left / transition을 직접 제어함 (오늘 습관 진행률 기준) */
+  .stage-runner {
+    position: absolute; bottom: 7px; left: -22%;
+    font-size: 26px;
+    z-index: 3;
+    animation: stage-bounce .28s ease-in-out infinite alternate;
+  }
+  @keyframes stage-bounce { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+
+  /* 방치된 능력치가 있으면 캐릭터가 전진을 멈추고 그 자리에서 뛰기만 함 */
+  .stage-runner.blocked { left: 66% !important; }
+
+  /* 타이머가 진행 중일 때 캐릭터를 살짝 강조 (더 빠르게 뛰고 은은하게 빛남) */
+  .stage-runner.running {
+    animation: stage-bounce .16s ease-in-out infinite alternate;
+    filter: drop-shadow(0 0 5px rgba(245,197,66,.85));
+  }
+
+  /* 방치된 능력치를 상징하는 '길막' 몬스터 */
+  .stage-blocker {
+    position: absolute; bottom: 7px; left: 80%; font-size: 24px; z-index: 2;
+    animation: stage-blocker-shake .5s ease-in-out infinite alternate;
+  }
+  @keyframes stage-blocker-shake { from { transform: translateX(0); } to { transform: translateX(3px); } }
+
+  /* 스테이지 클리어 순간의 짧은 이펙트 */
+  .stage-burst {
+    position: absolute; top: 46%; left: 62%;
+    transform: translate(-50%, -50%) scale(.4);
+    font-size: 28px; z-index: 5; pointer-events: none;
+    animation: stage-burst-pop .65s ease-out forwards;
+  }
+  @keyframes stage-burst-pop {
+    0%   { transform: translate(-50%, -50%) scale(.4); opacity: 1; }
+    55%  { transform: translate(-50%, -50%) scale(1.25); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+  }
+
+  /* 오늘 습관 100% 완주 순간의 짧은 이펙트 (스테이지 클리어와 다른 위치/색) */
+  .stage-finish-burst {
+    position: absolute; top: 46%; left: 90%;
+    transform: translate(-50%, -50%) scale(.4);
+    font-size: 24px; z-index: 5; pointer-events: none;
+    animation: stage-burst-pop .65s ease-out forwards;
+  }
+
+  .stage-flag { position: absolute; bottom: 6px; right: 8px; font-size: 18px; opacity: .55; }
+  .stage-theme-badge {
+    position: absolute; top: 6px; left: 8px;
+    font-size: 10px; color: var(--dim);
+    background: rgba(0,0,0,.35);
+    padding: 2px 7px;
+    letter-spacing: .5px;
+    z-index: 2;
+  }
+
+  .stage-test { margin-top: 0; }
+  .stage-test-toggle {
+    font-family: inherit; font-size: 11px; color: var(--dim);
+    background: none; border: 1px solid var(--line);
+    padding: 5px 10px; cursor: pointer;
+  }
+  .stage-test-controls { margin-top: 10px; }
+  .stage-test-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .stage-test-nav {
+    font-family: inherit; font-size: 13px; color: var(--text);
+    background: var(--panel-deep); border: 2px solid var(--line);
+    width: 32px; height: 32px; cursor: pointer; flex-shrink: 0;
+  }
+  .stage-test-label { font-size: 11px; color: var(--dim); text-align: center; flex: 1; }
+  .stage-test-exit {
+    width: 100%; font-family: inherit; font-size: 11px;
+    color: var(--hp-red); background: none; border: 1px solid var(--hp-red);
+    padding: 7px; cursor: pointer;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stage-runner, .stage-runner.running { animation: none; filter: none; }
+    .stage-blocker { animation: none; }
+    .stage-burst, .stage-finish-burst { animation: none; opacity: 0; }
+  }
+
+  .btn {
+    font-family: inherit;
+    font-size: 15px;
+    width: 100%;
+    padding: 11px;
+    background: var(--gold);
+    color: #1a1405;
+    border: 2px solid #b8912a;
+    box-shadow: 0 4px 0 #8f6f1c;
+    cursor: pointer;
+    letter-spacing: 2px;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #8f6f1c; }
+
+  /* ===== 퀘스트 목록 ===== */
+  .quest { display: flex; align-items: center; gap: 10px; padding: 10px 6px; border-bottom: 2px dashed var(--line); }
+  .quest:last-child { border-bottom: none; }
+  .quest-check {
+    width: 26px; height: 26px; flex-shrink: 0;
+    background: var(--panel-deep);
+    border: 2px solid var(--line);
+    cursor: pointer;
+    font-size: 15px;
+    color: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .quest-body { flex: 1; min-width: 0; }
+  .quest-name { font-size: 15px; word-break: keep-all; }
+  .quest-meta { font-size: 11px; color: var(--dim); margin-top: 3px; }
+  .quest-del {
+    background: none; border: none; color: var(--dim);
+    font-family: inherit; font-size: 13px; cursor: pointer; padding: 4px;
+  }
+  .quest-del:hover { color: var(--hp-red); }
+  .quest.done .quest-name { text-decoration: line-through; color: var(--dim); }
+  .quest.done .quest-check { background: var(--line); cursor: default; }
+  .quest.rest { opacity: .5; }
+  .quest.rest .quest-check { cursor: default; }
+
+  /* 타이머(시작하기 → 완료) 관련 */
+  .quest-start { color: #7ee787; border-color: #7ee787; }
+  .timer-elapsed { color: var(--gold); font-variant-numeric: tabular-nums; }
+  .quest-cancel {
+    background: none; border: none; color: var(--dim);
+    font-family: inherit; font-size: 11px; cursor: pointer;
+    text-decoration: underline; padding: 0;
+  }
+  .quest-cancel:hover { color: var(--hp-red); }
+
+  .empty { text-align: center; color: var(--dim); font-size: 13px; padding: 18px 0; line-height: 1.8; }
+
+  /* ===== 획득 토스트 ===== */
+  #toast-area { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .toast {
+    background: var(--panel);
+    border: 2px solid var(--gold);
+    color: var(--gold);
+    font-size: 14px;
+    padding: 8px 18px;
+    box-shadow: 4px 4px 0 rgba(0,0,0,.5);
+    animation: pop 2.4s steps(8) forwards;
+    white-space: nowrap;
+  }
+  .toast.levelup { color: #fff; background: #4a3b8f; border-color: #9d8cff; }
+  @keyframes pop {
+    0% { opacity: 0; transform: translateY(14px); }
+    10%, 80% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-10px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bar-inner { transition: none; }
+    .toast { animation-duration: .01s; animation-delay: 2.4s; }
+  }
+
+  /* ===== 능력치 상세보기 모달 ===== */
+  #modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(10,10,20,.72);
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 60; padding: 0;
+  }
+  #modal-overlay[hidden] { display: none; }
+  #modal-window {
+    width: 100%; max-width: 560px;
+    background: var(--panel);
+    border: 3px solid var(--line);
+    border-bottom: none;
+    box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--line);
+    padding: 20px 16px 24px;
+    max-height: 86vh; overflow-y: auto;
+    position: relative;
+    animation: slideup .25s steps(10);
+  }
+  @keyframes slideup { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  #modal-close {
+    position: absolute; top: 12px; right: 14px;
+    background: none; border: 2px solid var(--line); color: var(--dim);
+    font-family: inherit; font-size: 14px; width: 30px; height: 30px; cursor: pointer;
+  }
+  .modal-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .modal-icon { font-size: 26px; }
+  .modal-title { font-size: 19px; }
+  .modal-sub { font-size: 12px; color: var(--dim); margin: 10px 0 4px; letter-spacing: 1px; }
+  .modal-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 18px; }
+  .stat-box { background: var(--panel-deep); border: 2px solid var(--line); padding: 10px 12px; }
+  .stat-box .num { font-size: 18px; color: var(--gold); }
+  .stat-box .lbl { font-size: 11px; color: var(--dim); margin-top: 2px; }
+
+  .week-chart { display: flex; align-items: flex-end; gap: 6px; height: 90px; margin: 10px 0 4px; }
+  .week-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .week-bar { width: 100%; background: var(--line); min-height: 3px; }
+  .week-day { font-size: 10px; color: var(--dim); margin-top: 5px; }
+
+  .log-item { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 12px; }
+  .log-item:last-child { border-bottom: none; }
+  .log-item .lname { color: var(--text); }
+  .log-item .lmeta { color: var(--dim); white-space: nowrap; }
+
+  /* ===== 게임 로고 (첫 화면) ===== */
+  .game-logo {
+    font-size: 30px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-shadow: 3px 3px 0 rgba(0,0,0,.4);
+    margin-bottom: 6px;
+  }
+  .game-logo-sub {
+    font-size: 11px;
+    color: var(--dim);
+    letter-spacing: 3px;
+    margin-bottom: 22px;
+  }
+
+  /* ===== 하단 탭바 ===== */
+  .tab-panel { display: block; }
+  .tab-panel[hidden] { display: none; }
+
+  #tab-bar {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    max-width: 560px; margin: 0 auto;
+    display: flex;
+    background: var(--panel);
+    border-top: 3px solid var(--line);
+    box-shadow: 0 -3px 0 var(--bg), 0 -5px 0 var(--line);
+    z-index: 40;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  #tab-bar[hidden] { display: none; }
+  .tab-btn {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: none; border: none;
+    font-family: inherit;
+    color: var(--dim);
+    padding: 10px 2px 8px;
+    cursor: pointer;
+  }
+  .tab-btn .tab-icon { font-size: 19px; }
+  .tab-btn .tab-label { font-size: 10px; letter-spacing: .5px; }
+  .tab-btn.active { color: var(--gold); }
+  .tab-btn.active .tab-icon { transform: translateY(-1px); }
+
+  /* ===== 이름 정하기 (첫 실행) ===== */
+  #name-screen { text-align: center; padding: 40px 0 30px; }
+  #name-screen .blink { animation: blink 1.2s steps(2) infinite; color: var(--gold); }
+  @keyframes blink { 50% { opacity: 0; } }
+  #name-screen h1 { font-size: 22px; margin-bottom: 8px; font-weight: normal; letter-spacing: 2px; }
+  #name-screen p { font-size: 13px; color: var(--dim); margin-bottom: 24px; line-height: 1.9; }
+  #name-input { text-align: center; font-size: 18px; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== 화면 1: 캐릭터 이름 정하기 ===== -->
+  <div id="name-screen" class="window" hidden>
+    <div class="game-logo">갓 생 키 우 기</div>
+    <div class="game-logo-sub">GODSAENG RPG</div>
+    <h1>모험을 시작합니다</h1>
+    <p>할 일을 완료할 때마다<br>당신의 캐릭터가 성장합니다.</p>
+    <input type="text" id="name-input" maxlength="10" placeholder="캐릭터 이름">
+    <button class="btn" id="name-btn">▶ 시작하기</button>
+    <p style="margin-top:16px"><span class="blink">PRESS START</span></p>
+  </div>
+
+  <!-- ===== 화면 2: 메인 ===== -->
+  <div id="main-screen" hidden>
+
+  <!-- ── 탭: 홈 ── -->
+  <div class="tab-panel" id="tab-home">
+    <!-- 스테이지 러너 (방치형 게임 요소) -->
+    <div class="window">
+      <div class="window-title">STAGE</div>
+      <div class="stage-track" id="stage-track">
+        <div class="stage-theme-badge" id="stage-theme-badge">🌲 숲</div>
+        <div class="stage-runner" id="stage-runner">🙂</div>
+        <div class="stage-blocker" id="stage-blocker" hidden>👹</div>
+        <div class="stage-flag">🚩</div>
+      </div>
+      <div class="stage-today-caption" id="stage-today-caption">오늘 습관 0/0</div>
+      <div class="modal-sub" style="margin-bottom:6px">
+        STAGE <b id="stage-num" style="color:var(--gold); font-weight:normal">1</b> · <span id="stage-pct">0</span>%
+      </div>
+      <div class="bar-outer"><div class="bar-inner" id="stage-bar" style="color:var(--gold); width:0%"></div></div>
+      <p style="font-size:11px; color:var(--dim); margin-top:10px; line-height:1.7">
+        캐릭터 위치는 <b style="color:var(--text); font-weight:normal">오늘 습관 진행률</b>, 아래 바는 <b style="color:var(--text); font-weight:normal">전체 누적 성장</b>이에요.
+      </p>
+    </div>
+
+    <!-- 캐릭터 상태창 -->
+    <div class="window">
+      <div class="window-title">STATUS</div>
+      <div class="char-head">
+        <div class="char-face" id="char-face" title="탭해서 표정 바꾸기">🙂</div>
+        <div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap">
+            <button id="title-pill" class="title-pill" type="button">🔰 모험가</button>
+            <button id="gold-pill" class="title-pill gold-pill" type="button">💰 0G</button>
+          </div>
+          <div class="char-name" id="char-name"></div>
+          <div class="char-sub">종합 Lv.<b id="total-level">1</b> · 누적 <b id="total-exp">0</b> EXP</div>
+        </div>
+      </div>
+      <div style="height:18px"></div>
+      <div class="stat-hint">능력치를 탭하면 자세히 볼 수 있어요</div>
+      <div id="stat-list"></div>
+    </div>
+
+    <!-- 밸런스 체크 (문제 있을 때만 표시) -->
+    <div class="window" id="balance-window" hidden>
+      <div class="window-title">BALANCE</div>
+      <div id="balance-body"></div>
+    </div>
+  </div>
+
+  <!-- ── 탭: 퀘스트 ── -->
+  <div class="tab-panel" id="tab-quest" hidden>
+    <!-- 퀘스트 추가 -->
+    <div class="window">
+      <div class="window-title">NEW QUEST</div>
+      <div class="field">
+        <label>할 일</label>
+        <input type="text" id="q-name" placeholder="할 일을 입력하세요">
+      </div>
+      <div class="field-row field">
+        <div>
+          <label>올릴 능력치</label>
+          <select id="q-stat"></select>
+        </div>
+        <div>
+          <label>단위</label>
+          <select id="q-unit">
+            <option value="min">시간 (분)</option>
+            <option value="count">횟수 (회)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="q-mode-field">
+        <label>측정 방식</label>
+        <select id="q-mode">
+          <option value="estimate">예상 시간 직접 입력</option>
+          <option value="timer">⏱ 타이머로 실제 시간 측정</option>
+        </select>
+      </div>
+      <div class="field" id="q-amount-field">
+        <label id="q-amount-label">예상 시간 (분)</label>
+        <input type="number" id="q-amount" min="1" step="5" value="30">
+      </div>
+      <div class="field">
+        <label>유형</label>
+        <select id="q-type">
+          <option value="once">일회성 — 한 번 하고 끝</option>
+          <option value="daily">매일 반복 (🔥 스트릭 보너스)</option>
+          <option value="weekly">요일 선택 반복 (🔥 스트릭 보너스)</option>
+          <option value="interval">며칠마다 반복 (🔥 스트릭 보너스)</option>
+        </select>
+      </div>
+      <div class="field" id="q-weekly-field" hidden>
+        <label>반복할 요일</label>
+        <div class="weekday-picker" id="q-weekday-picker"></div>
+      </div>
+      <div class="field" id="q-interval-field" hidden>
+        <label>반복 주기</label>
+        <div style="display:flex; align-items:center; gap:8px">
+          <span style="font-size:14px; color:var(--dim)">매</span>
+          <input type="number" id="q-interval" min="2" max="30" value="2" style="width:70px">
+          <span style="font-size:14px; color:var(--dim)">일마다 (예: 2 = 이틀에 한번)</span>
+        </div>
+      </div>
+      <button class="btn" id="q-add">＋ 퀘스트 등록</button>
+    </div>
+
+    <!-- 매일/반복 습관 -->
+    <div class="window">
+      <div class="window-title">DAILY QUEST</div>
+      <div id="habit-list"></div>
+    </div>
+
+    <!-- 퀘스트 목록 -->
+    <div class="window">
+      <div class="window-title">QUEST LOG</div>
+      <div id="quest-list"></div>
+    </div>
+  </div>
+
+  <!-- ── 탭: 리포트 ── -->
+  <div class="tab-panel" id="tab-report" hidden>
+    <!-- 기간별 요약 (주간/월간 토글) -->
+    <div class="window">
+      <div class="window-title">REPORT</div>
+      <div class="report-toggle">
+        <button class="report-tab-btn active" data-report="week" type="button">WEEK</button>
+        <button class="report-tab-btn" data-report="month" type="button">MONTH</button>
+      </div>
+      <div class="modal-sub" id="report-range" style="margin:10px 0 12px"></div>
+      <div class="week-chart" id="report-chart"></div>
+      <div id="report-stats" style="margin-top:16px"></div>
+    </div>
+
+    <!-- 오늘 완료 -->
+    <div class="window">
+      <div class="window-title">CLEAR — TODAY</div>
+      <div id="done-list"></div>
+    </div>
+  </div>
+
+  <!-- ── 탭: 상점 ── -->
+  <div class="tab-panel" id="tab-shop" hidden>
+    <div class="window">
+      <div class="window-title">SHOP</div>
+      <div class="modal-sub" style="margin:0 0 12px">💰 보유 골드 <b id="shop-gold" style="color:var(--gold); font-weight:normal">0</b>G</div>
+
+      <div class="modal-sub" style="letter-spacing:1px">캐릭터 표정</div>
+      <div id="shop-faces" class="shop-face-grid"></div>
+
+      <div class="modal-sub" style="letter-spacing:1px; margin-top:18px">나만의 보상</div>
+      <div id="shop-rewards"></div>
+
+      <div class="field-row field" style="margin-top:12px">
+        <input type="text" id="reward-name" placeholder="예: 치킨 시켜먹기">
+        <input type="number" id="reward-cost" placeholder="골드" min="1" step="10">
+      </div>
+      <button class="btn" id="reward-add" style="background:var(--panel-deep); color:var(--text); border-color:var(--line); box-shadow:0 4px 0 #0d0e1e">＋ 보상 등록</button>
+    </div>
+  </div>
+
+  <!-- ── 탭: 설정 ── -->
+  <div class="tab-panel" id="tab-settings" hidden>
+    <div class="window">
+      <div class="window-title">DATA</div>
+      <p style="font-size:12px; color:var(--dim); line-height:1.8; margin-bottom:14px">
+        저장 데이터는 이 브라우저에만 있습니다.<br>
+        기기를 바꾸거나 캐시를 지우기 전에 <b style="color:var(--gold)">파일로 내보내기</b>를 해두세요.
+      </p>
+      <div class="field-row">
+        <button class="btn" id="export-btn" style="background:var(--panel-deep); color:var(--text); border-color:var(--line); box-shadow:0 4px 0 #0d0e1e">⬇ 내보내기</button>
+        <button class="btn" id="import-btn" style="background:var(--panel-deep); color:var(--text); border-color:var(--line); box-shadow:0 4px 0 #0d0e1e">⬆ 가져오기</button>
+      </div>
+      <input type="file" id="import-file" accept="application/json" hidden>
+      <div style="height:16px"></div>
+      <div style="border-top:2px dashed var(--line); padding-top:14px">
+        <button class="btn" id="reset-btn" style="background:var(--panel-deep); color:var(--hp-red); border-color:var(--hp-red); box-shadow:0 4px 0 #5a1f1f">🏠 타이틀로 돌아가기</button>
+      </div>
+    </div>
+
+    <!-- 미리보기 도구 (테스트 모드, 실제 진행에는 영향 없음) -->
+    <div class="window">
+      <div class="window-title">PREVIEW</div>
+      <div class="stage-test">
+        <button type="button" id="stage-test-toggle" class="stage-test-toggle">🧪 테마 미리보기</button>
+        <div id="stage-test-controls" class="stage-test-controls" hidden>
+          <div class="stage-test-row">
+            <button type="button" id="stage-test-prev" class="stage-test-nav">◀</button>
+            <span id="stage-test-label" class="stage-test-label">미리보기 STAGE 1 · 🌲 숲</span>
+            <button type="button" id="stage-test-next" class="stage-test-nav">▶</button>
+          </div>
+          <button type="button" id="stage-test-exit" class="stage-test-exit">실제 진행으로 돌아가기</button>
+        </div>
+
+        <button type="button" id="blocker-test-toggle" class="stage-test-toggle" style="margin-top:8px">👹 방치 몬스터 미리보기</button>
+        <div id="blocker-test-controls" class="stage-test-controls" hidden>
+          <div class="stage-test-row">
+            <button type="button" id="blocker-test-prev" class="stage-test-nav">◀</button>
+            <span id="blocker-test-label" class="stage-test-label">👹 힘이 무뎌지고 있어요</span>
+            <button type="button" id="blocker-test-next" class="stage-test-nav">▶</button>
+          </div>
+          <button type="button" id="blocker-test-exit" class="stage-test-exit">실제 상태로 돌아가기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div>
+
+  <!-- ===== 하단 탭바 ===== -->
+  <nav id="tab-bar" hidden>
+    <button class="tab-btn active" data-tab="home"><span class="tab-icon">🏠</span><span class="tab-label">홈</span></button>
+    <button class="tab-btn" data-tab="quest"><span class="tab-icon">📜</span><span class="tab-label">퀘스트</span></button>
+    <button class="tab-btn" data-tab="report"><span class="tab-icon">📊</span><span class="tab-label">리포트</span></button>
+    <button class="tab-btn" data-tab="shop"><span class="tab-icon">🛍</span><span class="tab-label">상점</span></button>
+    <button class="tab-btn" data-tab="settings"><span class="tab-icon">⚙</span><span class="tab-label">설정</span></button>
+  </nav>
+</div>
+
+<div id="modal-overlay" hidden>
+  <div id="modal-window">
+    <button id="modal-close" aria-label="닫기">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast-area"></div>
+
+<script>
+/* =====================================================
+   1. 게임 설정 (밸런스는 여기 숫자만 바꾸면 됨)
+===================================================== */
+const CONFIG = {
+  LEVEL_COEF: 50,      // 다음 레벨 필요 경험치 = 레벨 × 50
+  EXP_PER_HOUR: 10,    // 시간당 경험치
+  CLEAR_BONUS: 5,      // 완료 보너스 (시간 무관)
+  STREAK_MAX: 10,      // 스트릭 보너스 상한 (연속 일수만큼 추가 EXP, 최대 10)
+  NEGLECT_DAYS: 10,    // 이 기간(일) 이상 활동 없으면 '방치된 능력치'로 알림
+  STAGE_EXP: 200,       // 모든 능력치 누적 EXP 합계가 이만큼 늘어날 때마다 스테이지 1단계 전진
+  EXP_PER_REP: 1,       // 횟수(회) 단위 퀘스트에서 1회당 경험치
+  MIN_TIMER_MIN: 1,     // 타이머 완료 시 인정하는 최소 시간(분) — 너무 짧게 끝내는 것 방지
+};
+
+/* 능력치 정의 — 여기에 한 줄 추가하면 새 능력치가 생김 */
+const STATS = [
+  { id: 'str', name: '힘',     icon: '💪', color: '#e85a5a', hint: '웨이트',   neglect: '힘이 무뎌지고 있어요',     monster: '👹' },
+  { id: 'vit', name: '체력',   icon: '🏃', color: '#5ad07a', hint: '유산소',   neglect: '체력이 처지고 있어요',     monster: '🐌' },
+  { id: 'int', name: '지능',   icon: '📐', color: '#5a9de8', hint: '공부',     neglect: '지능이 녹슬고 있어요',     monster: '👻' },
+  { id: 'wis', name: '지혜',   icon: '📖', color: '#a97fe8', hint: '독서',     neglect: '지혜가 외로워하고 있어요', monster: '🦇' },
+  { id: 'mnd', name: '정신력', icon: '🧘', color: '#5adcd0', hint: '명상·일기', neglect: '마음이 흔들리고 있어요',  monster: '🌀' },
+  { id: 'chr', name: '매력',   icon: '✨', color: '#e87fb8', hint: '모임',     neglect: '매력이 시들해지고 있어요', monster: '🕸️' },
+];
+
+/* 칭호 정의 — 조건(lv)은 { str, vit, int, wis, mnd, chr, total } 레벨 객체를 받아 true/false 반환 */
+const TITLES = [
+  { id: 'default', name: '모험가', icon: '🔰', desc: '기본 칭호', check: () => true },
+
+  { id: 'str5',  name: '완력가',      icon: '💪', desc: '힘 Lv.5 달성',   check: lv => lv.str >= 5 },
+  { id: 'str10', name: '괴력의 소유자', icon: '💪', desc: '힘 Lv.10 달성',  check: lv => lv.str >= 10 },
+
+  { id: 'vit5',  name: '지구력 러너', icon: '🏃', desc: '체력 Lv.5 달성', check: lv => lv.vit >= 5 },
+  { id: 'vit10', name: '철인',        icon: '🏃', desc: '체력 Lv.10 달성', check: lv => lv.vit >= 10 },
+
+  { id: 'int5',  name: '공부벌레',   icon: '📐', desc: '지능 Lv.5 달성', check: lv => lv.int >= 5 },
+  { id: 'int10', name: '만물박사',   icon: '📐', desc: '지능 Lv.10 달성', check: lv => lv.int >= 10 },
+
+  { id: 'wis5',  name: '다독가',     icon: '📖', desc: '지혜 Lv.5 달성', check: lv => lv.wis >= 5 },
+  { id: 'wis10', name: '현자',       icon: '📖', desc: '지혜 Lv.10 달성', check: lv => lv.wis >= 10 },
+
+  { id: 'mnd5',  name: '평정심',     icon: '🧘', desc: '정신력 Lv.5 달성', check: lv => lv.mnd >= 5 },
+  { id: 'mnd10', name: '득도한 자',  icon: '🧘', desc: '정신력 Lv.10 달성', check: lv => lv.mnd >= 10 },
+
+  { id: 'chr5',  name: '인싸',       icon: '✨', desc: '매력 Lv.5 달성', check: lv => lv.chr >= 5 },
+  { id: 'chr10', name: '사교의 달인', icon: '✨', desc: '매력 Lv.10 달성', check: lv => lv.chr >= 10 },
+
+  { id: 'balanced', name: '균형 잡힌 자', icon: '⚖️', desc: '모든 능력치 Lv.5 이상',
+    check: lv => STATS.every(s => lv[s.id] >= 5) },
+  { id: 'legend', name: '전설의 모험가', icon: '👑', desc: '종합 레벨 30 달성',
+    check: lv => lv.total >= 30 },
+];
+
+/* 상점 — 골드로 해금하는 캐릭터 표정 */
+const FACE_SHOP = [
+  { id: 'ninja',  icon: '🥷', cost: 50 },
+  { id: 'wizard', icon: '🧙', cost: 80 },
+  { id: 'robot',  icon: '🤖', cost: 120 },
+  { id: 'alien',  icon: '👽', cost: 160 },
+  { id: 'dragon', icon: '🐉', cost: 220 },
+  { id: 'crown',  icon: '🤴', cost: 300 },
+];
+
+/* =====================================================
+   2. 저장소 (localStorage, 실패 시 메모리로 대체)
+   저장 구조(A안): 능력치별 누적 경험치만 저장
+===================================================== */
+const SAVE_KEY = 'todo-rpg-save-v1';
+let memoryFallback = null;
+
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { /* 미리보기 환경 등에서 localStorage가 막힌 경우 */ }
+  return memoryFallback;
+}
+function writeSave(data) {
+  memoryFallback = data;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) {}
+}
+
+/* 기본 세이브 데이터 */
+function newSave(name) {
+  const exp = {};
+  STATS.forEach(s => exp[s.id] = 0);
+  return {
+    name,
+    face: '🙂',
+    equippedTitle: 'default',
+    exp,               // { str: 누적경험치, vit: ..., ... }
+    quests: [],        // 진행 중 일회성 퀘스트
+    habits: [],        // 매일 반복 습관 [{name, statId, min, streak, lastDone}]
+    doneLog: [],       // 완료 기록 [{name, statId, gained, ts}]
+    gold: 0,           // 보유 골드
+    unlockedFaces: [],       // 상점에서 구매한 표정 id 목록
+    customRewards: [],       // 내가 만든 보상 [{id, name, cost}]
+    purchaseLog: [],         // 구매/교환 기록 [{name, cost, ts, kind}]
+  };
+}
+
+let save = loadSave();
+// 예전 세이브 호환: habits, equippedTitle 필드가 없으면 추가
+if (save && !save.habits) { save.habits = []; writeSave(save); }
+if (save && !save.equippedTitle) { save.equippedTitle = 'default'; writeSave(save); }
+// 예전 세이브 호환: 골드/상점 기능 생기기 전 세이브 보정
+if (save) {
+  if (typeof save.gold !== 'number') save.gold = 0;
+  if (!save.unlockedFaces) save.unlockedFaces = [];
+  if (!save.customRewards) save.customRewards = [];
+  if (!save.purchaseLog) save.purchaseLog = [];
+  writeSave(save);
+}
+// 예전 세이브 호환: 요일선택/N일마다 기능 생기기 전 습관은 전부 '매일' 반복이었음
+if (save) {
+  let migrated = false;
+  save.habits.forEach(h => { if (!h.repeatType) { h.repeatType = 'daily'; migrated = true; } });
+  if (migrated) writeSave(save);
+}
+
+/* =====================================================
+   3. 레벨 계산 (누적 경험치 → 레벨)
+   레벨 1에서 시작, 필요 경험치를 빼면서 올라간다
+===================================================== */
+function calcLevel(totalExp) {
+  let level = 1;
+  let remain = totalExp;
+  while (remain >= level * CONFIG.LEVEL_COEF) {
+    remain -= level * CONFIG.LEVEL_COEF;
+    level++;
+  }
+  // remain = 현재 레벨에서 쌓은 경험치, need = 다음 레벨까지 필요량
+  return { level, remain, need: level * CONFIG.LEVEL_COEF };
+}
+
+function calcExpGain(unit, amount) {
+  if (unit === 'count') return Math.round(CONFIG.CLEAR_BONUS + amount * CONFIG.EXP_PER_REP);
+  return Math.round(CONFIG.CLEAR_BONUS + (amount / 60) * CONFIG.EXP_PER_HOUR);
+}
+// 퀘스트/습관 객체에서 단위+수치를 뽑아 EXP를 계산 (unit 없는 예전 데이터는 '분'으로 간주)
+function calcExpGainFor(item) {
+  const unit = item.unit || 'min';
+  const amount = unit === 'count' ? item.count : item.min;
+  return calcExpGain(unit, amount);
+}
+// 퀘스트/습관을 리스트에 표시할 때 쓰는 수치 텍스트 (예: "30분" / "20회")
+function amountLabel(item) {
+  const unit = item.unit || 'min';
+  return unit === 'count' ? `${item.count}회` : `${item.min}분`;
+}
+
+// 모든 능력치의 현재 레벨 + 종합 레벨을 한번에 계산 (칭호 조건 판정용)
+function getLevels() {
+  const lv = {};
+  let totalExp = 0;
+  STATS.forEach(s => {
+    const exp = save.exp[s.id] || 0;
+    lv[s.id] = calcLevel(exp).level;
+    totalExp += exp;
+  });
+  lv.total = calcLevel(totalExp).level;
+  return lv;
+}
+
+/* ===== 날짜/스트릭 헬퍼 ===== */
+function todayStr()     { return new Date().toDateString(); }
+function yesterdayStr() { return new Date(Date.now() - 86400000).toDateString(); }
+
+// 두 날짜 문자열(toDateString) 사이의 일수 차이
+function daysBetween(dateStrA, dateStrB) {
+  const a = new Date(dateStrA), b = new Date(dateStrB);
+  return Math.round((b - a) / 86400000);
+}
+
+// 오늘이 이 습관을 "해야 하는 날"인지 판정
+function isDueToday(habit) {
+  if (habit.repeatType === 'daily') return true;
+  if (habit.repeatType === 'weekly') return habit.days.includes(new Date().getDay());
+  if (habit.repeatType === 'interval') {
+    if (!habit.lastDone) return true; // 아직 한 번도 안 했으면 언제든 시작 가능
+    return daysBetween(habit.lastDone, todayStr()) >= habit.intervalDays;
+  }
+  return true;
+}
+
+// 오늘보다 하루 전, 이 습관이 "예정되어 있던" 가장 최근 날짜 (스트릭 이어짐 판정용)
+function prevScheduledDate(habit) {
+  if (habit.repeatType === 'daily') return yesterdayStr();
+
+  if (habit.repeatType === 'weekly') {
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date(Date.now() - i * 86400000);
+      if (habit.days.includes(d.getDay())) return d.toDateString();
+    }
+    return null;
+  }
+  if (habit.repeatType === 'interval') {
+    // N일마다 유형은 '직전 완료일'이 곧 직전 예정일 — 정해진 주기 안에서만 완료 가능하기 때문
+    return habit.lastDone;
+  }
+  return null;
+}
+
+// 오늘 완료하면 스트릭이 몇 일차가 되는지
+function nextStreak(habit) {
+  if (habit.lastDone === todayStr()) return habit.streak;   // 이미 완료
+  const prev = prevScheduledDate(habit);
+  if (prev && habit.lastDone === prev) return habit.streak + 1; // 직전 예정일에도 했음 → 이어짐
+  return 1;                                                  // 끊김 → 다시 1일차
+}
+function streakBonus(streak) {
+  return Math.min(streak, CONFIG.STREAK_MAX);
+}
+
+// 습관의 반복 규칙을 사람이 읽는 텍스트로
+const WEEKDAY_LABEL = ['일','월','화','수','목','금','토'];
+function repeatLabel(habit) {
+  if (habit.repeatType === 'daily') return '매일';
+  if (habit.repeatType === 'weekly') return habit.days.slice().sort().map(d => WEEKDAY_LABEL[d]).join(',');
+  if (habit.repeatType === 'interval') return `${habit.intervalDays}일마다`;
+  return '';
+}
+
+/* =====================================================
+   4. 화면 그리기
+===================================================== */
+const $ = id => document.getElementById(id);
+
+/* =====================================================
+   4-1. 기간별 요약 (WEEK / MONTH 토글) — 최근 7일 롤링 기준
+===================================================== */
+function fmtDate(d) {
+  return d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+}
+
+let reportMode = 'week'; // 'week' | 'month'
+
+function renderReport() {
+  if (reportMode === 'week') renderWeek(); else renderMonth();
+}
+
+function renderWeek() {
+  // 최근 7일 (오늘 포함) 날짜 목록
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    days.push({ label: WEEKDAY_LABEL[d.getDay()], key: d.toDateString(), total: 0, dateObj: d });
+  }
+  const dayKeys = days.map(d => d.key);
+
+  // 이번 주 안에 속하는 완료 기록만 추리기
+  const weekLogs = save.doneLog.filter(l => dayKeys.includes(new Date(l.ts).toDateString()));
+  weekLogs.forEach(l => {
+    const day = days.find(d => d.key === new Date(l.ts).toDateString());
+    if (day) day.total += l.gained;
+  });
+  const maxDay = Math.max(1, ...days.map(d => d.total));
+
+  $('report-range').textContent = `${fmtDate(days[0].dateObj)} ~ ${fmtDate(days[6].dateObj)}`;
+
+  $('report-chart').innerHTML = days.map(d => `
+    <div class="week-col">
+      <div class="week-bar" style="height:${(d.total / maxDay) * 100}%; background:${d.total ? 'var(--gold)' : 'var(--line)'}"></div>
+      <div class="week-day">${d.label}</div>
+    </div>`).join('');
+
+  const totalWeekExp = weekLogs.reduce((sum, l) => sum + l.gained, 0);
+  const totalWeekMin = weekLogs.reduce((sum, l) => sum + (l.min || 0), 0);
+
+  // 능력치별 이번 주 획득 EXP (많이 오른 순)
+  const perStat = STATS.map(s => ({
+    s,
+    sum: weekLogs.filter(l => l.statId === s.id).reduce((a, l) => a + l.gained, 0),
+  })).filter(x => x.sum > 0).sort((a, b) => b.sum - a.sum);
+
+  $('report-stats').innerHTML = `
+    <div class="modal-stats-grid" style="margin:0 0 14px">
+      <div class="stat-box"><div class="num">${totalWeekExp}</div><div class="lbl">이번 주 획득 EXP</div></div>
+      <div class="stat-box"><div class="num">${(totalWeekMin / 60).toFixed(1)}h</div><div class="lbl">이번 주 투자 시간</div></div>
+    </div>
+    ${perStat.length ? perStat.map(({ s, sum }) => `
+      <div class="log-item">
+        <span class="lname">${s.icon} ${s.name}</span>
+        <span class="lmeta" style="color:${s.color}">+${sum} EXP</span>
+      </div>`).join('') : `<div class="empty" style="padding:10px 0">이번 주 기록이 아직 없습니다.</div>`}
+  `;
+}
+
+/* =====================================================
+   4-1-2. 최근 한 달 요약 (최근 30일, 6일씩 묶어 5개 막대로 표시)
+===================================================== */
+function renderMonth() {
+  const DAYS = 30, BUCKET = 6, COUNT = DAYS / BUCKET; // 5개 막대
+
+  // 과거 → 현재 순으로 5개 구간 생성
+  const buckets = [];
+  for (let k = COUNT - 1; k >= 0; k--) {
+    const endDaysAgo = k * BUCKET;
+    const startDaysAgo = endDaysAgo + BUCKET - 1;
+    buckets.push({
+      startDate: new Date(Date.now() - startDaysAgo * 86400000),
+      endDate: new Date(Date.now() - endDaysAgo * 86400000),
+      total: 0,
+    });
+  }
+
+  // 최근 30일 안에 속하는 기록만 추리기
+  const monthLogs = save.doneLog.filter(l => {
+    const daysAgo = daysBetween(new Date(l.ts).toDateString(), todayStr());
+    return daysAgo >= 0 && daysAgo < DAYS;
+  });
+  monthLogs.forEach(l => {
+    const daysAgo = daysBetween(new Date(l.ts).toDateString(), todayStr());
+    const idxFromToday = Math.floor(daysAgo / BUCKET);  // 0(최근 구간) ~ COUNT-1(가장 오래된 구간)
+    const idx = COUNT - 1 - idxFromToday;                // buckets 배열은 과거→현재 순이라 뒤집어줌
+    if (buckets[idx]) buckets[idx].total += l.gained;
+  });
+  const maxBucket = Math.max(1, ...buckets.map(b => b.total));
+
+  $('report-range').textContent = `${fmtDate(buckets[0].startDate)} ~ ${fmtDate(buckets[COUNT - 1].endDate)}`;
+
+  $('report-chart').innerHTML = buckets.map(b => `
+    <div class="week-col">
+      <div class="week-bar" style="height:${(b.total / maxBucket) * 100}%; background:${b.total ? 'var(--gold)' : 'var(--line)'}"></div>
+      <div class="week-day">${fmtDate(b.endDate)}</div>
+    </div>`).join('');
+
+  const totalMonthExp = monthLogs.reduce((sum, l) => sum + l.gained, 0);
+  const totalMonthMin = monthLogs.reduce((sum, l) => sum + (l.min || 0), 0);
+
+  const perStat = STATS.map(s => ({
+    s,
+    sum: monthLogs.filter(l => l.statId === s.id).reduce((a, l) => a + l.gained, 0),
+  })).filter(x => x.sum > 0).sort((a, b) => b.sum - a.sum);
+
+  $('report-stats').innerHTML = `
+    <div class="modal-stats-grid" style="margin:0 0 14px">
+      <div class="stat-box"><div class="num">${totalMonthExp}</div><div class="lbl">이번 달 획득 EXP</div></div>
+      <div class="stat-box"><div class="num">${(totalMonthMin / 60).toFixed(1)}h</div><div class="lbl">이번 달 투자 시간</div></div>
+    </div>
+    ${perStat.length ? perStat.map(({ s, sum }) => `
+      <div class="log-item">
+        <span class="lname">${s.icon} ${s.name}</span>
+        <span class="lmeta" style="color:${s.color}">+${sum} EXP</span>
+      </div>`).join('') : `<div class="empty" style="padding:10px 0">이번 달 기록이 아직 없습니다.</div>`}
+  `;
+}
+
+/* =====================================================
+   4-2. 밸런스 체크 — 오래 방치된 능력치 찾기
+===================================================== */
+function getNeglectedStats() {
+  const now = Date.now();
+  return STATS.map(s => {
+    const exp = save.exp[s.id] || 0;
+    if (exp <= 0) return null; // 아직 시작도 안 한 능력치는 '방치'가 아니라 '미시작'
+    const logs = save.doneLog.filter(l => l.statId === s.id);
+    if (!logs.length) return null;
+    const lastTs = Math.max(...logs.map(l => l.ts));
+    const daysSince = Math.floor((now - lastTs) / 86400000);
+    return daysSince >= CONFIG.NEGLECT_DAYS ? { s, daysSince } : null;
+  }).filter(Boolean).sort((a, b) => b.daysSince - a.daysSince);
+}
+
+/* =====================================================
+   4-3. 상점
+===================================================== */
+function renderShop() {
+  $('shop-gold').textContent = save.gold;
+
+  $('shop-faces').innerHTML = FACE_SHOP.map(f => {
+    const owned = save.unlockedFaces.includes(f.id);
+    const affordable = save.gold >= f.cost;
+    return `
+      <button type="button" class="shop-face-item ${owned ? 'owned' : ''} ${!owned && !affordable ? 'locked' : ''} ${!owned && affordable ? 'affordable' : ''}"
+        data-buy-face="${f.id}" ${owned ? 'disabled' : ''}>
+        <span class="f-icon">${f.icon}</span>
+        <span class="f-cost">${owned ? '보유중' : f.cost + 'G'}</span>
+      </button>`;
+  }).join('');
+
+  $('shop-rewards').innerHTML = save.customRewards.length ? save.customRewards.map(r => `
+    <div class="reward-item">
+      <span class="r-name">${escapeHtml(r.name)}</span>
+      <span class="r-cost">${r.cost}G</span>
+      <button class="reward-buy" data-redeem="${r.id}" ${save.gold < r.cost ? 'disabled' : ''}>교환</button>
+      <button class="quest-del" data-reward-del="${r.id}">✕</button>
+    </div>`).join('') : `<div class="empty" style="padding:10px 0">등록된 보상이 없습니다.<br>아래에서 나만의 보상을 만들어 보세요.</div>`;
+}
+
+/* =====================================================
+   4-2-1. 스테이지 러너 (방치형 게임 요소)
+   — 사냥이 아니라 '모든 능력치 누적 EXP 합계'로 진행됨
+===================================================== */
+function getTotalExp() {
+  return STATS.reduce((sum, s) => sum + (save.exp[s.id] || 0), 0);
+}
+function getStage(totalExp) {
+  const stage = Math.floor(totalExp / CONFIG.STAGE_EXP) + 1;
+  const progress = (totalExp % CONFIG.STAGE_EXP) / CONFIG.STAGE_EXP;
+  return { stage, progress };
+}
+
+/* 배경 테마 — 10스테이지 단위로 순환 (무한 진행이라 계속 반복됨) */
+const STAGE_THEMES = [
+  { name: '숲',   icon: '🌲', sky: '#16321f', ground: '#1e4029' },
+  { name: '사막', icon: '🏜️', sky: '#4a3418', ground: '#5c4322' },
+  { name: '설원', icon: '❄️', sky: '#1c2d3d', ground: '#28425a' },
+  { name: '던전', icon: '🕯️', sky: '#241226', ground: '#341a3a' },
+  { name: '우주', icon: '🌌', sky: '#05050f', ground: '#0d0d20' },
+];
+function getTheme(stage) {
+  const idx = Math.floor((stage - 1) / 10) % STAGE_THEMES.length;
+  return STAGE_THEMES[idx];
+}
+function applyStageTheme(stage) {
+  const theme = getTheme(stage);
+  $('stage-track').style.background =
+    `linear-gradient(180deg, ${theme.sky} 0%, ${theme.sky} 68%, ${theme.ground} 68%, ${theme.ground} 100%)`;
+  $('stage-theme-badge').textContent = `${theme.icon} ${theme.name}`;
+  return theme;
+}
+
+let themePreviewStage = null; // null = 실제 진행 반영, 숫자면 테스트 미리보기 중
+let blockerPreviewStatId = null; // null = 실제 방치 상태 반영, 능력치 id면 강제 미리보기 중
+
+/* ===== 오늘 진행률(캐릭터 좌우 위치) 계산 =====
+   분모: 오늘 예정된 반복 습관 개수 / 분자: 그중 오늘 완료한 개수
+   일회성 퀘스트 완료는 %에는 안 들어가고 보너스 전진(살짝 더 이동)으로만 반영 */
+const RUNNER_START = -22;  // 트랙 왼쪽 시작 위치 (%) — 0%일 때 캐릭터가 아예 안 보이도록 충분히 밖으로
+const RUNNER_END = 90;     // 오늘 습관 100% 도달 시 위치 (%)
+const RUNNER_MAX = 94;     // 보너스 포함 최대 위치 (깃발과 안 겹치게)
+const BONUS_STEP = 0.05;   // 일회성 퀘스트 1개당 추가 진행 비율 (5%p)
+const BONUS_RATIO_CAP = 1.15; // 습관 100% + 보너스 최대 인정 비율
+
+function getTodayHabitStat() {
+  const due = save.habits.filter(h => isDueToday(h));
+  if (due.length === 0) return null; // 오늘 계획된 습관이 없음
+  const done = due.filter(h => h.lastDone === todayStr());
+  return { due: due.length, done: done.length, ratio: done.length / due.length };
+}
+function getTodayBonusCount() {
+  return save.doneLog.filter(l => l.source === 'quest' && new Date(l.ts).toDateString() === todayStr()).length;
+}
+function computeRunnerRatio() {
+  const habitStat = getTodayHabitStat();
+  const base = habitStat ? habitStat.ratio : 0;
+  const bonus = getTodayBonusCount() * BONUS_STEP;
+  return Math.min(base + bonus, BONUS_RATIO_CAP);
+}
+function ratioToPos(ratio) {
+  return Math.min(RUNNER_START + ratio * (RUNNER_END - RUNNER_START), RUNNER_MAX);
+}
+function isReducedMotion() {
+  return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+// 현재 위치에서 목표 위치로 부드럽게 슬라이드만 함 (처음부터 다시 뛰지 않음)
+function updateRunnerPosition() {
+  const runner = $('stage-runner');
+  if (runner.classList.contains('blocked')) return; // 막혀있으면 CSS !important가 위치를 강제함
+  const targetPos = ratioToPos(computeRunnerRatio());
+  runner.style.transition = isReducedMotion() ? 'none' : 'left .8s ease-out';
+  runner.style.left = `${targetPos}%`;
+}
+
+// 홈 탭에 들어올 때마다 왼쪽 시작점부터 다시 뛰어오는 인트로 연출
+function playRunnerIntro() {
+  const runner = $('stage-runner');
+  if (runner.classList.contains('blocked')) return; // 막혀있으면 그 자리에 그대로
+  const targetPos = ratioToPos(computeRunnerRatio());
+  if (isReducedMotion()) {
+    runner.style.transition = 'none';
+    runner.style.left = `${targetPos}%`;
+    return;
+  }
+  runner.style.transition = 'none';
+  runner.style.left = `${RUNNER_START}%`;
+  void runner.offsetWidth; // 강제 리플로우 — 위치 리셋을 먼저 적용시키기 위함
+  requestAnimationFrame(() => {
+    runner.style.transition = 'left 1.1s cubic-bezier(.3,.85,.35,1)';
+    runner.style.left = `${targetPos}%`;
+  });
+}
+
+// 현재 진행 중(타이머 시작됨)인 퀘스트/습관을 하나 찾음 — STAGE 캡션에 표시하기 위함
+function getRunningTimerItem() {
+  const q = save.quests.find(x => x.timerMode && x.startedAt);
+  if (q) return q;
+  return save.habits.find(x => x.timerMode && x.startedAt) || null;
+}
+
+function renderStage() {
+  const { stage: realStage, progress } = getStage(getTotalExp());
+  const pct = Math.round(progress * 100);
+  $('stage-num').textContent = realStage;   // 스테이지/누적 진행은 장기(총 EXP) 기준, 그대로 유지
+  $('stage-pct').textContent = pct;
+  $('stage-bar').style.width = `${pct}%`;
+  $('stage-runner').textContent = save.face || '🙂';
+
+  const displayStage = themePreviewStage ?? realStage; // 배경 테마만 미리보기 대상이면 바뀜
+  const theme = applyStageTheme(displayStage);
+
+  if (themePreviewStage !== null) {
+    $('stage-test-label').textContent = `미리보기 STAGE ${themePreviewStage} · ${theme.icon} ${theme.name}`;
+  }
+
+  // 오늘 진행 캡션 — 진행 중인 타이머가 있으면 그것부터 우선 표시
+  const runningItem = getRunningTimerItem();
+  if (runningItem) {
+    $('stage-today-caption').innerHTML =
+      `🏃 진행중: ${escapeHtml(runningItem.name)} · <span class="timer-elapsed" data-started="${runningItem.startedAt}" data-target="${runningItem.targetMin || 0}">⏱ 00:00 경과</span>`;
+  } else {
+    const habitStat = getTodayHabitStat();
+    $('stage-today-caption').textContent = habitStat
+      ? `오늘 습관 ${habitStat.done}/${habitStat.due} 완료`
+      : '오늘은 계획한 습관이 없어요';
+  }
+  $('stage-runner').classList.toggle('running', !!runningItem);
+
+  // 방치된 능력치가 있으면 그 능력치의 몬스터가 길을 막음 (가장 오래 방치된 것 하나만 표시)
+  const runner = $('stage-runner');
+  const blocker = $('stage-blocker');
+
+  if (blockerPreviewStatId !== null) {
+    // 테스트 모드: 실제 방치 여부와 무관하게 선택한 능력치의 몬스터를 강제로 보여줌
+    const s = STATS.find(x => x.id === blockerPreviewStatId);
+    runner.classList.add('blocked');
+    blocker.hidden = false;
+    blocker.textContent = s.monster;
+    blocker.title = s.neglect;
+    $('blocker-test-label').textContent = `${s.monster} ${s.neglect}`;
+  } else {
+    const neglected = getNeglectedStats();
+    if (neglected.length > 0) {
+      const worst = neglected[0].s; // getNeglectedStats()는 방치 기간 긴 순으로 정렬됨
+      runner.classList.add('blocked');
+      blocker.hidden = false;
+      blocker.textContent = worst.monster;
+      blocker.title = worst.neglect;
+    } else {
+      runner.classList.remove('blocked');
+      blocker.hidden = true;
+    }
+  }
+
+  updateRunnerPosition(); // 막혀있지 않다면 오늘 진행률 기준 위치로 부드럽게 이동
+}
+
+// 스테이지 클리어 순간 짧은 이펙트 (장기 성장 마일스톤)
+function spawnStageClearBurst() {
+  if (isReducedMotion()) return;
+  const track = $('stage-track');
+  const burst = document.createElement('div');
+  burst.className = 'stage-burst';
+  burst.textContent = '💥';
+  track.appendChild(burst);
+  setTimeout(() => burst.remove(), 700);
+}
+
+// 오늘 습관 100% 완주 순간 짧은 이펙트 (하루 단위 마일스톤)
+function spawnTodayFinishBurst() {
+  if (isReducedMotion()) return;
+  const track = $('stage-track');
+  const burst = document.createElement('div');
+  burst.className = 'stage-finish-burst';
+  burst.textContent = '🎉';
+  track.appendChild(burst);
+  setTimeout(() => burst.remove(), 700);
+}
+
+// 이전 누적 EXP(prevTotalExp) 기준으로 스테이지가 올라갔으면 알림
+function announceStageProgress(prevTotalExp) {
+  const prevStage = getStage(prevTotalExp).stage;
+  const newStage = getStage(getTotalExp()).stage;
+  if (newStage > prevStage) {
+    setTimeout(() => { spawnStageClearBurst(); toast(`🚩 STAGE ${newStage} 돌파!`, true); }, 900);
+  }
+}
+
+// 이전 오늘-습관 비율(prevRatio) 기준으로 100%를 막 넘겼으면 완주 알림
+function announceTodayFinish(prevRatio) {
+  const stat = getTodayHabitStat();
+  const newRatio = stat ? stat.ratio : 0;
+  if (prevRatio !== null && prevRatio < 1 && newRatio >= 1) {
+    setTimeout(() => { spawnTodayFinishBurst(); toast('🏁 오늘 습관 완주!', true); }, 500);
+  }
+}
+
+function renderBalance() {
+  const trainedCount = STATS.filter(s => (save.exp[s.id] || 0) > 0).length;
+  const neglected = getNeglectedStats();
+
+  // 능력치를 2개 이상 시작하지 않았거나, 방치된 게 없으면 굳이 창을 안 띄운다 (불필요한 알림 방지)
+  if (trainedCount < 2 || neglected.length === 0) {
+    $('balance-window').hidden = true;
+    return;
+  }
+
+  $('balance-window').hidden = false;
+  $('balance-body').innerHTML = neglected.map(({ s, daysSince }) => `
+    <div class="log-item" style="padding:9px 0">
+      <span class="lname">${s.icon} <b style="font-weight:normal; color:var(--text)">${s.neglect}</b></span>
+      <span class="lmeta">마지막 활동 ${daysSince}일 전</span>
+    </div>`).join('');
+}
+
+function render() {
+  if (!save) {
+    $('name-screen').hidden = false;
+    $('main-screen').hidden = true;
+    $('tab-bar').hidden = true;
+    return;
+  }
+  $('name-screen').hidden = true;
+  $('main-screen').hidden = false;
+  $('tab-bar').hidden = false;
+
+  $('char-name').textContent = save.name;
+  $('char-face').textContent = save.face || '🙂';
+
+  const eq = TITLES.find(t => t.id === save.equippedTitle) || TITLES[0];
+  $('title-pill').textContent = `${eq.icon} ${eq.name}`;
+  $('gold-pill').textContent = `💰 ${save.gold}G`;
+
+  // 스탯 바
+  let totalExp = 0;
+  $('stat-list').innerHTML = STATS.map(s => {
+    const exp = save.exp[s.id] || 0;
+    totalExp += exp;
+    const { level, remain, need } = calcLevel(exp);
+    const pct = Math.min(100, (remain / need) * 100);
+    return `
+      <div class="stat-row" data-stat="${s.id}">
+        <div class="stat-label"><span class="stat-icon">${s.icon}</span>${s.name}</div>
+        <div class="bar-outer"><div class="bar-inner" style="color:${s.color}; width:${pct}%"></div></div>
+        <div class="stat-lv"><b>Lv.${level}</b></div>
+        <div class="stat-chevron">›</div>
+      </div>`;
+  }).join('');
+
+  const total = calcLevel(totalExp);
+  $('total-level').textContent = total.level;
+  $('total-exp').textContent = totalExp;
+
+  renderReport();
+  renderBalance();
+  renderShop();
+  renderStage();
+
+  // 반복 습관 목록
+  $('habit-list').innerHTML = save.habits.length
+    ? save.habits.map((h, i) => renderHabitRow(h, i)).join('')
+    : `<div class="empty">반복 습관이 없습니다.<br>NEW QUEST에서 유형을 '매일 반복' 등으로 등록해 보세요.</div>`;
+
+  // 퀘스트 목록
+  const list = save.quests;
+  $('quest-list').innerHTML = list.length
+    ? list.map((q, i) => renderQuestRow(q, i)).join('')
+    : `<div class="empty">등록된 퀘스트가 없습니다.<br>위에서 첫 퀘스트를 등록해 보세요.</div>`;
+
+  // 오늘 완료 기록
+  const today = new Date().toDateString();
+  const todayDone = save.doneLog.filter(d => new Date(d.ts).toDateString() === today);
+  $('done-list').innerHTML = todayDone.length ? todayDone.map(d => {
+    const s = STATS.find(x => x.id === d.statId);
+    return `
+      <div class="quest done">
+        <div class="quest-check">✓</div>
+        <div class="quest-body">
+          <div class="quest-name">${escapeHtml(d.name)}</div>
+          <div class="quest-meta">${s.icon} ${s.name} +${d.gained} EXP</div>
+        </div>
+      </div>`;
+  }).join('') : `<div class="empty">아직 오늘 완료한 퀘스트가 없습니다.</div>`;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function fmtElapsed(sec) {
+  const mm = String(Math.floor(sec / 60)).padStart(2, '0');
+  const ss = String(sec % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
+
+// 일회성 퀘스트 한 줄 렌더링 (단위: 분/회, 타이머 사용 여부에 따라 상태 분기)
+function renderQuestRow(q, i) {
+  const s = STATS.find(x => x.id === q.statId);
+  const isTimer = (q.unit || 'min') === 'min' && q.timerMode;
+  const running = isTimer && q.startedAt;
+
+  let leftBtn, metaText;
+  if (isTimer && !running) {
+    leftBtn = `<button class="quest-check quest-start" data-quest-start="${i}" aria-label="시작">▶</button>`;
+    metaText = `${s.icon} ${s.name} · ⏱ 목표 ${q.targetMin || 0}분 · 시작 전`;
+  } else if (running) {
+    leftBtn = `<button class="quest-check" data-quest-finish="${i}" aria-label="완료">✓</button>`;
+    metaText = `${s.icon} ${s.name} · <span class="timer-elapsed" data-started="${q.startedAt}" data-target="${q.targetMin || 0}">⏱ 00:00 경과</span> · <button type="button" class="quest-cancel" data-quest-cancel="${i}">취소</button>`;
+  } else {
+    leftBtn = `<button class="quest-check" data-clear="${i}" aria-label="완료">　</button>`;
+    metaText = `${s.icon} ${s.name} · ${amountLabel(q)} · 완료 시 +${calcExpGainFor(q)} EXP`;
+  }
+
+  return `
+    <div class="quest">
+      ${leftBtn}
+      <div class="quest-body">
+        <div class="quest-name">${escapeHtml(q.name)}</div>
+        <div class="quest-meta">${metaText}</div>
+      </div>
+      <button class="quest-del" data-del="${i}">✕</button>
+    </div>`;
+}
+
+// 반복 습관 한 줄 렌더링 (완료/쉬는날/타이머 시작전/타이머 진행중 상태 분기)
+function renderHabitRow(h, i) {
+  const s = STATS.find(x => x.id === h.statId);
+  const done = h.lastDone === todayStr();
+  const due = isDueToday(h);
+  const prev = prevScheduledDate(h);
+  const alive = done || h.lastDone === prev;
+  const shown = alive ? h.streak : 0;
+  const isTimer = (h.unit || 'min') === 'min' && h.timerMode;
+  const running = isTimer && h.startedAt;
+
+  let leftBtn, metaText, rowClass = '';
+
+  if (done) {
+    leftBtn = `<button class="quest-check" disabled aria-label="완료">✓</button>`;
+    metaText = `${s.icon} ${s.name} · ${repeatLabel(h)} · ${amountLabel(h)} · 🔥${shown}일 · 오늘 완료!`;
+    rowClass = 'done';
+  } else if (!due) {
+    leftBtn = `<button class="quest-check" disabled aria-label="완료">💤</button>`;
+    metaText = `${s.icon} ${s.name} · ${repeatLabel(h)} · 🔥${shown}일 · 오늘은 쉬는 날`;
+    rowClass = 'rest';
+  } else if (isTimer && !running) {
+    leftBtn = `<button class="quest-check quest-start" data-habit-start="${i}" aria-label="시작">▶</button>`;
+    metaText = `${s.icon} ${s.name} · ${repeatLabel(h)} · ⏱ 목표 ${h.targetMin || 0}분 · 시작 전`;
+  } else if (running) {
+    leftBtn = `<button class="quest-check" data-habit-finish="${i}" aria-label="완료">✓</button>`;
+    metaText = `${s.icon} ${s.name} · <span class="timer-elapsed" data-started="${h.startedAt}" data-target="${h.targetMin || 0}">⏱ 00:00 경과</span> · <button type="button" class="quest-cancel" data-habit-cancel="${i}">취소</button>`;
+  } else {
+    const preview = calcExpGainFor(h) + streakBonus(nextStreak(h));
+    leftBtn = `<button class="quest-check" data-habit-clear="${i}" aria-label="완료">　</button>`;
+    metaText = `${s.icon} ${s.name} · ${repeatLabel(h)} · ${amountLabel(h)} · 🔥${shown}일 · 완료 시 +${preview} EXP`;
+  }
+
+  return `
+    <div class="quest ${rowClass}">
+      ${leftBtn}
+      <div class="quest-body">
+        <div class="quest-name">${escapeHtml(h.name)}</div>
+        <div class="quest-meta">${metaText}</div>
+      </div>
+      <button class="quest-del" data-habit-del="${i}">✕</button>
+    </div>`;
+}
+
+/* =====================================================
+   5. 토스트 (경험치 획득 / 레벨업 알림)
+===================================================== */
+function toast(msg, levelup = false) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (levelup ? ' levelup' : '');
+  el.textContent = msg;
+  $('toast-area').appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+// 이전 레벨(prevLv) 기준으로는 잠겨 있었지만 지금은 풀린 칭호를 찾아 토스트로 알림
+function announceNewTitles(prevLv) {
+  const nowLv = getLevels();
+  const newlyUnlocked = TITLES.filter(t => !t.check(prevLv) && t.check(nowLv));
+  newlyUnlocked.forEach((t, i) => {
+    setTimeout(() => toast(`🏅 새 칭호 획득: [${t.name}]`, true), 1200 + i * 900);
+  });
+}
+
+/* =====================================================
+   6. 이벤트
+===================================================== */
+// 이름 정하기
+$('name-btn').addEventListener('click', () => {
+  const name = $('name-input').value.trim();
+  if (!name) { $('name-input').focus(); return; }
+  save = newSave(name);
+  writeSave(save);
+  render();
+  toast(`${name}의 모험이 시작되었습니다!`, true);
+});
+$('name-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('name-btn').click(); });
+
+// 능력치 셀렉트 채우기
+$('q-stat').innerHTML = STATS.map(s => `<option value="${s.id}">${s.icon} ${s.name} (${s.hint})</option>`).join('');
+
+// 요일 선택 칩 생성 (선택 상태는 chip의 'active' 클래스로 관리)
+let selectedWeekdays = [];
+$('q-weekday-picker').innerHTML = WEEKDAY_LABEL.map((label, i) =>
+  `<button type="button" class="weekday-chip" data-day="${i}">${label}</button>`).join('');
+$('q-weekday-picker').addEventListener('click', e => {
+  const chip = e.target.closest('.weekday-chip');
+  if (!chip) return;
+  const day = parseInt(chip.dataset.day, 10);
+  if (selectedWeekdays.includes(day)) {
+    selectedWeekdays = selectedWeekdays.filter(d => d !== day);
+    chip.classList.remove('active');
+  } else {
+    selectedWeekdays.push(day);
+    chip.classList.add('active');
+  }
+});
+
+// 유형 선택에 따라 하위 입력 필드 보이기/숨기기
+$('q-type').addEventListener('change', () => {
+  const type = $('q-type').value;
+  $('q-weekly-field').hidden = type !== 'weekly';
+  $('q-interval-field').hidden = type !== 'interval';
+});
+
+// 단위(분/회) · 측정방식(예상입력/타이머)에 따라 하위 입력 필드 보이기/숨기기
+function updateAmountFieldVisibility() {
+  const unit = $('q-unit').value;
+  const mode = $('q-mode').value;
+
+  $('q-mode-field').hidden = (unit === 'count'); // 횟수 단위는 타이머 개념이 없음
+  $('q-amount-field').hidden = false; // 이제 타이머 모드에서도 '목표 시간'으로 계속 사용
+
+  if (unit === 'count') {
+    $('q-amount-label').textContent = '횟수 (회)';
+    $('q-amount').step = '1';
+  } else if (mode === 'timer') {
+    $('q-amount-label').textContent = '목표 시간 (분) — 실제 완료 시간은 타이머가 재요';
+    $('q-amount').step = '5';
+  } else {
+    $('q-amount-label').textContent = '예상 시간 (분)';
+    $('q-amount').step = '5';
+  }
+}
+$('q-unit').addEventListener('change', updateAmountFieldVisibility);
+$('q-mode').addEventListener('change', updateAmountFieldVisibility);
+updateAmountFieldVisibility(); // 초기 상태 반영
+
+// 퀘스트 등록
+$('q-add').addEventListener('click', () => {
+  const name = $('q-name').value.trim();
+  const type = $('q-type').value;
+  const unit = $('q-unit').value;                              // 'min' | 'count'
+  const mode = unit === 'count' ? 'estimate' : $('q-mode').value; // 횟수 단위는 항상 예상입력 취급
+  const timerMode = unit === 'min' && mode === 'timer';
+
+  if (!name) { $('q-name').focus(); return; }
+
+  const amount = parseInt($('q-amount').value, 10);
+  if (!amount || amount < 1) { $('q-amount').focus(); return; }
+
+  if (type === 'weekly' && selectedWeekdays.length === 0) {
+    toast('⚠️ 반복할 요일을 하나 이상 선택해 주세요.');
+    return;
+  }
+
+  const base = { name, statId: $('q-stat').value, unit, timerMode, startedAt: null };
+  if (unit === 'count') {
+    base.count = amount;
+  } else if (timerMode) {
+    base.min = 0;          // 완료 시점에 실제 경과 시간으로 채워짐
+    base.targetMin = amount; // 참고용 목표 시간 (남은 시간 표시에만 사용, EXP 계산에는 안 씀)
+  } else {
+    base.min = amount;
+  }
+
+  if (type === 'once') {
+    save.quests.push(base);
+  } else {
+    const habit = { ...base, streak: 0, lastDone: null, repeatType: type };
+    if (type === 'weekly') habit.days = [...selectedWeekdays].sort();
+    if (type === 'interval') habit.intervalDays = Math.max(2, parseInt($('q-interval').value, 10) || 2);
+    save.habits.push(habit);
+  }
+
+  // 폼 초기화 — 다음 등록을 위해 완전히 처음 상태로 되돌림
+  $('q-name').value = '';
+  $('q-unit').value = 'min';
+  $('q-mode').value = 'estimate';
+  $('q-amount').value = '30';
+  $('q-type').value = 'once';
+  $('q-weekly-field').hidden = true;
+  $('q-interval-field').hidden = true;
+  $('q-interval').value = '2';
+  selectedWeekdays = [];
+  $('q-weekday-picker').querySelectorAll('.weekday-chip').forEach(c => c.classList.remove('active'));
+  updateAmountFieldVisibility();
+
+  writeSave(save);
+  render();
+});
+$('q-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('q-add').click(); });
+
+// 완료 / 삭제 (목록에 이벤트 위임)
+$('quest-list').addEventListener('click', e => {
+  const clearIdx = e.target.dataset.clear;
+  const delIdx = e.target.dataset.del;
+  const startIdx = e.target.dataset.questStart;
+  const finishIdx = e.target.dataset.questFinish;
+  const cancelIdx = e.target.dataset.questCancel;
+
+  if (clearIdx !== undefined) {
+    const q = save.quests.splice(clearIdx, 1)[0];
+    const gained = calcExpGainFor(q);
+    const before = calcLevel(save.exp[q.statId]).level;
+    const prevLv = getLevels();
+    const prevTotalExp = getTotalExp();
+    save.exp[q.statId] += gained;
+    save.gold += gained;
+    const after = calcLevel(save.exp[q.statId]).level;
+    save.doneLog.push({
+      name: q.name, statId: q.statId, gained, ts: Date.now(), source: 'quest',
+      unit: q.unit || 'min', min: (q.unit || 'min') === 'min' ? q.min : null, count: q.unit === 'count' ? q.count : null,
+    });
+    writeSave(save);
+    render();
+
+    const s = STATS.find(x => x.id === q.statId);
+    toast(`${s.icon} ${s.name} +${gained} EXP · 💰+${gained}G`);
+    if (after > before) setTimeout(() => toast(`LEVEL UP! ${s.name} Lv.${after} 달성!`, true), 600);
+    announceStageProgress(prevTotalExp);
+    announceNewTitles(prevLv);
+  }
+
+  if (delIdx !== undefined) {
+    save.quests.splice(delIdx, 1);
+    writeSave(save);
+    render();
+  }
+
+  // 타이머 시작
+  if (startIdx !== undefined) {
+    save.quests[startIdx].startedAt = Date.now();
+    writeSave(save);
+    render();
+  }
+
+  // 타이머 완료 — 실제 경과 시간을 분으로 환산해 그 값으로 완료 처리
+  if (finishIdx !== undefined) {
+    const q = save.quests[finishIdx];
+    const elapsedMin = Math.max(CONFIG.MIN_TIMER_MIN, Math.round((Date.now() - q.startedAt) / 60000));
+    q.min = elapsedMin;
+    q.startedAt = null;
+    save.quests.splice(finishIdx, 1);
+
+    const gained = calcExpGainFor(q);
+    const before = calcLevel(save.exp[q.statId]).level;
+    const prevLv = getLevels();
+    const prevTotalExp = getTotalExp();
+    save.exp[q.statId] += gained;
+    save.gold += gained;
+    const after = calcLevel(save.exp[q.statId]).level;
+    save.doneLog.push({ name: q.name, statId: q.statId, gained, ts: Date.now(), source: 'quest', unit: 'min', min: elapsedMin, count: null });
+    writeSave(save);
+    render();
+
+    const s = STATS.find(x => x.id === q.statId);
+    toast(`⏱ ${elapsedMin}분 측정 · ${s.icon} ${s.name} +${gained} EXP · 💰+${gained}G`);
+    if (after > before) setTimeout(() => toast(`LEVEL UP! ${s.name} Lv.${after} 달성!`, true), 600);
+    announceStageProgress(prevTotalExp);
+    announceNewTitles(prevLv);
+  }
+
+  // 타이머 취소 — 완료 처리 없이 시작 전 상태로 되돌림
+  if (cancelIdx !== undefined) {
+    save.quests[cancelIdx].startedAt = null;
+    writeSave(save);
+    render();
+  }
+});
+
+// 습관 하나를 '완료 처리' — 일반 완료와 타이머 완료 둘 다 이 함수로 마무리됨
+// (호출 전에 h.min 또는 h.count가 이미 확정돼 있어야 함)
+function finalizeHabitCompletion(idx) {
+  const h = save.habits[idx];
+  const prevHabitStat = getTodayHabitStat(); // lastDone 갱신 전 상태 — 완주 감지용
+  const prevRatio = prevHabitStat ? prevHabitStat.ratio : null;
+
+  h.streak = nextStreak(h);
+  h.lastDone = todayStr();
+
+  const bonus = streakBonus(h.streak);
+  const gained = calcExpGainFor(h) + bonus;
+  const before = calcLevel(save.exp[h.statId]).level;
+  const prevLv = getLevels();
+  const prevTotalExp = getTotalExp();
+  save.exp[h.statId] += gained;
+  save.gold += gained;
+  const after = calcLevel(save.exp[h.statId]).level;
+  save.doneLog.push({
+    name: h.name, statId: h.statId, gained, ts: Date.now(), source: 'habit',
+    unit: h.unit || 'min', min: (h.unit || 'min') === 'min' ? h.min : null, count: h.unit === 'count' ? h.count : null,
+  });
+  writeSave(save);
+  render();
+
+  const s = STATS.find(x => x.id === h.statId);
+  const timerNote = h.timerMode ? `⏱ ${h.min}분 측정 · ` : '';
+  toast(`${timerNote}${s.icon} ${s.name} +${gained} EXP · 💰+${gained}G (🔥${h.streak}일차 보너스 +${bonus})`);
+  if (after > before) setTimeout(() => toast(`LEVEL UP! ${s.name} Lv.${after} 달성!`, true), 600);
+  announceTodayFinish(prevRatio);
+  announceStageProgress(prevTotalExp);
+  announceNewTitles(prevLv);
+}
+
+// 습관 완료 / 삭제
+$('habit-list').addEventListener('click', e => {
+  const ci = e.target.dataset.habitClear;
+  const di = e.target.dataset.habitDel;
+  const startIdx = e.target.dataset.habitStart;
+  const finishIdx = e.target.dataset.habitFinish;
+  const cancelIdx = e.target.dataset.habitCancel;
+
+  if (ci !== undefined) {
+    const h = save.habits[ci];
+    if (h.lastDone === todayStr()) return; // 오늘 이미 완료
+    finalizeHabitCompletion(ci);
+  }
+
+  if (di !== undefined) {
+    openConfirm('🗑️', '습관 삭제', '이 습관을 삭제할까요?\n스트릭 기록도 함께 사라집니다.', '삭제하기', () => {
+      save.habits.splice(di, 1);
+      writeSave(save);
+      render();
+    });
+  }
+
+  // 타이머 시작
+  if (startIdx !== undefined) {
+    save.habits[startIdx].startedAt = Date.now();
+    writeSave(save);
+    render();
+  }
+
+  // 타이머 완료 — 실제 경과 시간을 분으로 환산해 그 값으로 완료 처리
+  if (finishIdx !== undefined) {
+    const h = save.habits[finishIdx];
+    if (h.lastDone === todayStr()) return;
+    const elapsedMin = Math.max(CONFIG.MIN_TIMER_MIN, Math.round((Date.now() - h.startedAt) / 60000));
+    h.min = elapsedMin;
+    h.startedAt = null;
+    finalizeHabitCompletion(finishIdx);
+  }
+
+  // 타이머 취소 — 완료 처리 없이 시작 전 상태로 되돌림
+  if (cancelIdx !== undefined) {
+    save.habits[cancelIdx].startedAt = null;
+    writeSave(save);
+    render();
+  }
+});
+
+// 캐릭터 표정 바꾸기 (소소한 재미) — 기본 표정 + 상점에서 구매한 표정 순환
+const FACES = ['🙂','😎','🔥','🥶','🦾','😤','🐢','⚡'];
+function availableFaces() {
+  const bought = save.unlockedFaces.map(id => FACE_SHOP.find(f => f.id === id)?.icon).filter(Boolean);
+  return [...FACES, ...bought];
+}
+$('char-face').addEventListener('click', () => {
+  const list = availableFaces();
+  const i = (list.indexOf(save.face) + 1) % list.length;
+  save.face = list[i];
+  writeSave(save);
+  $('char-face').textContent = save.face;
+});
+
+/* =====================================================
+   7. 능력치 상세보기 모달
+===================================================== */
+function openStatDetail(statId) {
+  const s = STATS.find(x => x.id === statId);
+  const exp = save.exp[statId] || 0;
+  const { level, remain, need } = calcLevel(exp);
+  const logs = save.doneLog.filter(d => d.statId === statId).sort((a, b) => b.ts - a.ts);
+  const totalMin = logs.reduce((sum, d) => sum + (d.min || 0), 0);
+  const totalHour = (totalMin / 60).toFixed(1);
+
+  // 최근 7일 (오늘 포함) 일별 획득 EXP 합계
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    days.push({ label: ['일','월','화','수','목','금','토'][d.getDay()], key: d.toDateString(), total: 0 });
+  }
+  logs.forEach(l => {
+    const key = new Date(l.ts).toDateString();
+    const day = days.find(d => d.key === key);
+    if (day) day.total += l.gained;
+  });
+  const maxDay = Math.max(1, ...days.map(d => d.total));
+
+  const recent = logs.slice(0, 8);
+
+  $('modal-body').innerHTML = `
+    <div class="modal-head">
+      <span class="modal-icon">${s.icon}</span>
+      <div>
+        <div class="modal-title">${s.name} · Lv.${level}</div>
+        <div class="modal-sub" style="margin-top:2px">${remain} / ${need} EXP</div>
+      </div>
+    </div>
+
+    <div class="modal-stats-grid">
+      <div class="stat-box"><div class="num">${totalHour}h</div><div class="lbl">누적 투자 시간</div></div>
+      <div class="stat-box"><div class="num">${logs.length}회</div><div class="lbl">완료 횟수</div></div>
+    </div>
+
+    <div class="modal-sub">최근 7일</div>
+    <div class="week-chart">
+      ${days.map(d => `
+        <div class="week-col">
+          <div class="week-bar" style="height:${(d.total / maxDay) * 100}%; background:${d.total ? s.color : 'var(--line)'}"></div>
+          <div class="week-day">${d.label}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="modal-sub">최근 기록</div>
+    ${recent.length ? recent.map(l => `
+      <div class="log-item">
+        <span class="lname">${escapeHtml(l.name)}</span>
+        <span class="lmeta">+${l.gained} EXP · ${new Date(l.ts).toLocaleDateString('ko-KR', { month:'numeric', day:'numeric' })}</span>
+      </div>`).join('') : `<div class="empty" style="padding:14px 0">아직 기록이 없습니다.</div>`}
+  `;
+
+  $('modal-overlay').hidden = false;
+}
+function closeModal() { $('modal-overlay').hidden = true; }
+
+// 브라우저 기본 confirm() 대신 쓰는 자체 확인창 — 일부 웹뷰/미리보기에서 confirm()이 막혀있어서
+let pendingConfirmAction = null;
+function openConfirm(icon, title, message, confirmLabel, action) {
+  pendingConfirmAction = action;
+  $('modal-body').innerHTML = `
+    <div class="modal-head">
+      <span class="modal-icon">${icon}</span>
+      <div class="modal-title">${title}</div>
+    </div>
+    <p style="font-size:13px; color:var(--dim); line-height:1.8; margin:14px 0 20px; white-space:pre-line">${message}</p>
+    <div class="field-row">
+      <button class="btn" data-confirm-cancel style="background:var(--panel-deep); color:var(--text); border-color:var(--line); box-shadow:0 4px 0 #0d0e1e">취소</button>
+      <button class="btn" data-confirm-ok style="background:var(--hp-red); color:#fff; border-color:#5a1f1f; box-shadow:0 4px 0 #5a1f1f">${confirmLabel}</button>
+    </div>
+  `;
+  $('modal-overlay').hidden = false;
+}
+$('modal-body').addEventListener('click', e => {
+  if (e.target.dataset.confirmOk !== undefined) {
+    const action = pendingConfirmAction;
+    pendingConfirmAction = null;
+    closeModal();
+    if (action) action();
+  }
+  if (e.target.dataset.confirmCancel !== undefined) {
+    pendingConfirmAction = null;
+    closeModal();
+  }
+});
+
+/* =====================================================
+   7-2. 칭호 목록 모달
+===================================================== */
+function openTitleList() {
+  const lv = getLevels();
+  const unlockedCount = TITLES.filter(t => t.check(lv)).length;
+
+  $('modal-body').innerHTML = `
+    <div class="modal-head">
+      <span class="modal-icon">🏅</span>
+      <div>
+        <div class="modal-title">칭호</div>
+        <div class="modal-sub" style="margin-top:2px">${unlockedCount} / ${TITLES.length} 획득</div>
+      </div>
+    </div>
+    <div style="margin-top:6px">
+      ${TITLES.map(t => {
+        const unlocked = t.check(lv);
+        const equipped = save.equippedTitle === t.id;
+        return `
+          <div class="title-item ${unlocked ? '' : 'locked'} ${equipped ? 'equipped' : ''}" ${unlocked ? `data-equip="${t.id}"` : ''}>
+            <span class="t-icon">${unlocked ? t.icon : '🔒'}</span>
+            <div>
+              <div class="t-name">${t.name}</div>
+              <div class="t-desc">${t.desc}</div>
+            </div>
+            ${equipped ? '<span class="t-check">착용중</span>' : ''}
+          </div>`;
+      }).join('')}
+    </div>
+  `;
+  $('modal-overlay').hidden = false;
+}
+
+$('title-pill').addEventListener('click', openTitleList);
+$('modal-body').addEventListener('click', e => {
+  const item = e.target.closest('[data-equip]');
+  if (!item) return;
+  save.equippedTitle = item.dataset.equip;
+  writeSave(save);
+  render();
+  openTitleList(); // 착용 상태 갱신하며 모달 유지
+});
+
+$('stat-list').addEventListener('click', e => {
+  const row = e.target.closest('.stat-row');
+  if (row) openStatDetail(row.dataset.stat);
+});
+$('modal-close').addEventListener('click', closeModal);
+$('modal-overlay').addEventListener('click', e => { if (e.target.id === 'modal-overlay') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* =====================================================
+   8. 데이터 내보내기 / 가져오기
+===================================================== */
+$('export-btn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(save, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `todo-rpg-${save.name}-${dateStr}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('파일로 저장했습니다.');
+});
+
+$('import-btn').addEventListener('click', () => $('import-file').click());
+
+$('import-file').addEventListener('change', () => {
+  const file = $('import-file').files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try {
+      parsed = JSON.parse(reader.result);
+    } catch (e) {
+      toast('⚠️ 파일을 읽을 수 없습니다.');
+      return;
+    }
+    // 최소한의 형식 검증: name과 exp 필드가 있어야 세이브로 인정
+    if (!parsed || typeof parsed.name !== 'string' || typeof parsed.exp !== 'object') {
+      toast('⚠️ 올바른 형식의 백업 파일이 아닙니다.');
+      return;
+    }
+
+    openConfirm('⬆', '데이터 가져오기',
+      `'${parsed.name}'의 데이터로 덮어씁니다.\n현재 진행 상황은 사라집니다.\n계속할까요?`,
+      '덮어쓰기', () => {
+        // 예전 백업 호환: habits, doneLog 없으면 빈 배열로 보정
+        parsed.habits = parsed.habits || [];
+        parsed.quests = parsed.quests || [];
+        parsed.doneLog = parsed.doneLog || [];
+        parsed.equippedTitle = parsed.equippedTitle || 'default';
+        parsed.habits.forEach(h => { if (!h.repeatType) h.repeatType = 'daily'; });
+        if (typeof parsed.gold !== 'number') parsed.gold = 0;
+        parsed.unlockedFaces = parsed.unlockedFaces || [];
+        parsed.customRewards = parsed.customRewards || [];
+        parsed.purchaseLog = parsed.purchaseLog || [];
+        STATS.forEach(s => { if (typeof parsed.exp[s.id] !== 'number') parsed.exp[s.id] = 0; });
+
+        save = parsed;
+        writeSave(save);
+        render();
+        toast('데이터를 불러왔습니다!', true);
+      });
+  };
+  reader.readAsText(file);
+  $('import-file').value = ''; // 같은 파일 다시 선택해도 change가 발생하도록 초기화
+});
+
+// 상점 — 표정 구매
+$('shop-faces').addEventListener('click', e => {
+  const btn = e.target.closest('[data-buy-face]');
+  if (!btn || btn.disabled) return;
+  const item = FACE_SHOP.find(f => f.id === btn.dataset.buyFace);
+  if (!item || save.gold < item.cost) { toast('⚠️ 골드가 부족합니다.'); return; }
+
+  openConfirm('🛍️', '표정 구매', `${item.icon} 표정을 ${item.cost}G에 구매할까요?`, '구매하기', () => {
+    save.gold -= item.cost;
+    save.unlockedFaces.push(item.id);
+    save.purchaseLog.push({ name: `표정 ${item.icon}`, cost: item.cost, ts: Date.now(), kind: 'face' });
+    writeSave(save);
+    render();
+    toast(`${item.icon} 표정을 구매했습니다! 캐릭터를 탭해서 착용해 보세요.`, true);
+  });
+});
+
+// 나만의 보상 등록
+$('reward-add').addEventListener('click', () => {
+  const name = $('reward-name').value.trim();
+  const cost = parseInt($('reward-cost').value, 10);
+  if (!name) { $('reward-name').focus(); return; }
+  if (!cost || cost < 1) { $('reward-cost').focus(); return; }
+
+  save.customRewards.push({ id: Date.now().toString(36), name, cost });
+  $('reward-name').value = '';
+  $('reward-cost').value = '';
+  writeSave(save);
+  render();
+});
+$('reward-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('reward-add').click(); });
+
+// 나만의 보상 교환 / 삭제
+$('shop-rewards').addEventListener('click', e => {
+  const redeemId = e.target.dataset.redeem;
+  const delId = e.target.dataset.rewardDel;
+
+  if (redeemId !== undefined) {
+    const r = save.customRewards.find(x => x.id === redeemId);
+    if (!r || save.gold < r.cost) return;
+    openConfirm('🎁', '보상 교환', `'${r.name}'을(를) ${r.cost}G로 교환할까요?\n실제로 그 보상을 자신에게 선물해 주세요!`, '교환하기', () => {
+      save.gold -= r.cost;
+      save.purchaseLog.push({ name: r.name, cost: r.cost, ts: Date.now(), kind: 'reward' });
+      writeSave(save);
+      render();
+      toast(`🎁 '${r.name}' 교환 완료! 즐기고 오세요.`, true);
+    });
+  }
+
+  if (delId !== undefined) {
+    openConfirm('🗑️', '보상 삭제', '이 보상을 목록에서 삭제할까요?', '삭제하기', () => {
+      save.customRewards = save.customRewards.filter(x => x.id !== delId);
+      writeSave(save);
+      render();
+    });
+  }
+});
+
+// 타이틀로 돌아가기 — 현재 캐릭터 데이터를 완전히 지우고 이름 정하기 화면으로
+$('reset-btn').addEventListener('click', () => {
+  openConfirm(
+    '🏠',
+    '타이틀로 돌아가기',
+    '계속하면 현재 캐릭터의 모든 데이터\n(능력치, 습관, 기록)가 삭제됩니다.\n\n먼저 DATA에서 "내보내기"로\n백업했는지 확인해 주세요.',
+    '삭제하고 돌아가기',
+    () => {
+      save = null;
+      memoryFallback = null;
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+      render();
+    }
+  );
+});
+
+/* =====================================================
+   9. 하단 탭바 전환
+===================================================== */
+// 설정 탭을 벗어나면 테스트 미리보기를 강제 종료 — 켜놓은 채 잊어버리면
+// 실제 방치/스테이지 상태처럼 보여서 버그로 오해하기 쉬움
+function exitPreviewModesIfLeavingSettings(name) {
+  if (name === 'settings') return;
+  if (themePreviewStage === null && blockerPreviewStatId === null) return;
+  themePreviewStage = null;
+  blockerPreviewStatId = null;
+  $('stage-test-controls').hidden = true;
+  $('blocker-test-controls').hidden = true;
+  renderStage();
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = (p.id !== `tab-${name}`); });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  // 탭이 바뀌면 스크롤을 맨 위로 (직전 탭에서 스크롤해뒀던 위치가 남아있지 않도록)
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  exitPreviewModesIfLeavingSettings(name);
+  if (name === 'home' && save) playRunnerIntro(); // 홈으로 올 때마다 왼쪽부터 다시 뛰어옴
+}
+$('tab-bar').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (btn) switchTab(btn.dataset.tab);
+});
+
+/* =====================================================
+   10. 리포트 WEEK / MONTH 토글
+===================================================== */
+document.querySelectorAll('.report-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    reportMode = btn.dataset.report;
+    document.querySelectorAll('.report-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    renderReport();
+  });
+});
+
+/* =====================================================
+   11. 스테이지 테마 미리보기 (테스트 모드, 실제 진행과 무관)
+===================================================== */
+$('stage-test-toggle').addEventListener('click', () => {
+  const controls = $('stage-test-controls');
+  controls.hidden = !controls.hidden;
+  if (!controls.hidden && themePreviewStage === null) {
+    themePreviewStage = getStage(getTotalExp()).stage; // 현재 스테이지부터 미리보기 시작
+    renderStage();
+  }
+});
+$('stage-test-prev').addEventListener('click', () => {
+  themePreviewStage = Math.max(1, (themePreviewStage ?? 1) - 10); // 테마 한 단계씩 이동
+  renderStage();
+});
+$('stage-test-next').addEventListener('click', () => {
+  themePreviewStage = (themePreviewStage ?? 1) + 10;
+  renderStage();
+});
+$('stage-test-exit').addEventListener('click', () => {
+  themePreviewStage = null;
+  $('stage-test-controls').hidden = true;
+  renderStage();
+});
+
+/* =====================================================
+   12. 방치 몬스터 미리보기 (테스트 모드, 실제 진행과 무관)
+===================================================== */
+$('blocker-test-toggle').addEventListener('click', () => {
+  const controls = $('blocker-test-controls');
+  controls.hidden = !controls.hidden;
+  if (!controls.hidden && blockerPreviewStatId === null) {
+    blockerPreviewStatId = STATS[0].id; // 첫 번째 능력치부터 미리보기 시작
+    renderStage();
+  }
+});
+$('blocker-test-prev').addEventListener('click', () => {
+  const i = STATS.findIndex(s => s.id === blockerPreviewStatId);
+  blockerPreviewStatId = STATS[(i - 1 + STATS.length) % STATS.length].id;
+  renderStage();
+});
+$('blocker-test-next').addEventListener('click', () => {
+  const i = STATS.findIndex(s => s.id === blockerPreviewStatId);
+  blockerPreviewStatId = STATS[(i + 1) % STATS.length].id;
+  renderStage();
+});
+$('blocker-test-exit').addEventListener('click', () => {
+  blockerPreviewStatId = null;
+  $('blocker-test-controls').hidden = true;
+  renderStage();
+});
+
+/* =====================================================
+   13. 진행 중인 타이머 경과시간 실시간 갱신
+   — DOM의 data-started / data-target 값만 보고 매초 텍스트만 갱신 (전체 재렌더링 안 함)
+===================================================== */
+setInterval(() => {
+  document.querySelectorAll('.timer-elapsed').forEach(el => {
+    const started = parseInt(el.dataset.started, 10);
+    if (!started) return;
+    const sec = Math.max(0, Math.floor((Date.now() - started) / 1000));
+    const targetMin = parseInt(el.dataset.target, 10) || 0;
+
+    let text = `⏱ ${fmtElapsed(sec)} 경과`;
+    if (targetMin > 0) {
+      const remainingSec = targetMin * 60 - sec;
+      if (remainingSec > 0) {
+        text += ` · 목표까지 ${Math.ceil(remainingSec / 60)}분 남음`;
+      } else {
+        text += ` · 목표 ${Math.ceil(Math.abs(remainingSec) / 60)}분 초과 — 완료해도 좋아요`;
+      }
+    }
+    el.textContent = text;
+  });
+}, 1000);
+
+render();
+if (save) playRunnerIntro(); // 첫 로드 시에도 홈 화면 러너 인트로 재생
+</script>
+</body>
+</html>
