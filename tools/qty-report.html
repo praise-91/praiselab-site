@@ -170,6 +170,18 @@
   }
   .del-btn:hover { background: rgba(255,68,68,0.1); color: #ff4444; }
 
+  .pw-btn {
+    width: 38px; height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 15px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .pw-btn:hover { border-color: var(--orange); color: var(--orange); }
+
   /* ── + 추가 입력줄 ── */
   .add-row { display: flex; gap: 8px; margin-top: 12px; }
   .add-row input {
@@ -185,6 +197,14 @@
     -webkit-appearance: none;
   }
   .add-row input:focus { border-color: var(--orange); }
+  .add-row input.pw-field {
+    width: 80px;
+    flex: none;
+    font-size: 14px;
+    padding: 13px 8px;
+    text-align: center;
+    letter-spacing: 4px;
+  }
   .add-btn {
     padding: 0 18px;
     background: var(--orange);
@@ -302,6 +322,13 @@
     -webkit-appearance: none;
   }
   .field input:focus { border-color: var(--orange); }
+
+  /* 비밀번호 입력 (수량 입력 스타일 override) */
+  #pw-input {
+    font-size: 28px;
+    text-align: center;
+    letter-spacing: 8px;
+  }
 
   .field-select {
     width: 100%;
@@ -531,9 +558,17 @@
     <div class="card">
       <div class="section-label">작업자 선택</div>
       <div class="worker-list" id="worker-list"></div>
-      <div class="add-row">
-        <input type="text" id="new-worker" placeholder="이름 입력" />
-        <button class="add-btn" id="add-worker-btn" onclick="addWorker()">+ 등록</button>
+      <div style="margin-top:12px;">
+        <div class="add-row" style="margin-top:0;">
+          <input type="text" id="new-worker" placeholder="이름" />
+          <input type="password" id="new-worker-pw" class="pw-field" inputmode="numeric" maxlength="4" placeholder="비번" onkeydown="if(event.key==='Enter')addWorker();" />
+          <button class="add-btn" id="add-worker-btn" onclick="addWorker()">+ 등록</button>
+        </div>
+        <div id="admin-register-row" style="display:none;margin-top:10px;padding:0 2px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;">
+            <input type="checkbox" id="new-worker-admin" /> 관리자로 등록
+          </label>
+        </div>
       </div>
     </div>
   </div>
@@ -546,8 +581,8 @@
       <div class="sync-indicator"><span class="sync-dot"></span>실시간 공유 중</div>
     </header>
 
-    <button class="summary-link-btn" onclick="openSummary()">📊 합산 보기</button>
     <button class="summary-link-btn" onclick="openManage()">🗂 전체 기록 관리</button>
+    <button class="summary-link-btn" onclick="openSummary()">📊 합산 보기</button>
 
     <div id="recent-wrap" style="display:none;">
       <div class="section-label">⚡ 최근 입력 — 누르면 바로 수량 입력</div>
@@ -630,8 +665,7 @@
     <div class="section-label">자재별 합계</div>
     <div class="summary-list" id="summary-list"></div>
 
-    <button class="export-btn" onclick="exportSummaryCSV()">📂 CSV로 내보내기</button>
-    <button class="export-btn" onclick="shareSummary()">💬 공유하기 (카카오톡 등)</button>
+    <button class="export-btn" onclick="shareSummary()">📤 공유하기</button>
   </div>
 
   <!-- ⑥ 전체 기록 관리 -->
@@ -660,6 +694,23 @@
 
     <div class="section-label">기록 목록</div>
     <div class="entry-list" id="manage-list"></div>
+  </div>
+
+  <!-- ⑦ 비밀번호 입력 -->
+  <div class="view" id="view-password">
+    <div class="view-head">
+      <button class="back-btn" onclick="history.back()">‹</button>
+      <h2 id="pw-worker-name"></h2>
+    </div>
+    <div class="card">
+      <div class="section-label">비밀번호 4자리 입력</div>
+      <div class="field">
+        <input type="password" id="pw-input" inputmode="numeric" maxlength="4" placeholder="••••"
+          onkeydown="if(event.key==='Enter')confirmPassword();" />
+      </div>
+      <button class="submit-btn" id="pw-confirm-btn" onclick="confirmPassword()">확인</button>
+      <div id="pw-error" style="color:#ff4444;text-align:center;margin-top:14px;font-size:14px;display:none;">🔒 비밀번호가 맞지 않아요</div>
+    </div>
   </div>
 
 </div>
@@ -691,14 +742,10 @@
     { name: '기타',       unit: 'EA', emoji: '📁', order: 8 },
   ];
 
-  // ── 자재 "종류" 문서 구조 ──
-  // 자재명 = 종류 × 규격 조합. 긴 리스트 대신 큰버튼 2단 선택으로 도달한다.
-  // { category, name, unit, spec1?: {label, options[]}, spec2?: {...}, hideTypeInName?, order }
-  // spec 없으면 종류 버튼 → 바로 수량 입력. hideTypeInName이면 자재명에 종류명 생략 (예: "W300")
   const TRAY_WIDTHS = ['W100', 'W200', 'W300', 'W400', 'W600', 'W900', 'W1200'];
   const DEGREES = ['15°', '30°', '45°', '90°'];
   const STEEL_SIZES = ['16mm', '22mm', '28mm', '36mm', '42mm', '54mm'];
-  const EMT_SIZES = ['E15', 'E19', 'E25', 'E31', 'E39', 'E51', 'E63', 'E75']; // KS 박강전선관(EMT) 규격
+  const EMT_SIZES = ['E15', 'E19', 'E25', 'E31', 'E39', 'E51', 'E63', 'E75'];
   const RW_WIDTHS = ['70mm', '110mm'];
   const HFIX_SIZES = ['2.5sq', '4sq'];
   const HFIX_COLORS = ['흑', '백', '청', '녹', '적', '황'];
@@ -758,17 +805,29 @@
     { category: '단말', name: '터미널 (2홀)', unit: 'EA', spec1: { label: '굵기', options: ['120sq', '150sq', '240sq', '300sq'] }, order: 3 },
   ];
 
+  // 기본 자재 판별: isDefault 필드가 있거나 DEFAULT_TYPES 목록에 포함된 것
+  const DEFAULT_TYPE_KEYS = new Set(DEFAULT_TYPES.map(t => `${t.category}||${t.name}`));
+  function isDefaultItem(item) {
+    return item.isDefault === true || DEFAULT_TYPE_KEYS.has(`${item.category}||${item.name}`);
+  }
+
   // ── 상태 ──
   let workers = [];
   let categories = [];
   let items = [];
   let entries = [];
   let currentWorker = localStorage.getItem('qty_worker') || '';
-  let currentCategory = null; // { name, unit }
-  let currentItem = null; // { name, unit }
-  let currentType = null; // 선택된 종류 문서
-  let pickedSpec1 = null; // 2단 규격에서 1번째 선택값
-  let currentGroup = null; // 자재 목록 화면에서 열어본 그룹(예: 피팅류), null이면 최상위
+  let currentCategory = null;
+  let currentItem = null;
+  let currentType = null;
+  let pickedSpec1 = null;
+  let currentGroup = null;
+  let pendingWorker = null; // 비밀번호 입력 대기 중인 작업자 객체
+  let currentWorkerIsAdmin = false; // 로그아웃 후 작업자 전환 화면에서도 유지
+
+  function isAdmin() {
+    return currentWorkerIsAdmin;
+  }
 
   function todayStr() {
     const d = new Date();
@@ -778,7 +837,6 @@
     return `${yyyy}-${mm}-${dd}`;
   }
 
-  // 사용자 입력을 innerHTML에 넣기 전 반드시 이 함수를 거친다 (XSS 방지)
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, '&amp;')
@@ -803,9 +861,6 @@
   }
 
   // ── 브라우저 히스토리 연동 ──
-  // 화면을 옮길 때마다 history.pushState로 기록해둬야, 폰 뒤로가기를 눌렀을 때
-  // 앱이 통째로 종료되지 않고 이전 화면으로 돌아간다. 뒤로가기(popstate)가 오면
-  // 저장해둔 상태값으로 전역 변수를 되돌리고 다시 렌더링한다.
   function captureState(view) {
     return { view, category: currentCategory, group: currentGroup, type: currentType, specStep1: pickedSpec1, item: currentItem };
   }
@@ -865,6 +920,18 @@
         renderManage();
         go('view-manage');
         break;
+      case 'view-password':
+        if (pendingWorker) {
+          document.getElementById('pw-worker-name').textContent =
+            (pendingWorker.isAdmin ? '⭐ ' : '👷 ') + pendingWorker.name;
+          document.getElementById('pw-input').value = '';
+          document.getElementById('pw-error').style.display = 'none';
+          go('view-password');
+        } else {
+          go('view-worker');
+          history.replaceState(captureState('view-worker'), '');
+        }
+        break;
       default:
         go('view-home');
     }
@@ -876,24 +943,58 @@
     const btn = document.getElementById('whoami');
     if (currentWorker) {
       btn.style.display = '';
-      btn.textContent = '👷 ' + currentWorker;
+      btn.textContent = (isAdmin() ? '⭐ ' : '👷 ') + currentWorker;
     } else {
       btn.style.display = 'none';
     }
+    const adminRow = document.getElementById('admin-register-row');
+    if (adminRow) adminRow.style.display = isAdmin() ? '' : 'none';
   }
 
   function changeWorker() {
     currentWorker = '';
     localStorage.removeItem('qty_worker');
     updateWhoami();
+    renderWorkers();
     go('view-worker');
     pushHistory('view-worker');
   }
 
   // ── ① 작업자 ──
-  function selectWorker(name) {
-    currentWorker = name;
-    localStorage.setItem('qty_worker', name);
+  function selectWorker(id) {
+    const w = workers.find(x => x.id === id);
+    if (!w) return;
+    if (w.password) {
+      pendingWorker = w;
+      document.getElementById('pw-worker-name').textContent =
+        (w.isAdmin ? '⭐ ' : '👷 ') + w.name;
+      document.getElementById('pw-input').value = '';
+      document.getElementById('pw-error').style.display = 'none';
+      go('view-password');
+      pushHistory('view-password');
+      setTimeout(() => document.getElementById('pw-input').focus(), 150);
+    } else {
+      loginWorker(w);
+    }
+  }
+
+  function confirmPassword() {
+    const input = document.getElementById('pw-input').value;
+    if (!pendingWorker) return;
+    if (input === pendingWorker.password) {
+      loginWorker(pendingWorker);
+      pendingWorker = null;
+    } else {
+      document.getElementById('pw-error').style.display = 'block';
+      document.getElementById('pw-input').value = '';
+      document.getElementById('pw-input').focus();
+    }
+  }
+
+  function loginWorker(w) {
+    currentWorker = w.name;
+    currentWorkerIsAdmin = !!w.isAdmin;
+    localStorage.setItem('qty_worker', w.name);
     updateWhoami();
     renderTodayEntries();
     renderRecent();
@@ -901,16 +1002,39 @@
     pushHistory('view-home');
   }
 
+  function showWorkerPw(pw) {
+    alert('비밀번호: ' + (pw || '(없음)'));
+  }
+
   function addWorker() {
-    const input = document.getElementById('new-worker');
-    const name = input.value.trim();
+    const nameInput = document.getElementById('new-worker');
+    const pwInput = document.getElementById('new-worker-pw');
+    const name = nameInput.value.trim();
+    const password = pwInput.value.trim();
+
     if (!name) { alert('이름을 입력해주세요!'); return; }
+    if (!password || !/^\d{4}$/.test(password)) {
+      alert('비밀번호는 숫자 4자리로 입력해주세요!'); return;
+    }
     if (workers.some(w => w.name === name)) { alert('이미 등록된 이름이에요.'); return; }
+
+    const adminCheck = document.getElementById('new-worker-admin');
+    const isAdminFlag = !!(adminCheck && isAdmin() && adminCheck.checked);
 
     const btn = document.getElementById('add-worker-btn');
     btn.disabled = true;
-    colWorkers.add({ name, ts: firebase.firestore.FieldValue.serverTimestamp() })
-      .then(() => { input.value = ''; showToast('✅ 이름 등록 완료!'); })
+    colWorkers.add({
+      name,
+      password,
+      isAdmin: isAdminFlag,
+      ts: firebase.firestore.FieldValue.serverTimestamp(),
+    })
+      .then(() => {
+        nameInput.value = '';
+        pwInput.value = '';
+        if (adminCheck) adminCheck.checked = false;
+        showToast('✅ 등록 완료!');
+      })
       .catch(() => alert('등록 실패. 인터넷 연결을 확인해주세요.'))
       .finally(() => { btn.disabled = false; });
   }
@@ -923,13 +1047,19 @@
 
   function renderWorkers() {
     const list = document.getElementById('worker-list');
+    const adminRow = document.getElementById('admin-register-row');
+    if (adminRow) adminRow.style.display = isAdmin() ? '' : 'none';
+
     if (!workers.length) {
       list.innerHTML = '<div class="empty-state"><span class="empty-icon">👷</span>아직 등록된 이름이 없어요.<br>아래에서 이름을 등록해주세요.</div>';
       return;
     }
     list.innerHTML = workers.map(w => `
       <div class="worker-row">
-        <button class="worker-btn" onclick="selectWorker('${escapeHtml(w.name)}')">👷 ${escapeHtml(w.name)}</button>
+        <button class="worker-btn" onclick="selectWorker('${w.id}')">
+          ${w.isAdmin ? '⭐' : '👷'} ${escapeHtml(w.name)}
+        </button>
+        ${isAdmin() ? `<button class="pw-btn" onclick="showWorkerPw('${escapeHtml(w.password || '')}')">🔑</button>` : ''}
         <button class="del-btn" onclick="deleteWorker('${w.id}', '${escapeHtml(w.name)}')">✕</button>
       </div>
     `).join('');
@@ -1070,7 +1200,7 @@
     if (!wrap) return;
     const seen = new Set();
     const recent = [];
-    for (const e of entries) { // entries는 ts 내림차순
+    for (const e of entries) {
       if (e.worker !== currentWorker || seen.has(e.item)) continue;
       seen.add(e.item);
       recent.push(e);
@@ -1095,13 +1225,14 @@
 
   function typeButtonHtml(t) {
     const unit = t.unit || currentCategory.unit;
+    const canDel = !isDefaultItem(t);
     return `
       <div class="item-row">
         <button class="item-btn" onclick="selectType('${t.id}')">
           ${escapeHtml(t.name)}
           <span><span class="item-unit">${escapeHtml(unit)}</span>${t.spec1 ? '<span class="chev">›</span>' : ''}</span>
         </button>
-        <button class="del-btn" onclick="deleteItem('${t.id}', '${escapeHtml(t.name)}')">✕</button>
+        ${canDel ? `<button class="del-btn" onclick="deleteItem('${t.id}', '${escapeHtml(t.name)}')">✕</button>` : ''}
       </div>
     `;
   }
@@ -1118,7 +1249,6 @@
     const keyword = document.getElementById('item-search').value.trim();
     const inCategory = items.filter(i => i.category === currentCategory.name);
 
-    // 검색 중엔 그룹 구분 없이 카테고리 전체에서 찾는다
     if (keyword) {
       const found = inCategory.filter(i => i.name.includes(keyword));
       if (!found.length) {
@@ -1137,7 +1267,6 @@
       return;
     }
 
-    // 최상위: 그룹 없는 종류 + 그룹 묶음 버튼
     const top = inCategory.filter(i => !i.group);
     const groupNames = [...new Set(inCategory.filter(i => i.group).map(i => i.group))];
 
@@ -1226,7 +1355,6 @@
     pushHistory('view-summary');
   }
 
-  // 소수점 불필요한 0 제거 (부동소수점 오차 방지용 반올림 포함)
   function formatQty(n) {
     return Math.round(n * 100) / 100;
   }
@@ -1278,7 +1406,6 @@
     list.innerHTML = html;
   }
 
-  // BOM('﻿')을 붙여야 엑셀에서 한글이 안 깨진다
   function buildSummaryCSVBlob(rows) {
     const header = '대분류,자재명,단위,합계수량\n';
     const body = rows.map(r => `${r.category},${r.item},${r.unit},${formatQty(r.qty)}`).join('\n');
@@ -1295,20 +1422,6 @@
     return text.trim();
   }
 
-  function exportSummaryCSV() {
-    const rows = getSummaryData();
-    if (!rows.length) { alert('내보낼 데이터가 없어요!'); return; }
-    const start = document.getElementById('summary-start').value;
-    const end = document.getElementById('summary-end').value;
-    const blob = buildSummaryCSVBlob(rows);
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `물량합산_${start}_${end}.csv`;
-    a.click();
-  }
-
-  // 카카오 개발자 앱 등록 없이, 브라우저 공유 시트로 CSV 파일을 넘긴다.
-  // 카카오톡을 포함해 어떤 앱으로 보낼지는 폰이 띄우는 공유 목록에서 사용자가 직접 고른다.
   async function shareSummary() {
     const rows = getSummaryData();
     if (!rows.length) { alert('공유할 데이터가 없어요!'); return; }
@@ -1334,14 +1447,10 @@
       }
       return;
     }
-    alert('이 브라우저는 공유하기를 지원하지 않아요. CSV로 내보낸 뒤 카톡에 직접 첨부해주세요.');
+    alert('이 브라우저는 공유하기를 지원하지 않아요.');
   }
 
   // ── ⑥ 전체 기록 관리 ──
-  // 홈 화면의 "오늘 입력한 물량"은 지금 로그인한 사람 것만 보여줘서, 작업자를
-  // 삭제하면 그 사람이 남긴 기록을 아무도 손댈 수 없었다. 이 화면은 로그인
-  // 여부와 무관하게 모든 작업자·모든 기간의 기록을 작업자별로 필터링해서
-  // 보고 삭제할 수 있게 한다.
   function openManage() {
     const today = todayStr();
     document.getElementById('manage-start').value = today;
@@ -1376,8 +1485,6 @@
       return;
     }
 
-    // 작업자별로 박스 하나씩 묶는다 (entries가 이미 최신순이라, 그룹이 등장하는
-    // 순서 = 가장 최근에 입력한 작업자가 위로 온다)
     const groups = new Map();
     filtered.forEach(e => {
       if (!groups.has(e.worker)) groups.set(e.worker, []);
@@ -1392,16 +1499,19 @@
             <span>👷 ${escapeHtml(workerName)}</span>
             <span class="manage-card-count">${rows.length}건</span>
           </div>
-          ${rows.map(e => `
+          ${rows.map(e => {
+            const canDel = isAdmin() || e.worker === currentWorker;
+            return `
             <div class="manage-row">
               <div class="manage-row-info">
                 <div class="manage-row-name">${escapeHtml(e.item)}</div>
                 <div class="manage-row-meta">${escapeHtml(e.category)} · ${escapeHtml(e.date)}</div>
               </div>
               <div class="manage-row-qty">${e.qty}${escapeHtml(e.unit)}</div>
-              <button class="del-btn" onclick="deleteEntry('${e.id}')">✕</button>
+              ${canDel ? `<button class="del-btn" onclick="deleteEntry('${e.id}')">✕</button>` : '<div style="width:38px;flex-shrink:0;"></div>'}
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         </div>
       `;
     });
@@ -1409,11 +1519,6 @@
   }
 
   // ── 최초 1회 기본 데이터 심기 ──
-  // "비어있나 확인 → 없으면 심기"를 트랜잭션 하나로 묶어서, 여러 기기가 동시에
-  // 처음 접속해도 딱 한 번만 심어지도록 한다 (예전엔 확인과 심기 사이 시간차 때문에
-  // 동시 접속 시 카테고리/자재가 여러 벌 중복 심어지는 버그가 있었음).
-  // 잠금 문서는 colCategories.orderBy('order') 쿼리가 order 필드 없는 문서를
-  // 자동으로 걸러주므로, 화면에는 절대 노출되지 않는다.
   function seedIfEmpty() {
     const lockRef = colCategories.doc('_seed_lock');
     db.runTransaction(tx => tx.get(lockRef).then(lockSnap => {
@@ -1422,16 +1527,38 @@
       DEFAULT_CATEGORIES.forEach(c => tx.set(colCategories.doc(), c));
       DEFAULT_TYPES.forEach(t => tx.set(colItems.doc(), {
         ...t,
+        isDefault: true,
         ts: firebase.firestore.FieldValue.serverTimestamp(),
       }));
+    })).catch(() => {});
+  }
+
+  // 관리자 계정 사전 등록 (한 번만)
+  function seedAdmin() {
+    const lockRef = colWorkers.doc('_admin_seed');
+    db.runTransaction(tx => tx.get(lockRef).then(snap => {
+      if (snap.exists) return;
+      tx.set(lockRef, { at: firebase.firestore.FieldValue.serverTimestamp() });
+      tx.set(colWorkers.doc(), {
+        name: '김찬양',
+        password: '2540',
+        isAdmin: true,
+        ts: firebase.firestore.FieldValue.serverTimestamp(),
+      });
     })).catch(() => {});
   }
 
   // ── 실시간 리스너 ──
   colWorkers.orderBy('name').onSnapshot(snap => {
     workers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // 새로고침 후 관리자 상태 복원
+    if (currentWorker) {
+      const w = workers.find(x => x.name === currentWorker);
+      currentWorkerIsAdmin = !!(w && w.isAdmin);
+    }
     renderWorkers();
     renderManageWorkerOptions();
+    updateWhoami();
   }, () => {
     document.getElementById('worker-list').innerHTML =
       '<div class="empty-state"><span class="empty-icon">⚠️</span>연결 오류. 새로고침 해주세요.</div>';
@@ -1456,6 +1583,7 @@
 
   // ── 시작 ──
   seedIfEmpty();
+  seedAdmin();
   updateWhoami();
   const initialView = currentWorker ? 'view-home' : 'view-worker';
   go(initialView);
