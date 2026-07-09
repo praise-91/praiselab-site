@@ -303,6 +303,21 @@
   }
   .field input:focus { border-color: var(--orange); }
 
+  .field-select {
+    width: 100%;
+    padding: 13px 14px;
+    background: var(--steel-light);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  .field-select:focus { border-color: var(--orange); }
+
   .submit-btn {
     width: 100%;
     padding: 16px;
@@ -506,6 +521,7 @@
     </header>
 
     <button class="summary-link-btn" onclick="openSummary()">📊 합산 보기</button>
+    <button class="summary-link-btn" onclick="openManage()">🗂 전체 기록 관리</button>
 
     <div id="recent-wrap" style="display:none;">
       <div class="section-label">⚡ 최근 입력 — 누르면 바로 수량 입력</div>
@@ -590,6 +606,34 @@
 
     <button class="export-btn" onclick="exportSummaryCSV()">📂 CSV로 내보내기</button>
     <button class="export-btn" onclick="shareSummary()">💬 공유하기 (카카오톡 등)</button>
+  </div>
+
+  <!-- ⑥ 전체 기록 관리 -->
+  <div class="view" id="view-manage">
+    <div class="view-head">
+      <button class="back-btn" onclick="history.back()">‹</button>
+      <h2>전체 기록 관리</h2>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>작업자</label>
+        <select class="field-select" id="manage-worker" onchange="renderManage()"></select>
+      </div>
+      <div class="date-range-row">
+        <div class="field" style="margin-bottom:0;">
+          <label>시작일</label>
+          <input type="date" id="manage-start" onchange="renderManage()" />
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>종료일</label>
+          <input type="date" id="manage-end" onchange="renderManage()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">기록 목록</div>
+    <div class="entry-list" id="manage-list"></div>
   </div>
 
 </div>
@@ -789,6 +833,11 @@
       case 'view-summary':
         renderSummary();
         go('view-summary');
+        break;
+      case 'view-manage':
+        renderManageWorkerOptions();
+        renderManage();
+        go('view-manage');
         break;
       default:
         go('view-home');
@@ -1262,6 +1311,57 @@
     alert('이 브라우저는 공유하기를 지원하지 않아요. CSV로 내보낸 뒤 카톡에 직접 첨부해주세요.');
   }
 
+  // ── ⑥ 전체 기록 관리 ──
+  // 홈 화면의 "오늘 입력한 물량"은 지금 로그인한 사람 것만 보여줘서, 작업자를
+  // 삭제하면 그 사람이 남긴 기록을 아무도 손댈 수 없었다. 이 화면은 로그인
+  // 여부와 무관하게 모든 작업자·모든 기간의 기록을 작업자별로 필터링해서
+  // 보고 삭제할 수 있게 한다.
+  function openManage() {
+    const today = todayStr();
+    document.getElementById('manage-start').value = today;
+    document.getElementById('manage-end').value = today;
+    renderManageWorkerOptions();
+    renderManage();
+    go('view-manage');
+    pushHistory('view-manage');
+  }
+
+  function renderManageWorkerOptions() {
+    const sel = document.getElementById('manage-worker');
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">전체 작업자</option>' +
+      workers.map(w => `<option value="${escapeHtml(w.name)}">${escapeHtml(w.name)}</option>`).join('');
+    sel.value = prev;
+  }
+
+  function renderManage() {
+    const list = document.getElementById('manage-list');
+    if (!list) return;
+    const worker = document.getElementById('manage-worker').value;
+    const start = document.getElementById('manage-start').value || todayStr();
+    const end = document.getElementById('manage-end').value || todayStr();
+    const filtered = entries.filter(e =>
+      e.date >= start && e.date <= end && (!worker || e.worker === worker)
+    );
+
+    if (!filtered.length) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">🗂️</span>선택한 조건에 기록이 없어요</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(e => `
+      <div class="entry-card">
+        <div class="entry-info">
+          <div class="entry-name">${escapeHtml(e.item)}</div>
+          <div class="entry-meta">👷 ${escapeHtml(e.worker)} · ${escapeHtml(e.category)} · ${escapeHtml(e.date)}</div>
+        </div>
+        <div class="entry-qty">${e.qty}${escapeHtml(e.unit)}</div>
+        <button class="del-btn" onclick="deleteEntry('${e.id}')">✕</button>
+      </div>
+    `).join('');
+  }
+
   // ── 최초 1회 기본 데이터 심기 ──
   // "비어있나 확인 → 없으면 심기"를 트랜잭션 하나로 묶어서, 여러 기기가 동시에
   // 처음 접속해도 딱 한 번만 심어지도록 한다 (예전엔 확인과 심기 사이 시간차 때문에
@@ -1285,6 +1385,7 @@
   colWorkers.orderBy('name').onSnapshot(snap => {
     workers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderWorkers();
+    renderManageWorkerOptions();
   }, () => {
     document.getElementById('worker-list').innerHTML =
       '<div class="empty-state"><span class="empty-icon">⚠️</span>연결 오류. 새로고침 해주세요.</div>';
@@ -1304,6 +1405,7 @@
     entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderTodayEntries();
     renderRecent();
+    renderManage();
   });
 
   // ── 시작 ──
