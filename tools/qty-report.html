@@ -1096,7 +1096,6 @@
     }
     grid.innerHTML = categories.map(c => `
       <button class="cat-btn" onclick="openCategory('${escapeHtml(c.name)}', '${escapeHtml(c.unit)}')">
-        <span class="cat-emoji">${escapeHtml(c.emoji || '🔧')}</span>
         ${escapeHtml(c.name)}
         <span class="cat-unit">${escapeHtml(c.unit)} 단위</span>
       </button>
