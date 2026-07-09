@@ -38,15 +38,6 @@
       overflow-x: hidden;
     }
 
-    /* ── Canvas background ── */
-    #ember-canvas {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.7;
-    }
-
     /* ── Header ── */
     .site-header {
       position: sticky;
@@ -423,8 +414,6 @@
 </head>
 <body>
 
-<canvas id="ember-canvas"></canvas>
-
 <header class="site-header">
   <div class="brand">
     <div class="brand-icon">🏕️</div>
@@ -438,15 +427,7 @@
 
     <!-- Hero -->
     <section class="hero reveal">
-      <div class="hero-eyebrow">1인 개발 스튜디오</div>
-      <h1>삶에 필요한<br /><span class="highlight">앱</span>을 만듭니다</h1>
-      <p class="hero-sub">진짜 필요한 것들을 조용히, 꾸준히.<br />작지만 단단한 도구들</p>
-      <div class="hero-scroll-hint">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M7 2v10M3 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        앱 보기
-      </div>
+      <h1>PRAISE LAB</h1>
     </section>
 
     <!-- Apps -->
@@ -459,7 +440,7 @@
           <div class="app-info">
             <div class="app-name">
               힐링캠프
-              <span class="badge badge--live">출시 중</span>
+              <span class="badge badge--live">app</span>
             </div>
             <div class="app-desc">중독 회복 여정의 동반자.<br />금주·금연·단도박 추적 + 캠프파이어 감성</div>
           </div>
@@ -475,7 +456,7 @@
           <div class="app-info">
             <div class="app-name">
               갓생키우기
-              <span class="badge badge--live">출시 중</span>
+              <span class="badge badge--live">web</span>
             </div>
             <div class="app-desc">할 일을 완료할 때마다 캐릭터가 성장하는 RPG 투두리스트.<br />습관 트래커 + 레벨업</div>
           </div>
@@ -536,90 +517,6 @@
 </footer>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-// ── Ember particle animation ──
-const canvas = document.getElementById('ember-canvas');
-const ctx = canvas.getContext('2d');
-
-let W, H, embers = [];
-
-function resize() {
-  W = canvas.width = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-}
-resize();
-window.addEventListener('resize', resize);
-
-function randomBetween(a, b) { return a + Math.random() * (b - a); }
-
-function createEmber() {
-  const isSpark = Math.random() < 0.3;
-  return {
-    x: randomBetween(W * 0.2, W * 0.8),
-    y: H + 10,
-    vx: randomBetween(-0.4, 0.4),
-    vy: randomBetween(-0.4, -0.9),
-    size: isSpark ? randomBetween(0.8, 1.6) : randomBetween(1.2, 2.8),
-    alpha: randomBetween(0.4, 1.0),
-    decay: randomBetween(0.0015, 0.004),
-    hue: randomBetween(10, 42),
-    isSpark,
-    twinkleSpeed: randomBetween(0.03, 0.08),
-    twinkleOffset: randomBetween(0, Math.PI * 2),
-    age: 0,
-  };
-}
-
-for (let i = 0; i < 35; i++) {
-  const e = createEmber();
-  e.y = randomBetween(0, H);
-  embers.push(e);
-}
-
-function animateEmbers() {
-  ctx.clearRect(0, 0, W, H);
-
-  if (Math.random() < 0.4) embers.push(createEmber());
-  embers = embers.filter(e => e.alpha > 0.01);
-
-  embers.forEach(e => {
-    e.x += e.vx;
-    e.y += e.vy;
-    e.vy *= 0.998;
-    e.vx += randomBetween(-0.02, 0.02);
-    e.alpha -= e.decay;
-    e.age += 1;
-
-    const twinkle = 0.5 + 0.5 * Math.sin(e.age * e.twinkleSpeed + e.twinkleOffset);
-    const brightness = e.isSpark ? 0.6 + 0.4 * twinkle : 0.75 + 0.25 * twinkle;
-    const currentAlpha = e.alpha * brightness;
-    const glowSize = e.isSpark ? e.size * (3 + 4 * twinkle) : e.size * (2 + 2 * twinkle);
-
-    // 외부 글로우
-    const grad = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, glowSize * 3);
-    grad.addColorStop(0, `hsla(${e.hue}, 100%, 80%, ${currentAlpha * 0.6})`);
-    grad.addColorStop(0.3, `hsla(${e.hue}, 95%, 65%, ${currentAlpha * 0.25})`);
-    grad.addColorStop(1, `hsla(${e.hue}, 90%, 50%, 0)`);
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, glowSize * 3, 0, Math.PI * 2);
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // 코어
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, e.size * brightness, 0, Math.PI * 2);
-    ctx.shadowBlur = e.isSpark ? 18 + 14 * twinkle : 12 + 8 * twinkle;
-    ctx.shadowColor = `hsla(${e.hue}, 100%, 75%, ${currentAlpha})`;
-    ctx.fillStyle = e.isSpark
-      ? `hsla(${e.hue}, 60%, 95%, ${currentAlpha})`
-      : `hsla(${e.hue}, 95%, 72%, ${currentAlpha})`;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-  });
-
-  requestAnimationFrame(animateEmbers);
-}
-animateEmbers();
-
 // ── Scroll reveal ──
 const revealEls = document.querySelectorAll('.reveal');
 const observer = new IntersectionObserver(entries => {
