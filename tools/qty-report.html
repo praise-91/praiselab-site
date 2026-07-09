@@ -562,7 +562,9 @@
         <div class="add-row" style="margin-top:0;">
           <input type="text" id="new-worker" placeholder="이름" />
           <input type="password" id="new-worker-pw" class="pw-field" inputmode="numeric" maxlength="4" placeholder="비번" onkeydown="if(event.key==='Enter')addWorker();" />
-          <button class="add-btn" id="add-worker-btn" onclick="addWorker()">+ 등록</button>
+        </div>
+        <div class="add-row" style="margin-top:8px;">
+          <button class="add-btn" id="add-worker-btn" onclick="addWorker()" style="flex:1;padding:13px;">+ 등록</button>
         </div>
         <div id="admin-register-row" style="display:none;margin-top:10px;padding:0 2px;">
           <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;">
