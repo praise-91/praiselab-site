@@ -1093,7 +1093,7 @@
           👷 ${escapeHtml(w.name)}
         </button>
         ${isAdmin() ? `<button class="pw-btn" onclick="showWorkerPw('${escapeHtml(w.password || '')}')">🔑</button>` : ''}
-        <button class="del-btn" onclick="deleteWorker('${w.id}', '${escapeHtml(w.name)}')">✕</button>
+        ${isAdmin() ? `<button class="del-btn" onclick="deleteWorker('${w.id}', '${escapeHtml(w.name)}')">✕</button>` : ''}
       </div>
     `).join('');
   }
