@@ -1180,7 +1180,8 @@ let blockerPreviewStatId = null; // null = 실제 방치 상태 반영, 능력�
 /* ===== 오늘 진행률(캐릭터 좌우 위치) 계산 =====
    분모: 오늘 예정된 반복 습관 개수 / 분자: 그중 오늘 완료한 개수
    일회성 퀘스트 완료는 %에는 안 들어가고 보너스 전진(살짝 더 이동)으로만 반영 */
-const RUNNER_START = -22;  // 트랙 왼쪽 시작 위치 (%) — 0%일 때 캐릭터가 아예 안 보이도록 충분히 밖으로
+const RUNNER_START = -22;  // 인트로 연출용 시작 위치 (%) — 트랙 밖에서 뛰어들어오는 것처럼 보이게 함
+const RUNNER_MIN = 0;      // 진행률 0%일 때 실제로 멈춰서는 위치 (%) — 트랙 왼쪽 끝에 붙어서 항상 보이도록
 const RUNNER_END = 90;     // 오늘 습관 100% 도달 시 위치 (%)
 const RUNNER_MAX = 94;     // 보너스 포함 최대 위치 (깃발과 안 겹치게)
 const BONUS_STEP = 0.05;   // 일회성 퀘스트 1개당 추가 진행 비율 (5%p)
@@ -1202,7 +1203,7 @@ function computeRunnerRatio() {
   return Math.min(base + bonus, BONUS_RATIO_CAP);
 }
 function ratioToPos(ratio) {
-  return Math.min(RUNNER_START + ratio * (RUNNER_END - RUNNER_START), RUNNER_MAX);
+  return Math.max(RUNNER_MIN, Math.min(RUNNER_MIN + ratio * (RUNNER_END - RUNNER_MIN), RUNNER_MAX));
 }
 function isReducedMotion() {
   return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
