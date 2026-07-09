@@ -751,6 +751,7 @@ const STATS = [
   { id: 'wis', name: '지혜',   icon: '📖', color: '#a97fe8', hint: '독서',     neglect: '지혜가 외로워하고 있어요', monster: '🦇' },
   { id: 'mnd', name: '정신력', icon: '🧘', color: '#5adcd0', hint: '명상·일기', neglect: '마음이 흔들리고 있어요',  monster: '🌀' },
   { id: 'chr', name: '매력',   icon: '✨', color: '#e87fb8', hint: '모임',     neglect: '매력이 시들해지고 있어요', monster: '🕸️' },
+  { id: 'wil', name: '의지력', icon: '🛡️', color: '#e8935a', hint: '습관·절제', neglect: '의지가 느슨해지고 있어요', monster: '😈' },
 ];
 
 /* 칭호 정의 — 조건(lv)은 { str, vit, int, wis, mnd, chr, total } 레벨 객체를 받아 true/false 반환 */
@@ -774,6 +775,9 @@ const TITLES = [
 
   { id: 'chr5',  name: '인싸',       icon: '✨', desc: '매력 Lv.5 달성', check: lv => lv.chr >= 5 },
   { id: 'chr10', name: '사교의 달인', icon: '✨', desc: '매력 Lv.10 달성', check: lv => lv.chr >= 10 },
+
+  { id: 'wil5',  name: '철의 의지',   icon: '🛡️', desc: '의지력 Lv.5 달성', check: lv => lv.wil >= 5 },
+  { id: 'wil10', name: '불굴의 의지', icon: '🛡️', desc: '의지력 Lv.10 달성', check: lv => lv.wil >= 10 },
 
   { id: 'balanced', name: '균형 잡힌 자', icon: '⚖️', desc: '모든 능력치 Lv.5 이상',
     check: lv => STATS.every(s => lv[s.id] >= 5) },
@@ -833,6 +837,15 @@ let save = loadSave();
 // 예전 세이브 호환: habits, equippedTitle 필드가 없으면 추가
 if (save && !save.habits) { save.habits = []; writeSave(save); }
 if (save && !save.equippedTitle) { save.equippedTitle = 'default'; writeSave(save); }
+// 예전 세이브 호환: STATS에 새 능력치가 추가되면 exp에 없던 키가 생김 — 없으면 0으로 보정
+// (안 하면 undefined + gained = NaN이 되고 저장 시 null로 굳어버림)
+if (save) {
+  let statExpMigrated = false;
+  STATS.forEach(s => {
+    if (typeof save.exp[s.id] !== 'number') { save.exp[s.id] = 0; statExpMigrated = true; }
+  });
+  if (statExpMigrated) writeSave(save);
+}
 // 예전 세이브 호환: 골드/상점 기능 생기기 전 세이브 보정
 if (save) {
   if (typeof save.gold !== 'number') save.gold = 0;
