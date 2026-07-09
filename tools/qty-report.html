@@ -1528,7 +1528,7 @@
       html += `
         <div class="card manage-card">
           <div class="manage-card-header">
-            <span>👷 ${escapeHtml(workerName)}</span>
+            <span>${workerName === ADMIN.name ? '⭐' : '👷'} ${escapeHtml(workerName)}</span>
             <span class="manage-card-count">${rows.length}건</span>
           </div>
           ${rows.map(e => {
