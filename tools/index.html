@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>피더 : 통합관리시스템</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+  :root {
+    --orange: #FF6B2B;
+    --orange-dark: #E05520;
+    --steel: #1A1E2E;
+    --steel-mid: #252A3D;
+    --steel-light: #2E3450;
+    --text: #F0F2FF;
+    --text-dim: #8892B0;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--steel);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+  }
+
+  .container { max-width: 480px; margin: 0 auto; }
+
+  /* ── 상단 브랜드 네비 ── */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(26, 30, 46, 0.8);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    margin: -20px -16px 20px;
+  }
+
+  .brand {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+
+  .brand-icon {
+    width: 26px; height: 26px;
+    background: linear-gradient(135deg, #FF6B2E, #FFB347);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+
+  header.page-head { text-align: center; padding: 28px 0 24px; }
+  .header-icon { font-size: 40px; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 12px rgba(255,107,43,0.5)); }
+  header.page-head h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+  .page-sub { font-size: 13px; color: var(--text-dim); margin-top: 6px; }
+
+  /* ── 도구 카드 ── */
+  .tool-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .tool-card {
+    background: var(--steel-mid);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-decoration: none;
+    color: var(--text);
+    transition: all 0.15s;
+  }
+  .tool-card:hover { border-color: var(--orange); transform: translateY(-2px); }
+
+  .tool-icon {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    background: rgba(255,107,43,0.1);
+    border: 1px solid rgba(255,107,43,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+  }
+
+  .tool-info { flex: 1; min-width: 0; }
+  .tool-name { font-size: 16px; font-weight: 900; margin-bottom: 4px; }
+  .tool-desc { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+
+  .tool-arrow {
+    color: var(--text-dim);
+    font-size: 22px;
+    font-weight: 900;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .tool-card:hover .tool-arrow { color: var(--orange); transform: translateX(2px); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="https://praiselab.net/" class="brand">
+    <div class="brand-icon">🏕️</div>
+    Praiselab
+  </a>
+</header>
+
+<div class="container">
+
+  <header class="page-head">
+    <span class="header-icon">🗂️</span>
+    <h1>피더 : 통합관리시스템</h1>
+    <div class="page-sub">필요한 도구를 선택하세요</div>
+  </header>
+
+  <div class="tool-list">
+    <a href="qty-report.html" class="tool-card">
+      <div class="tool-icon">🧾</div>
+      <div class="tool-info">
+        <div class="tool-name">물량작성</div>
+        <div class="tool-desc">자재별 물량 입력 · 실시간 합산 · 카톡 공유</div>
+      </div>
+      <span class="tool-arrow">›</span>
+    </a>
+
+    <a href="tool-rental.html" class="tool-card">
+      <div class="tool-icon">🔧</div>
+      <div class="tool-info">
+        <div class="tool-name">자재대여</div>
+        <div class="tool-desc">공구·자재 대여 기록 · 반납 관리</div>
+      </div>
+      <span class="tool-arrow">›</span>
+    </a>
+  </div>
+
+</div>
+
+</body>
+</html>
