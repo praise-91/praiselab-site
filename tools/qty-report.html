@@ -401,6 +401,32 @@
   .summary-item-name { font-weight: 500; }
   .summary-qty { font-weight: 900; color: var(--give); white-space: nowrap; }
 
+  /* ── 전체 기록 관리: 작업자별 카드 ── */
+  .manage-card { margin-bottom: 12px; }
+  .manage-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 15px;
+    font-weight: 900;
+  }
+  .manage-card-count { font-size: 12px; font-weight: 700; color: var(--text-dim); }
+
+  .manage-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .manage-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .manage-row-info { flex: 1; min-width: 0; }
+  .manage-row-name { font-size: 14px; font-weight: 700; }
+  .manage-row-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .manage-row-qty { font-size: 14px; font-weight: 900; color: var(--orange); white-space: nowrap; }
+
   .export-btn {
     width: 100%;
     padding: 13px;
@@ -1350,16 +1376,36 @@
       return;
     }
 
-    list.innerHTML = filtered.map(e => `
-      <div class="entry-card">
-        <div class="entry-info">
-          <div class="entry-name">${escapeHtml(e.item)}</div>
-          <div class="entry-meta">👷 ${escapeHtml(e.worker)} · ${escapeHtml(e.category)} · ${escapeHtml(e.date)}</div>
+    // 작업자별로 박스 하나씩 묶는다 (entries가 이미 최신순이라, 그룹이 등장하는
+    // 순서 = 가장 최근에 입력한 작업자가 위로 온다)
+    const groups = new Map();
+    filtered.forEach(e => {
+      if (!groups.has(e.worker)) groups.set(e.worker, []);
+      groups.get(e.worker).push(e);
+    });
+
+    let html = '';
+    groups.forEach((rows, workerName) => {
+      html += `
+        <div class="card manage-card">
+          <div class="manage-card-header">
+            <span>👷 ${escapeHtml(workerName)}</span>
+            <span class="manage-card-count">${rows.length}건</span>
+          </div>
+          ${rows.map(e => `
+            <div class="manage-row">
+              <div class="manage-row-info">
+                <div class="manage-row-name">${escapeHtml(e.item)}</div>
+                <div class="manage-row-meta">${escapeHtml(e.category)} · ${escapeHtml(e.date)}</div>
+              </div>
+              <div class="manage-row-qty">${e.qty}${escapeHtml(e.unit)}</div>
+              <button class="del-btn" onclick="deleteEntry('${e.id}')">✕</button>
+            </div>
+          `).join('')}
         </div>
-        <div class="entry-qty">${e.qty}${escapeHtml(e.unit)}</div>
-        <button class="del-btn" onclick="deleteEntry('${e.id}')">✕</button>
-      </div>
-    `).join('');
+      `;
+    });
+    list.innerHTML = html;
   }
 
   // ── 최초 1회 기본 데이터 심기 ──
