@@ -430,7 +430,7 @@
     <div class="brand-icon">🏕️</div>
     Praiselab
   </div>
-  <a href="/cdn-cgi/l/email-protection#97f3fef0f2e3aea6a7d7f0faf6fefbb9f4f8fa" class="header-link">문의하기</a>
+  <a href="/cdn-cgi/l/email-protection#53373a3436276a626313343e323a3f7d303c3e" class="header-link">문의하기</a>
 </header>
 
 <main>
@@ -462,6 +462,22 @@
               <span class="badge badge--live">출시 중</span>
             </div>
             <div class="app-desc">중독 회복 여정의 동반자.<br />금주·금연·단도박 추적 + 캠프파이어 감성</div>
+          </div>
+          <div class="app-arrow">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </a>
+
+        <a href="godsaeng-rpg.html" class="app-card">
+          <div class="app-icon app-icon--clipboard">🎮</div>
+          <div class="app-info">
+            <div class="app-name">
+              갓생키우기
+              <span class="badge badge--live">출시 중</span>
+            </div>
+            <div class="app-desc">할 일을 완료할 때마다 캐릭터가 성장하는 RPG 투두리스트.<br />습관 트래커 + 레벨업</div>
           </div>
           <div class="app-arrow">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -513,7 +529,7 @@
 <footer class="site-footer">
   <div class="footer-brand">🏕️ Praiselab</div>
   <div class="footer-links">
-    <a href="/cdn-cgi/l/email-protection#ed89848a8899d4dcddad8a808c8481c38e8280"><span class="__cf_email__" data-cfemail="13777a7476672a222353747e727a7f3d707c7e">[email&#160;protected]</span></a>
+    <a href="/cdn-cgi/l/email-protection#40242927253479717000272d21292c6e232f2d"><span class="__cf_email__" data-cfemail="ea8e838d8f9ed3dbdaaa8d878b8386c4898587">[email&#160;protected]</span></a>
     <span class="footer-sep">·</span>
     <a href="healingcamp/privacy.html">개인정보처리방침</a>
   </div>
@@ -536,19 +552,23 @@ window.addEventListener('resize', resize);
 function randomBetween(a, b) { return a + Math.random() * (b - a); }
 
 function createEmber() {
+  const isSpark = Math.random() < 0.3;
   return {
     x: randomBetween(W * 0.2, W * 0.8),
     y: H + 10,
     vx: randomBetween(-0.4, 0.4),
-    vy: randomBetween(-0.8, -1.8),
-    size: randomBetween(1.2, 2.8),
-    alpha: randomBetween(0.4, 0.9),
-    decay: randomBetween(0.003, 0.007),
-    hue: randomBetween(15, 40), // orange to yellow
+    vy: randomBetween(-0.4, -0.9),
+    size: isSpark ? randomBetween(0.8, 1.6) : randomBetween(1.2, 2.8),
+    alpha: randomBetween(0.4, 1.0),
+    decay: randomBetween(0.0015, 0.004),
+    hue: randomBetween(10, 42),
+    isSpark,
+    twinkleSpeed: randomBetween(0.03, 0.08),
+    twinkleOffset: randomBetween(0, Math.PI * 2),
+    age: 0,
   };
 }
 
-// Seed initial embers
 for (let i = 0; i < 35; i++) {
   const e = createEmber();
   e.y = randomBetween(0, H);
@@ -558,23 +578,40 @@ for (let i = 0; i < 35; i++) {
 function animateEmbers() {
   ctx.clearRect(0, 0, W, H);
 
-  // Spawn new embers
   if (Math.random() < 0.4) embers.push(createEmber());
-
   embers = embers.filter(e => e.alpha > 0.01);
 
   embers.forEach(e => {
     e.x += e.vx;
     e.y += e.vy;
-    e.vy *= 0.998; // slight deceleration
-    e.vx += randomBetween(-0.02, 0.02); // drift
+    e.vy *= 0.998;
+    e.vx += randomBetween(-0.02, 0.02);
     e.alpha -= e.decay;
+    e.age += 1;
 
+    const twinkle = 0.5 + 0.5 * Math.sin(e.age * e.twinkleSpeed + e.twinkleOffset);
+    const brightness = e.isSpark ? 0.6 + 0.4 * twinkle : 0.75 + 0.25 * twinkle;
+    const currentAlpha = e.alpha * brightness;
+    const glowSize = e.isSpark ? e.size * (3 + 4 * twinkle) : e.size * (2 + 2 * twinkle);
+
+    // 외부 글로우
+    const grad = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, glowSize * 3);
+    grad.addColorStop(0, `hsla(${e.hue}, 100%, 80%, ${currentAlpha * 0.6})`);
+    grad.addColorStop(0.3, `hsla(${e.hue}, 95%, 65%, ${currentAlpha * 0.25})`);
+    grad.addColorStop(1, `hsla(${e.hue}, 90%, 50%, 0)`);
     ctx.beginPath();
-    ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
-    ctx.fillStyle = `hsla(${e.hue}, 90%, 65%, ${e.alpha})`;
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = `hsla(${e.hue}, 90%, 65%, 0.6)`;
+    ctx.arc(e.x, e.y, glowSize * 3, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // 코어
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.size * brightness, 0, Math.PI * 2);
+    ctx.shadowBlur = e.isSpark ? 18 + 14 * twinkle : 12 + 8 * twinkle;
+    ctx.shadowColor = `hsla(${e.hue}, 100%, 75%, ${currentAlpha})`;
+    ctx.fillStyle = e.isSpark
+      ? `hsla(${e.hue}, 60%, 95%, ${currentAlpha})`
+      : `hsla(${e.hue}, 95%, 72%, ${currentAlpha})`;
     ctx.fill();
     ctx.shadowBlur = 0;
   });
