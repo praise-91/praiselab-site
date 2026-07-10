@@ -335,8 +335,8 @@
 <div class="toast" id="toast">✅ 완료!</div>
 
 <header class="site-header">
-  <a href="https://praiselab.net/" class="brand">
-    Praiselab
+  <a href="javascript:void(0)" class="brand" onclick="history.back()">
+    Feeder
   </a>
   <button class="whoami" id="whoami" onclick="logout()" style="display:none;"></button>
 </header>
@@ -384,7 +384,7 @@
   <!-- 등록 -->
   <div class="view" id="view-register">
     <div class="view-head">
-      <button class="back-btn" onclick="go('view-login')">‹</button>
+      <button class="back-btn" onclick="history.back()">‹</button>
       <h2>이름 등록</h2>
     </div>
     <div class="card">
@@ -489,7 +489,7 @@
   <!-- 관리자: 가입 승인 -->
   <div class="view" id="view-admin-approve">
     <div class="view-head">
-      <button class="back-btn" onclick="go('view-app')">‹</button>
+      <button class="back-btn" onclick="history.back()">‹</button>
       <h2>가입 승인 관리</h2>
     </div>
     <div class="card">
@@ -551,11 +551,28 @@
     setTimeout(() => t.classList.remove('show'), 2200);
   }
 
-  function go(viewId) {
+  function showView(viewId) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
     window.scrollTo(0, 0);
   }
+
+  // 로그인 상태 변화 등 자동 전환: 히스토리를 쌓지 않고 현재 상태만 갱신
+  // (뒤로가기를 눌렀을 때 로그인 화면 등으로 다시 튕겨나가지 않도록)
+  function syncView(viewId) {
+    showView(viewId);
+    history.replaceState({ view: viewId }, '', location.pathname);
+  }
+
+  // 사용자가 명시적으로 다음 화면으로 이동할 때: 히스토리에 쌓아서 뒤로가기로 돌아올 수 있게
+  function go(viewId) {
+    showView(viewId);
+    history.pushState({ view: viewId }, '', location.pathname);
+  }
+
+  window.addEventListener('popstate', (e) => {
+    if (e.state && e.state.view) showView(e.state.view);
+  });
 
   // ── 로그인 ──
   function login() {
@@ -726,18 +743,18 @@
     if (!user) {
       myProfile = null;
       document.getElementById('whoami').style.display = 'none';
-      go('view-login');
+      syncView('view-login');
       return;
     }
 
     myProfileUnsub = colUsers.doc(user.uid).onSnapshot(doc => {
-      if (!doc.exists) { go('view-login'); return; }
+      if (!doc.exists) { syncView('view-login'); return; }
       myProfile = doc.data();
       updateAdminEntry();
 
       if (myProfile.status !== 'approved') {
         document.getElementById('pending-name').textContent = myProfile.name;
-        go('view-pending');
+        syncView('view-pending');
         return;
       }
 
@@ -746,7 +763,7 @@
       whoami.textContent = myProfile.name;
 
       if (!document.getElementById('view-admin-approve').classList.contains('active')) {
-        go('view-app');
+        syncView('view-app');
       }
     });
   });
