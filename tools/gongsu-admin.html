@@ -233,6 +233,43 @@
       <button class="btn block" onclick="startNewSite()">+ 새 현장 추가</button>
     </div>
 
+    <div class="card" id="period-card" style="display:none;">
+      <div class="card-title">기간</div>
+      <div class="preset-row" id="preset-row"></div>
+      <div class="row2">
+        <div class="field">
+          <input type="date" id="period-start" onchange="onCustomRangeChange()" />
+        </div>
+        <div class="field">
+          <input type="date" id="period-end" onchange="onCustomRangeChange()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="member-table-card" style="display:none;">
+      <div class="card-title">팀원별 공수·차익금</div>
+      <div style="overflow-x:auto;">
+        <table class="member-table" id="member-table">
+          <thead>
+            <tr>
+              <th>이름</th>
+              <th>공수</th>
+              <th>개인단가</th>
+              <th>차익금</th>
+              <th>결근율</th>
+              <th>숙식비</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="member-table-body"></tbody>
+        </table>
+      </div>
+      <div class="summary-total">
+        <span class="label">총 차익금</span>
+        <span class="value" id="total-profit">0원</span>
+      </div>
+    </div>
+
     <div class="card" id="site-settings-card" style="display:none;">
       <div class="card-title" id="site-settings-title">현장 설정</div>
       <div class="field">
@@ -272,19 +309,6 @@
       <div class="cal-hint">날짜를 누르면 휴무일로 표시/해제돼요. 결근율 계산에서 휴무일은 제외돼요.</div>
     </div>
 
-    <div class="card" id="period-card" style="display:none;">
-      <div class="card-title">기간</div>
-      <div class="preset-row" id="preset-row"></div>
-      <div class="row2">
-        <div class="field">
-          <input type="date" id="period-start" onchange="onCustomRangeChange()" />
-        </div>
-        <div class="field">
-          <input type="date" id="period-end" onchange="onCustomRangeChange()" />
-        </div>
-      </div>
-    </div>
-
     <div class="card" id="add-member-card" style="display:none;">
       <div class="card-title">팀원 추가</div>
       <div class="field">
@@ -295,30 +319,6 @@
         <input type="date" id="member-joined-input" />
       </div>
       <button class="btn block" onclick="addMember()">이 현장에 추가</button>
-    </div>
-
-    <div class="card" id="member-table-card" style="display:none;">
-      <div class="card-title">팀원별 공수·차익금</div>
-      <div style="overflow-x:auto;">
-        <table class="member-table" id="member-table">
-          <thead>
-            <tr>
-              <th>이름</th>
-              <th>공수</th>
-              <th>개인단가</th>
-              <th>차익금</th>
-              <th>결근율</th>
-              <th>숙식비</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="member-table-body"></tbody>
-        </table>
-      </div>
-      <div class="summary-total">
-        <span class="label">총 차익금</span>
-        <span class="value" id="total-profit">0원</span>
-      </div>
     </div>
 
     <div class="empty-state" id="no-site-msg">현장을 선택하거나 새로 추가해주세요</div>
