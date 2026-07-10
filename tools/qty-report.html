@@ -808,6 +808,7 @@
   const SQ_SIZES = ['1.5sq', '2sq', '4sq', '6sq', '10sq', '16sq', '35sq', '50sq', '75sq', '90sq', '120sq', '150sq', '240sq', '300sq'];
   const CABLE_SQ_SIZES = ['1.5sq', '2.5sq', '4sq', '6sq', '10sq', '16sq', '35sq', '50sq', '70sq', '95sq', '120sq', '150sq', '185sq', '240sq', '300sq'];
   const CABLE_SQ_SIZES_CUSTOM = [...CABLE_SQ_SIZES, '__CUSTOM__'];
+  const HFIX_POSEOL_SIZES = ['1.5sq', '2.5sq', '4sq', '6sq'];
   const CABLE_CORES = ['2C', '3C', '4C'];
 
   function trayDuctTypes(category, withAccessories) {
@@ -862,7 +863,7 @@
     { category: '단말', name: '케이블', unit: 'M', spec1: { label: '굵기', options: SQ_SIZES }, order: 1 },
     { category: '단말', name: '터미널', unit: 'EA', spec1: { label: '굵기', options: SQ_SIZES }, order: 2 },
     { category: '단말', name: '터미널 (2홀)', unit: 'EA', spec1: { label: '굵기', options: ['120sq', '150sq', '240sq', '300sq'] }, order: 3 },
-    { category: '포설', name: 'HFIX', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, order: 1 },
+    { category: '포설', name: 'HFIX', spec1: { label: 'SQ', options: HFIX_POSEOL_SIZES }, order: 1 },
     { category: '포설', name: 'CV', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, spec2: { label: '코어', options: CABLE_CORES }, order: 2 },
     { category: '포설', name: 'FCV', spec1: { label: 'SQ', options: CABLE_SQ_SIZES_CUSTOM }, spec2: { label: '코어', options: CABLE_CORES }, order: 3 },
     { category: '포설', name: 'TFR-CV', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, spec2: { label: '코어', options: CABLE_CORES }, order: 4 },
@@ -1596,6 +1597,15 @@
     })).catch(() => {});
   }
 
+  // HFIX(포설) 규격 목록이 예전 값(CABLE_SQ_SIZES)으로 이미 저장돼 있으면
+  // 최신 HFIX_POSEOL_SIZES로 자동 보정 (실제 HFIX는 6sq까지만 존재)
+  function maybeFixHfixPoseolSpec() {
+    const hfix = items.find(i => i.category === '포설' && i.name === 'HFIX');
+    if (!hfix || !hfix.spec1) return;
+    if (JSON.stringify(hfix.spec1.options) === JSON.stringify(HFIX_POSEOL_SIZES)) return;
+    colItems.doc(hfix.id).update({ 'spec1.options': HFIX_POSEOL_SIZES }).catch(() => {});
+  }
+
   // ── 1회성 마이그레이션: 기존에 이미 심어진 "기구설치" 카테고리를 "포설"로
   // 전환하고 케이블 포설 자재를 추가한다 (seedIfEmpty는 완전히 빈 DB에만
   // 동작하므로, 이미 시딩된 실서비스 데이터는 이 마이그레이션으로 별도 처리) ──
@@ -1644,6 +1654,7 @@
       renderItems();
       itemsLoaded = true;
       maybeMigratePoseol();
+      maybeFixHfixPoseolSpec();
     });
 
     colEntries.orderBy('ts', 'desc').onSnapshot(snap => {
