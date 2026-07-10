@@ -456,10 +456,10 @@
         </div>
       </a>
 
-      <a href="javascript:void(0)" class="tool-card tool-card--soon">
+      <a href="javascript:void(0)" class="tool-card tool-card--soon" id="community-entry">
         <div class="tool-icon">💬</div>
         <div class="tool-info">
-          <div class="tool-name">피더 커뮤니티<span class="tool-badge">준비중</span></div>
+          <div class="tool-name">피더 커뮤니티<span class="tool-badge" id="community-badge">준비중</span></div>
           <div class="tool-desc">현장 소식 · 정보를 나누는 공간</div>
         </div>
       </a>
@@ -710,13 +710,21 @@
     const entry = document.getElementById('admin-entry');
     const badge = document.getElementById('pending-count-badge');
     const gongsuEntry = document.getElementById('gongsu-admin-entry');
+    const communityEntry = document.getElementById('community-entry');
+    const communityBadge = document.getElementById('community-badge');
     if (!myProfile || !myProfile.isAdmin) {
       entry.style.display = 'none';
       gongsuEntry.style.display = 'none';
+      communityEntry.classList.add('tool-card--soon');
+      communityEntry.setAttribute('href', 'javascript:void(0)');
+      communityBadge.textContent = '준비중';
       return;
     }
     entry.style.display = '';
     gongsuEntry.style.display = '';
+    communityEntry.classList.remove('tool-card--soon');
+    communityEntry.setAttribute('href', 'community.html');
+    communityBadge.textContent = '관리자 미리보기';
     const pendingCount = users.filter(u => u.status === 'pending').length;
     if (pendingCount > 0) {
       badge.style.display = '';
