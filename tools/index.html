@@ -70,18 +70,6 @@
   }
   .whoami:hover { border-color: var(--orange); color: var(--orange); }
 
-  .admin-btn {
-    font-size: 11px;
-    color: var(--text-dim);
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 5px 10px;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .admin-btn:hover { border-color: var(--orange); color: var(--orange); }
-
   header.page-head { text-align: center; padding: 28px 0 24px; }
   .header-icon { font-size: 40px; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 12px rgba(255,107,43,0.5)); }
   header.page-head h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
@@ -130,35 +118,6 @@
     margin-bottom: 12px;
   }
 
-  /* ── 이름 선택 ── */
-  .name-list { display: flex; flex-direction: column; gap: 8px; }
-  .name-btn {
-    padding: 15px 16px;
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
-    background: var(--steel-light);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    transition: all 0.15s;
-  }
-  .name-btn:hover { border-color: var(--orange); }
-  .name-btn .pending-tag {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-dim);
-    background: rgba(255,255,255,0.05);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 2px 10px;
-  }
-
   .toggle-link {
     display: block;
     text-align: center;
@@ -197,7 +156,7 @@
   }
   .field input:focus { border-color: var(--orange); }
 
-  #pw-input, #reg-pw-input, #reg-pw-input2 {
+  #login-pw, #reg-pw-input, #reg-pw-input2 {
     font-size: 26px;
     text-align: center;
     letter-spacing: 8px;
@@ -217,6 +176,9 @@
   }
   .submit-btn:hover { background: var(--orange-dark); }
   .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  #login-btn { background: #fff; color: var(--orange); }
+  #login-btn:hover { background: #f0f0f0; }
 
   .error-msg {
     color: #ff4444;
@@ -367,7 +329,6 @@
     Praiselab
   </a>
   <button class="whoami" id="whoami" onclick="logout()" style="display:none;"></button>
-  <button class="admin-btn" id="admin-entry-btn" onclick="openAdminNameEntry()" style="display:none;">관리자</button>
 </header>
 
 <div class="container">
@@ -382,46 +343,22 @@
     <header class="page-head">
       <span class="header-icon">🔐</span>
       <h1>피더 로그인</h1>
-      <div class="page-sub">이름을 선택하고 시작하세요</div>
+      <div class="page-sub">이름과 비밀번호를 입력하세요</div>
     </header>
 
     <div class="card">
-      <div class="section-label">이름 선택</div>
-      <div class="name-list" id="name-list"></div>
-      <button class="toggle-link" onclick="go('view-register')">등록된 이름이 없나요? 등록하기 →</button>
-    </div>
-  </div>
-
-  <!-- 관리자 이름 입력 -->
-  <div class="view" id="view-admin-name">
-    <div class="view-head">
-      <button class="back-btn" onclick="go('view-login')">‹</button>
-      <h2>관리자 로그인</h2>
-    </div>
-    <div class="card">
       <div class="field">
-        <label>관리자 이름</label>
-        <input type="text" id="admin-name-input" placeholder="이름"
-          onkeydown="if(event.key==='Enter')adminLoginByName();" />
+        <label>이름</label>
+        <input type="text" id="login-name" placeholder="이름" />
       </div>
-      <button class="submit-btn" onclick="adminLoginByName()">다음</button>
-    </div>
-  </div>
-
-  <!-- 비밀번호 입력 -->
-  <div class="view" id="view-password">
-    <div class="view-head">
-      <button class="back-btn" onclick="go('view-login')">‹</button>
-      <h2 id="pw-name"></h2>
-    </div>
-    <div class="card">
-      <div class="section-label">비밀번호 6자리 입력</div>
       <div class="field">
-        <input type="password" id="pw-input" inputmode="numeric" maxlength="6" placeholder="••••••"
-          onkeydown="if(event.key==='Enter')confirmLogin();" />
+        <label>비밀번호 6자리</label>
+        <input type="password" id="login-pw" inputmode="numeric" maxlength="6" placeholder="••••••"
+          onkeydown="if(event.key==='Enter')login();" />
       </div>
-      <button class="submit-btn" id="pw-confirm-btn" onclick="confirmLogin()">확인</button>
-      <div class="error-msg" id="pw-error">🔒 비밀번호가 맞지 않아요</div>
+      <button class="submit-btn" id="login-btn" onclick="login()">로그인</button>
+      <div class="error-msg" id="login-error">🔒 이름 또는 비밀번호가 맞지 않아요</div>
+      <button class="toggle-link" onclick="go('view-register')">회원가입</button>
     </div>
   </div>
 
@@ -548,7 +485,6 @@
   const EMAIL_DOMAIN = 'feeder.praiselab.internal';
 
   let users = [];
-  let pendingLoginUser = null; // 비밀번호 입력 대기 중인 이름
   let myProfile = null;
   let myProfileUnsub = null;
 
@@ -574,63 +510,33 @@
     window.scrollTo(0, 0);
   }
 
-  // ── 로그인 화면: 이름 목록 ──
-  function renderNameList() {
-    const list = document.getElementById('name-list');
-    const regular = users.filter(u => !u.isAdmin);
-    if (!regular.length) {
-      list.innerHTML = '<div class="empty-state"><span class="empty-icon">👷</span>아직 등록된 이름이 없어요.<br>아래에서 등록해주세요.</div>';
-      return;
-    }
-    list.innerHTML = regular.map(u => `
-      <button class="name-btn" onclick="selectName('${u.id}')">
-        ${escapeHtml(u.name)}
-        ${u.status === 'pending' ? '<span class="pending-tag">승인 대기</span>' : ''}
-      </button>
-    `).join('');
-  }
+  // ── 로그인 ──
+  function login() {
+    const name = document.getElementById('login-name').value.trim();
+    const pw = document.getElementById('login-pw').value;
+    const errorEl = document.getElementById('login-error');
+    errorEl.style.display = 'none';
 
-  function selectName(id) {
-    const u = users.find(x => x.id === id);
-    if (!u) return;
-    pendingLoginUser = u;
-    document.getElementById('pw-name').textContent = u.name;
-    document.getElementById('pw-input').value = '';
-    document.getElementById('pw-error').style.display = 'none';
-    go('view-password');
-    setTimeout(() => document.getElementById('pw-input').focus(), 150);
-  }
-
-  function openAdminNameEntry() {
-    document.getElementById('admin-name-input').value = '';
-    go('view-admin-name');
-    setTimeout(() => document.getElementById('admin-name-input').focus(), 150);
-  }
-
-  function adminLoginByName() {
-    const name = document.getElementById('admin-name-input').value.trim();
-    if (!name) return;
-    const u = users.find(x => x.isAdmin && x.name === name);
-    if (!u) { alert('등록된 관리자 이름이 아니에요.'); return; }
-    selectName(u.id);
-  }
-
-  function confirmLogin() {
-    const pw = document.getElementById('pw-input').value;
-    if (!pendingLoginUser) return;
+    if (!name) { alert('이름을 입력해주세요!'); return; }
     if (!/^\d{6}$/.test(pw)) {
-      document.getElementById('pw-error').textContent = '🔒 비밀번호는 숫자 6자리예요';
-      document.getElementById('pw-error').style.display = 'block';
+      errorEl.textContent = '🔒 비밀번호는 숫자 6자리예요';
+      errorEl.style.display = 'block';
       return;
     }
-    const btn = document.getElementById('pw-confirm-btn');
+    const u = users.find(x => x.name === name);
+    if (!u) {
+      errorEl.textContent = '🔒 이름 또는 비밀번호가 맞지 않아요';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    const btn = document.getElementById('login-btn');
     btn.disabled = true;
-    auth.signInWithEmailAndPassword(pendingLoginUser.email, pw)
+    auth.signInWithEmailAndPassword(u.email, pw)
       .catch(() => {
-        document.getElementById('pw-error').textContent = '🔒 비밀번호가 맞지 않아요';
-        document.getElementById('pw-error').style.display = 'block';
-        document.getElementById('pw-input').value = '';
-        document.getElementById('pw-input').focus();
+        errorEl.textContent = '🔒 이름 또는 비밀번호가 맞지 않아요';
+        errorEl.style.display = 'block';
+        document.getElementById('login-pw').value = '';
       })
       .finally(() => { btn.disabled = false; });
   }
@@ -753,7 +659,6 @@
   // ── 이름 목록 실시간 구독 (로그인 화면 + 승인 화면 공용) ──
   colUsers.orderBy('name').onSnapshot(snap => {
     users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderNameList();
     if (document.getElementById('view-admin-approve').classList.contains('active')) {
       renderApproveList();
       renderMemberList();
@@ -768,12 +673,9 @@
     if (!user) {
       myProfile = null;
       document.getElementById('whoami').style.display = 'none';
-      document.getElementById('admin-entry-btn').style.display = '';
       go('view-login');
       return;
     }
-
-    document.getElementById('admin-entry-btn').style.display = 'none';
 
     myProfileUnsub = colUsers.doc(user.uid).onSnapshot(doc => {
       if (!doc.exists) { go('view-login'); return; }
