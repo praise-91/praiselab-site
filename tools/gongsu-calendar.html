@@ -133,6 +133,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-stepper > button:hover { background:#E7E1D6; }
 .gg-stepval { font-size:20px; font-weight:800; min-width:52px; text-align:center; }
 .gg-stepval-price { font-size:16px; min-width:100px; }
+.gg-stepval-price-input {
+  font-family: inherit; font-size:16px; font-weight:800; text-align:center;
+  width:110px; border:1.5px solid #E7E1D6; border-radius:8px; padding:6px 4px;
+  background:#F6F4EF; color:#22201C;
+}
+.gg-stepval-price-input:focus { outline:none; border-color:#C97A1E; background:#FFFFFF; }
 .gg-steppay { margin-left:auto; font-size:13.5px; font-weight:700; color:#C97A1E; }
 
 .gg-expenselist { display:flex; flex-direction:column; gap:8px; }
@@ -1215,9 +1221,13 @@ function DayModal({
     className: "gg-stepper"
   }, React.createElement("button", {
     onClick: () => setUnitPrice(v => Math.max(0, v - 10000))
-  }, "−"), React.createElement("span", {
-    className: "gg-stepval gg-stepval-price"
-  }, won(unitPrice)), React.createElement("button", {
+  }, "−"), React.createElement("input", {
+    className: "gg-stepval-price-input",
+    type: "number",
+    inputMode: "numeric",
+    value: unitPrice,
+    onChange: e => setUnitPrice(Math.max(0, Number(e.target.value) || 0))
+  }), React.createElement("button", {
     onClick: () => setUnitPrice(v => v + 10000)
   }, "+"))), React.createElement("div", {
     className: "gg-field"
