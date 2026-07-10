@@ -114,6 +114,7 @@
   .btn.danger { background: var(--orange); color: #fff; flex: 0 0 auto; white-space: nowrap; }
   .btn.danger:hover { background: var(--orange-dark); }
   .btn.small { padding: 8px 12px; font-size: 12.5px; }
+  .btn.fit { flex: 0 0 auto; white-space: nowrap; }
 
   .preset-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   .preset-btn {
@@ -227,10 +228,12 @@
 
     <div class="card">
       <div class="card-title">현장 선택</div>
-      <div class="field">
-        <select id="site-select" onchange="onSiteSelectChange()"></select>
+      <div class="row2">
+        <div class="field" style="margin-bottom:0;">
+          <select id="site-select" onchange="onSiteSelectChange()"></select>
+        </div>
+        <button class="btn fit" onclick="startNewSite()">+ 새 현장</button>
       </div>
-      <button class="btn block" onclick="startNewSite()">+ 새 현장 추가</button>
     </div>
 
     <div class="card" id="period-card" style="display:none;">
