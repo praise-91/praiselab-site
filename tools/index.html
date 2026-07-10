@@ -335,7 +335,11 @@
 
   <!-- 로딩 -->
   <div class="view active" id="view-loading">
-    <div class="empty-state" style="padding-top:80px;">불러오는 중…</div>
+    <div class="empty-state" style="padding-top:80px;" id="loading-text">불러오는 중…</div>
+    <div id="loading-retry" style="display:none; text-align:center; padding-top:16px;">
+      <div style="font-size:13px; color:var(--text-dim); margin-bottom:14px;">연결이 지연되고 있어요. 인터넷 연결을 확인해주세요.</div>
+      <button class="submit-btn" style="width:auto; padding:12px 28px;" onclick="location.reload()">다시 시도</button>
+    </div>
   </div>
 
   <!-- 로그인 -->
@@ -472,6 +476,17 @@
 
 </div>
 
+<script>
+  // firebase 스크립트 로딩 자체가 실패해도(네트워크 문제 등) 이 타이머는 별개로 동작해서
+  // "불러오는 중…"에 무한정 멈춰있지 않고 재시도 버튼을 보여줌
+  setTimeout(() => {
+    const loading = document.getElementById('view-loading');
+    if (loading && loading.classList.contains('active')) {
+      document.getElementById('loading-text').style.display = 'none';
+      document.getElementById('loading-retry').style.display = 'block';
+    }
+  }, 8000);
+</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
