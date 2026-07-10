@@ -1627,31 +1627,40 @@ function TeamModal({
     return sorted;
   }, [members, start, end]);
   const maxVal = Math.max(1, ...ranked.map(m => m.total));
+  const groups = [];
+  ranked.forEach(m => {
+    const last = groups[groups.length - 1];
+    if (last && last.rank === m.rank) {
+      last.items.push(m);
+    } else {
+      groups.push({ rank: m.rank, total: m.total, items: [m] });
+    }
+  });
   const rows = members === null ? React.createElement("div", {
     className: "gg-teamrank-empty"
   }, "불러오는 중…") : ranked.length === 0 ? React.createElement("div", {
     className: "gg-teamrank-empty"
-  }, "이 기간에 입력된 팀원 공수가 없습니다.") : ranked.map(m => {
-    const isMe = m.id === window.gcMyUid;
+  }, "이 기간에 입력된 팀원 공수가 없습니다.") : groups.map(g => {
+    const isMe = g.items.some(m => m.id === window.gcMyUid);
     return React.createElement("div", {
-      key: m.id,
+      key: g.rank,
       className: "gg-teamrank-row" + (isMe ? " gg-teamrank-row-me" : "")
     }, React.createElement("div", {
       className: "gg-teamrank-top"
     }, React.createElement("span", {
       className: "gg-teamrank-rank"
-    }, RANK_MEDALS[m.rank - 1] || m.rank), React.createElement("span", {
+    }, RANK_MEDALS[g.rank - 1] || g.rank), React.createElement("span", {
       className: "gg-teamrank-name"
-    }, m.name, isMe && React.createElement("span", {
+    }, g.items.map(m => m.name).join(", "), isMe && React.createElement("span", {
       className: "gg-teamrank-me-badge"
     }, "나")), React.createElement("span", {
       className: "gg-teamrank-value"
-    }, fmtG(m.total))), React.createElement("div", {
+    }, fmtG(g.total))), React.createElement("div", {
       className: "gg-teamrank-track"
     }, React.createElement("div", {
       className: "gg-teamrank-fill",
       style: {
-        width: m.total / maxVal * 100 + "%"
+        width: g.total / maxVal * 100 + "%"
       }
     })));
   });
