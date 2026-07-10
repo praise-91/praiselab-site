@@ -774,6 +774,7 @@
   const colCategories = db.collection('qty_categories');
   const colItems = db.collection('qty_items');
   const colEntries = db.collection('qty_entries');
+  const colSettings = db.collection('qty_settings');
 
   // ── 기본 데이터 (Firestore가 비어 있으면 최초 1회 심는다) ──
   const DEFAULT_CATEGORIES = [
@@ -871,6 +872,7 @@
   let pickedSpec1 = null;
   let currentGroup = null;
   let currentSummaryTab = 'total';
+  let exportTemplate = '';
 
   function isAdmin() {
     return isAdminFlag;
@@ -964,7 +966,7 @@
         go('view-preview');
         break;
       case 'view-template':
-        document.getElementById('template-input').value = localStorage.getItem('qty_export_template') || '';
+        document.getElementById('template-input').value = exportTemplate;
         go('view-template');
         break;
       default:
@@ -1415,7 +1417,7 @@
     const rows = getSummaryData();
     lastPreviewDate = formatKoreanDate(todayStr());
     lastPreviewList = buildListText(rows) || '(입력된 자재 없음)';
-    const template = localStorage.getItem('qty_export_template') || DEFAULT_EXPORT_TEMPLATE;
+    const template = exportTemplate || DEFAULT_EXPORT_TEMPLATE;
     document.getElementById('preview-text').value = template
       .replaceAll('{날짜}', lastPreviewDate)
       .replaceAll('{목록}', lastPreviewList);
@@ -1427,27 +1429,30 @@
     pushHistory('view-preview');
   }
 
-  // ── 양식 설정 ──
+  // ── 양식 설정 (팀 전체 공유, Firestore에 저장) ──
+  function saveExportTemplate(val) {
+    return colSettings.doc('export_template').set({
+      template: val,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }).catch(() => alert('저장 실패. 인터넷 연결을 확인해주세요.'));
+  }
+
   function openTemplateEditor() {
-    document.getElementById('template-input').value = localStorage.getItem('qty_export_template') || '';
+    document.getElementById('template-input').value = exportTemplate;
     go('view-template');
     pushHistory('view-template');
   }
 
   function saveTemplate() {
     const val = document.getElementById('template-input').value;
-    if (val.trim()) {
-      localStorage.setItem('qty_export_template', val);
-    } else {
-      localStorage.removeItem('qty_export_template');
-    }
-    showToast('✅ 양식 저장 완료!');
+    saveExportTemplate(val.trim());
+    showToast('✅ 양식 저장 완료! 팀 전체에 공유됐어요');
     history.back();
   }
 
   function resetTemplate() {
-    if (!confirm('기본 양식으로 되돌릴까요?')) return;
-    localStorage.removeItem('qty_export_template');
+    if (!confirm('기본 양식으로 되돌릴까요? (팀 전체에 적용돼요)')) return;
+    saveExportTemplate('');
     document.getElementById('template-input').value = '';
     showToast('✅ 기본 양식으로 되돌렸어요');
   }
@@ -1461,7 +1466,7 @@
     let toSave = finalText;
     if (lastPreviewList && toSave.includes(lastPreviewList)) toSave = toSave.replace(lastPreviewList, '{목록}');
     if (lastPreviewDate && toSave.includes(lastPreviewDate)) toSave = toSave.replace(lastPreviewDate, '{날짜}');
-    localStorage.setItem('qty_export_template', toSave);
+    if (toSave !== exportTemplate) saveExportTemplate(toSave);
 
     const rows = getSummaryData();
     const start = document.getElementById('summary-start').value;
@@ -1589,6 +1594,13 @@
       renderTodayEntries();
       renderRecent();
       renderManage();
+    });
+
+    colSettings.doc('export_template').onSnapshot(doc => {
+      exportTemplate = (doc.exists && doc.data().template) || '';
+      if (document.getElementById('view-template').classList.contains('active')) {
+        document.getElementById('template-input').value = exportTemplate;
+      }
     });
 
     renderTodayEntries();
