@@ -707,7 +707,6 @@ const {
 } = React;
 const C = {
   amber: "#C97A1E",
-  day: "#22201C",
   extended: "#C97A1E",
   night: "#3B3A6B",
   early: "#2E6E8E",
@@ -780,7 +779,7 @@ function typeOf(gongsu) {
 const TYPE_META = {
   day: {
     label: "주간",
-    color: C.day
+    color: "var(--gg-ink)"
   },
   extended: {
     label: "연장",
@@ -1536,7 +1535,7 @@ function SettingsModal({
     className: "gg-sheet-head"
   }, React.createElement("div", {
     className: "gg-sheet-date"
-  }, "커스텀 공수"), React.createElement("button", {
+  }, "설정"), React.createElement("button", {
     className: "gg-x",
     onClick: onClose,
     "aria-label": "닫기"
@@ -1653,7 +1652,7 @@ function Sidebar({
     onClick: onSettings
   }, React.createElement("span", {
     className: "gg-menuitem-icon"
-  }, "⚙️"), React.createElement("span", null, "커스텀 공수")), React.createElement("button", {
+  }, "⚙️"), React.createElement("span", null, "설정")), React.createElement("button", {
     className: "gg-menuitem",
     onClick: onTeam
   }, React.createElement("span", {
