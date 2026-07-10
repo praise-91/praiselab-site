@@ -78,6 +78,18 @@
   }
   .whoami:hover { border-color: var(--orange); color: var(--orange); }
 
+  .locked-link {
+    display: block;
+    padding: 16px;
+    background: var(--orange);
+    border-radius: 12px;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 900;
+  }
+  .locked-link:hover { background: var(--orange-dark); }
+
   header.page-head { text-align: center; padding: 28px 0 24px; }
   .header-icon { font-size: 40px; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 12px rgba(255,107,43,0.5)); }
   header.page-head h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
@@ -139,25 +151,6 @@
     margin-bottom: 12px;
   }
 
-  /* ── 이름 선택 ── */
-  .worker-list { display: flex; flex-direction: column; gap: 8px; }
-  .worker-row { display: flex; gap: 8px; align-items: center; }
-  .worker-btn {
-    flex: 1;
-    padding: 15px 16px;
-    border: 1.5px solid transparent;
-    border-radius: 12px;
-    background: var(--orange);
-    color: #fff;
-    font-family: inherit;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.15s;
-  }
-  .worker-btn:hover { background: var(--orange-dark); }
-
   .del-btn {
     width: 38px; height: 38px;
     border: 1px solid rgba(255,68,68,0.25);
@@ -169,18 +162,6 @@
     flex-shrink: 0;
   }
   .del-btn:hover { background: rgba(255,68,68,0.1); color: #ff4444; }
-
-  .pw-btn {
-    width: 38px; height: 38px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: transparent;
-    color: var(--text-dim);
-    font-size: 15px;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-  .pw-btn:hover { border-color: var(--orange); color: var(--orange); }
 
   /* ── + 추가 입력줄 ── */
   .add-row { display: flex; gap: 8px; margin-top: 12px; }
@@ -197,14 +178,6 @@
     -webkit-appearance: none;
   }
   .add-row input:focus { border-color: var(--orange); }
-  .add-row input.pw-field {
-    width: 80px;
-    flex: none;
-    font-size: 14px;
-    padding: 13px 8px;
-    text-align: center;
-    letter-spacing: 4px;
-  }
   .add-btn {
     padding: 0 18px;
     background: var(--orange);
@@ -322,13 +295,6 @@
     -webkit-appearance: none;
   }
   .field input:focus { border-color: var(--orange); }
-
-  /* 비밀번호 입력 (수량 입력 스타일 override) */
-  #pw-input {
-    font-size: 28px;
-    text-align: center;
-    letter-spacing: 8px;
-  }
 
   .field-select {
     width: 100%;
@@ -547,19 +513,6 @@
   .chev { color: var(--text-dim); font-weight: 900; margin-left: 6px; }
   .group-count { font-size: 11px; color: var(--text-dim); }
 
-  /* ── 관리자 버튼 ── */
-  .admin-btn {
-    font-size: 11px;
-    color: var(--text-dim);
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 5px 10px;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .admin-btn:hover { border-color: var(--orange); color: var(--orange); }
-
   /* ── 토스트 ── */
   .toast {
     position: fixed;
@@ -585,33 +538,20 @@
   <a href="https://praiselab.net/tools/" class="brand">
     Feeder
   </a>
-  <button class="whoami" id="whoami" onclick="changeWorker()" style="display:none;"></button>
-  <button class="admin-btn" id="admin-btn" onclick="openAdminLogin()" style="display:none;">관리자</button>
+  <button class="whoami" id="whoami" onclick="logout()" style="display:none;"></button>
 </header>
 
 <div class="container">
 
-  <!-- ① 이름 선택 -->
-  <div class="view" id="view-worker">
+  <!-- 로그인 필요 -->
+  <div class="view active" id="view-locked">
     <header class="page-head">
-      <span class="header-icon">📋</span>
-      <h1>물량작성</h1>
-      <div class="page-sub">이름을 선택하고 시작하세요</div>
-      <div class="sync-indicator"><span class="sync-dot"></span>실시간 공유 중</div>
+      <span class="header-icon">🔒</span>
+      <h1>로그인이 필요해요</h1>
+      <div class="page-sub">피더 홈에서 로그인 후 다시 들어와주세요</div>
     </header>
-
     <div class="card">
-      <div class="section-label">작업자 선택</div>
-      <div class="worker-list" id="worker-list"></div>
-      <div style="margin-top:12px;">
-        <div class="add-row" style="margin-top:0;">
-          <input type="text" id="new-worker" placeholder="이름" />
-          <input type="password" id="new-worker-pw" class="pw-field" inputmode="numeric" maxlength="4" placeholder="비번" onkeydown="if(event.key==='Enter')addWorker();" />
-        </div>
-        <div class="add-row" style="margin-top:8px;">
-          <button class="add-btn" id="add-worker-btn" onclick="addWorker()" style="flex:1;padding:13px;">+ 등록</button>
-        </div>
-      </div>
+      <a href="index.html" class="locked-link">피더 홈으로 →</a>
     </div>
   </div>
 
@@ -809,26 +749,10 @@
     </div>
   </div>
 
-  <!-- ⑦ 비밀번호 입력 -->
-  <div class="view" id="view-password">
-    <div class="view-head">
-      <button class="back-btn" onclick="history.back()">‹</button>
-      <h2 id="pw-worker-name"></h2>
-    </div>
-    <div class="card">
-      <div class="section-label">비밀번호 4자리 입력</div>
-      <div class="field">
-        <input type="password" id="pw-input" inputmode="numeric" maxlength="4" placeholder="••••"
-          onkeydown="if(event.key==='Enter')confirmPassword();" />
-      </div>
-      <button class="submit-btn" id="pw-confirm-btn" onclick="confirmPassword()">확인</button>
-      <div id="pw-error" style="color:#ff4444;text-align:center;margin-top:14px;font-size:14px;display:none;">🔒 비밀번호가 맞지 않아요</div>
-    </div>
-  </div>
-
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
   firebase.initializeApp({
@@ -837,8 +761,9 @@
     projectId: "healingcamp-51eb0",
   });
 
+  const auth = firebase.auth();
   const db = firebase.firestore();
-  const colWorkers = db.collection('qty_workers');
+  const colToolsUsers = db.collection('tools_users');
   const colCategories = db.collection('qty_categories');
   const colItems = db.collection('qty_items');
   const colEntries = db.collection('qty_entries');
@@ -918,9 +843,6 @@
     { category: '단말', name: '터미널 (2홀)', unit: 'EA', spec1: { label: '굵기', options: ['120sq', '150sq', '240sq', '300sq'] }, order: 3 },
   ];
 
-  // 관리자 계정 (하드코딩 — Firestore qty_workers와 무관)
-  const ADMIN = { name: '김찬양', password: '2540', isAdmin: true };
-
   // 기본 자재 판별: isDefault 필드가 있거나 DEFAULT_TYPES 목록에 포함된 것
   const DEFAULT_TYPE_KEYS = new Set(DEFAULT_TYPES.map(t => `${t.category}||${t.name}`));
   function isDefaultItem(item) {
@@ -928,22 +850,23 @@
   }
 
   // ── 상태 ──
-  let workers = [];
+  let toolsUsers = []; // 피더 사이트 로그인 유저 목록 (전체 기록 관리 필터용)
   let categories = [];
   let items = [];
   let entries = [];
-  let currentWorker = localStorage.getItem('qty_worker') || '';
+  let currentWorker = '';
+  let isAdminFlag = false;
+  let appStarted = false;
+  let gateProfileUnsub = null;
   let currentCategory = null;
   let currentItem = null;
   let currentType = null;
   let pickedSpec1 = null;
   let currentGroup = null;
-  let pendingWorker = null; // 비밀번호 입력 대기 중인 작업자 객체
-  let currentWorkerIsAdmin = false; // 로그아웃 후 작업자 전환 화면에서도 유지
   let currentSummaryTab = 'total';
 
   function isAdmin() {
-    return currentWorkerIsAdmin;
+    return isAdminFlag;
   }
 
   function todayStr() {
@@ -999,9 +922,6 @@
     currentItem = state.item || null;
 
     switch (state.view) {
-      case 'view-worker':
-        go('view-worker');
-        break;
       case 'view-home':
         renderTodayEntries();
         renderRecent();
@@ -1040,18 +960,6 @@
         document.getElementById('template-input').value = localStorage.getItem('qty_export_template') || '';
         go('view-template');
         break;
-      case 'view-password':
-        if (pendingWorker) {
-          document.getElementById('pw-worker-name').textContent =
-            (pendingWorker.isAdmin ? '⭐ ' : '👷 ') + pendingWorker.name;
-          document.getElementById('pw-input').value = '';
-          document.getElementById('pw-error').style.display = 'none';
-          go('view-password');
-        } else {
-          go('view-worker');
-          history.replaceState(captureState('view-worker'), '');
-        }
-        break;
       default:
         go('view-home');
     }
@@ -1061,133 +969,16 @@
 
   function updateWhoami() {
     const whoami = document.getElementById('whoami');
-    const adminBtn = document.getElementById('admin-btn');
     if (currentWorker) {
       whoami.style.display = '';
       whoami.textContent = currentWorker;
-      if (adminBtn) adminBtn.style.display = 'none';
     } else {
       whoami.style.display = 'none';
-      if (adminBtn) adminBtn.style.display = '';
     }
   }
 
-  function changeWorker() {
-    currentWorker = '';
-    localStorage.removeItem('qty_worker');
-    updateWhoami();
-    renderWorkers();
-    go('view-worker');
-    pushHistory('view-worker');
-  }
-
-  // ── ① 작업자 ──
-  function selectWorker(id) {
-    const w = workers.find(x => x.id === id);
-    if (!w) return;
-    if (w.password) {
-      pendingWorker = w;
-      document.getElementById('pw-worker-name').textContent =
-        (w.isAdmin ? '⭐ ' : '👷 ') + w.name;
-      document.getElementById('pw-input').value = '';
-      document.getElementById('pw-error').style.display = 'none';
-      go('view-password');
-      pushHistory('view-password');
-      setTimeout(() => document.getElementById('pw-input').focus(), 150);
-    } else {
-      loginWorker(w);
-    }
-  }
-
-  function confirmPassword() {
-    const input = document.getElementById('pw-input').value;
-    if (!pendingWorker) return;
-    if (input === pendingWorker.password) {
-      loginWorker(pendingWorker);
-      pendingWorker = null;
-    } else {
-      document.getElementById('pw-error').style.display = 'block';
-      document.getElementById('pw-input').value = '';
-      document.getElementById('pw-input').focus();
-    }
-  }
-
-  function loginWorker(w) {
-    currentWorker = w.name;
-    currentWorkerIsAdmin = !!w.isAdmin;
-    localStorage.setItem('qty_worker', w.name);
-    updateWhoami();
-    renderTodayEntries();
-    renderRecent();
-    go('view-home');
-    pushHistory('view-home');
-  }
-
-  function showWorkerPw(pw) {
-    alert('비밀번호: ' + (pw || '(없음)'));
-  }
-
-  function openAdminLogin() {
-    pendingWorker = ADMIN;
-    document.getElementById('pw-worker-name').textContent = '🔐 관리자 로그인';
-    document.getElementById('pw-input').value = '';
-    document.getElementById('pw-error').style.display = 'none';
-    go('view-password');
-    pushHistory('view-password');
-    setTimeout(() => document.getElementById('pw-input').focus(), 150);
-  }
-
-  function addWorker() {
-    const nameInput = document.getElementById('new-worker');
-    const pwInput = document.getElementById('new-worker-pw');
-    const name = nameInput.value.trim();
-    const password = pwInput.value.trim();
-
-    if (!name) { alert('이름을 입력해주세요!'); return; }
-    if (!password || !/^\d{4}$/.test(password)) {
-      alert('비밀번호는 숫자 4자리로 입력해주세요!'); return;
-    }
-    if (workers.some(w => w.name === name)) { alert('이미 등록된 이름이에요.'); return; }
-
-    const btn = document.getElementById('add-worker-btn');
-    btn.disabled = true;
-    colWorkers.add({
-      name,
-      password,
-      isAdmin: false,
-      ts: firebase.firestore.FieldValue.serverTimestamp(),
-    })
-      .then(() => {
-        nameInput.value = '';
-        pwInput.value = '';
-        showToast('✅ 등록 완료!');
-      })
-      .catch(() => alert('등록 실패. 인터넷 연결을 확인해주세요.'))
-      .finally(() => { btn.disabled = false; });
-  }
-
-  function deleteWorker(id, name) {
-    if (!confirm(`'${name}' 이름을 삭제할까요?`)) return;
-    colWorkers.doc(id).delete()
-      .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
-  }
-
-  function renderWorkers() {
-    const list = document.getElementById('worker-list');
-    const regular = workers.filter(w => !w.isAdmin);
-    if (!regular.length) {
-      list.innerHTML = '<div class="empty-state"><span class="empty-icon">👷</span>아직 등록된 이름이 없어요.<br>아래에서 이름을 등록해주세요.</div>';
-      return;
-    }
-    list.innerHTML = regular.map(w => `
-      <div class="worker-row">
-        <button class="worker-btn" onclick="selectWorker('${w.id}')">
-          ${escapeHtml(w.name)}
-        </button>
-        ${isAdmin() ? `<button class="pw-btn" onclick="showWorkerPw('${escapeHtml(w.password || '')}')">PW</button>` : ''}
-        ${isAdmin() ? `<button class="del-btn" onclick="deleteWorker('${w.id}', '${escapeHtml(w.name)}')">✕</button>` : ''}
-      </div>
-    `).join('');
+  function logout() {
+    auth.signOut();
   }
 
   // ── ② 대분류 ──
@@ -1696,7 +1487,7 @@
     if (!sel) return;
     const prev = sel.value;
     sel.innerHTML = '<option value="">전체 작업자</option>' +
-      workers.map(w => `<option value="${escapeHtml(w.name)}">${escapeHtml(w.name)}</option>`).join('');
+      toolsUsers.map(w => `<option value="${escapeHtml(w.name)}">${escapeHtml(w.name)}</option>`).join('');
     sel.value = prev;
   }
 
@@ -1723,10 +1514,11 @@
 
     let html = '';
     groups.forEach((rows, workerName) => {
+      const workerIsAdmin = toolsUsers.some(u => u.name === workerName && u.isAdmin);
       html += `
         <div class="card manage-card">
           <div class="manage-card-header">
-            <span>${workerName === ADMIN.name ? '⭐' : '👷'} ${escapeHtml(workerName)}</span>
+            <span>${workerIsAdmin ? '⭐' : '👷'} ${escapeHtml(workerName)}</span>
             <span class="manage-card-count">${rows.length}건</span>
           </div>
           ${rows.map(e => {
@@ -1763,56 +1555,65 @@
     })).catch(() => {});
   }
 
-  // Firestore qty_workers에 남아있는 isAdmin 문서 일괄 삭제
-  function cleanupAdminWorkers() {
-    colWorkers.where('isAdmin', '==', true).get().then(snap => {
-      if (snap.empty) return;
-      const batch = db.batch();
-      snap.docs.forEach(d => batch.delete(d.ref));
-      return batch.commit();
-    }).catch(() => {});
-  }
+  // ── 실시간 리스너 (로그인 게이트 통과 후에만 시작) ──
+  function startApp() {
+    if (appStarted) return;
+    appStarted = true;
 
-  // ── 실시간 리스너 ──
-  colWorkers.orderBy('name').onSnapshot(snap => {
-    workers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    // 새로고침 후 관리자 상태 복원
-    if (currentWorker) {
-      const w = workers.find(x => x.name === currentWorker);
-      currentWorkerIsAdmin = !!(w && w.isAdmin);
-    }
-    renderWorkers();
-    renderManageWorkerOptions();
-    updateWhoami();
-  }, () => {
-    document.getElementById('worker-list').innerHTML =
-      '<div class="empty-state"><span class="empty-icon">⚠️</span>연결 오류. 새로고침 해주세요.</div>';
-  });
+    seedIfEmpty();
 
-  colCategories.orderBy('order').onSnapshot(snap => {
-    categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderCategories();
-  });
+    colToolsUsers.orderBy('name').onSnapshot(snap => {
+      toolsUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderManageWorkerOptions();
+    });
 
-  colItems.orderBy('name').onSnapshot(snap => {
-    items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderItems();
-  });
+    colCategories.orderBy('order').onSnapshot(snap => {
+      categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderCategories();
+    });
 
-  colEntries.orderBy('ts', 'desc').onSnapshot(snap => {
-    entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    colItems.orderBy('name').onSnapshot(snap => {
+      items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderItems();
+    });
+
+    colEntries.orderBy('ts', 'desc').onSnapshot(snap => {
+      entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderTodayEntries();
+      renderRecent();
+      renderManage();
+    });
+
     renderTodayEntries();
     renderRecent();
-    renderManage();
-  });
+    go('view-home');
+    history.replaceState(captureState('view-home'), '');
+  }
 
-  // ── 시작 ──
-  seedIfEmpty();
-  cleanupAdminWorkers();
-  updateWhoami();
-  const initialView = currentWorker ? 'view-home' : 'view-worker';
-  go(initialView);
-  history.replaceState(captureState(initialView), '');
+  // ── 피더 로그인 게이트 ──
+  auth.onAuthStateChanged(user => {
+    if (gateProfileUnsub) { gateProfileUnsub(); gateProfileUnsub = null; }
+
+    if (!user) {
+      currentWorker = '';
+      updateWhoami();
+      go('view-locked');
+      return;
+    }
+
+    gateProfileUnsub = colToolsUsers.doc(user.uid).onSnapshot(doc => {
+      if (!doc.exists || doc.data().status !== 'approved') {
+        currentWorker = '';
+        updateWhoami();
+        go('view-locked');
+        return;
+      }
+      currentWorker = doc.data().name;
+      isAdminFlag = !!doc.data().isAdmin;
+      updateWhoami();
+      startApp();
+    });
+  });
 </script>
 </body>
 </html>

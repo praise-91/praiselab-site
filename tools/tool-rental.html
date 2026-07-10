@@ -377,6 +377,21 @@
 
   .export-btn:hover { border-color: var(--orange); color: var(--orange); }
 
+  /* ── 로그인 필요 화면 ── */
+  .locked-wrap { text-align: center; padding: 60px 20px; }
+  .locked-icon { font-size: 40px; display: block; margin-bottom: 16px; }
+  .locked-msg { font-size: 15px; color: var(--text-dim); margin-bottom: 24px; line-height: 1.6; }
+  .locked-link {
+    display: inline-block;
+    padding: 14px 28px;
+    background: var(--orange);
+    border-radius: 12px;
+    color: white;
+    text-decoration: none;
+    font-weight: 900;
+  }
+  .locked-link:hover { background: var(--orange-dark); }
+
   /* 상단 네비 */
   .site-header {
     position: sticky;
@@ -452,52 +467,63 @@
 </header>
 
 <div class="container">
-  <div class="form-card">
-    <div class="toggle-wrap">
-      <button class="toggle-btn give active" id="btn-give" onclick="setType('give')">
-        <span class="emoji">📤</span>
-        빌려줬어요
-      </button>
-      <button class="toggle-btn take" id="btn-take" onclick="setType('take')">
-        <span class="emoji">📥</span>
-        빌려왔어요
-      </button>
-    </div>
 
-    <div class="field">
-      <label>상대 팀명</label>
-      <input type="text" id="team" />
-    </div>
-
-    <div class="field">
-      <label id="name-label">빌려준 사람 이름</label>
-      <input type="text" id="person" />
-    </div>
-
-    <div class="field">
-      <label>물건 이름</label>
-      <input type="text" id="item" />
-    </div>
-
-    <button class="submit-btn" id="submit-btn" onclick="save()">기록 저장 →</button>
+  <div class="locked-wrap" id="view-locked">
+    <span class="locked-icon">🔒</span>
+    <div class="locked-msg">로그인이 필요해요.<br>피더 홈에서 로그인 후 다시 들어와주세요.</div>
+    <a href="index.html" class="locked-link">피더 홈으로 →</a>
   </div>
 
-  <div class="tab-wrap">
-    <button class="tab-btn active" id="tab-active" onclick="switchTab('active')">
-      대여중 <span class="tab-count" id="count-active">0</span>
-    </button>
-    <button class="tab-btn" id="tab-returned" onclick="switchTab('returned')">
-      반납완료 <span class="tab-count" id="count-returned">0</span>
-    </button>
-    <button class="clear-btn" onclick="clearAll()">삭제</button>
+  <div id="view-app" style="display:none;">
+    <div class="form-card">
+      <div class="toggle-wrap">
+        <button class="toggle-btn give active" id="btn-give" onclick="setType('give')">
+          <span class="emoji">📤</span>
+          빌려줬어요
+        </button>
+        <button class="toggle-btn take" id="btn-take" onclick="setType('take')">
+          <span class="emoji">📥</span>
+          빌려왔어요
+        </button>
+      </div>
+
+      <div class="field">
+        <label>상대 팀명</label>
+        <input type="text" id="team" />
+      </div>
+
+      <div class="field">
+        <label id="name-label">빌려준 사람 이름</label>
+        <input type="text" id="person" />
+      </div>
+
+      <div class="field">
+        <label>물건 이름</label>
+        <input type="text" id="item" />
+      </div>
+
+      <button class="submit-btn" id="submit-btn" onclick="save()">기록 저장 →</button>
+    </div>
+
+    <div class="tab-wrap">
+      <button class="tab-btn active" id="tab-active" onclick="switchTab('active')">
+        대여중 <span class="tab-count" id="count-active">0</span>
+      </button>
+      <button class="tab-btn" id="tab-returned" onclick="switchTab('returned')">
+        반납완료 <span class="tab-count" id="count-returned">0</span>
+      </button>
+      <button class="clear-btn" onclick="clearAll()">삭제</button>
+    </div>
+
+    <div class="record-list" id="record-list"></div>
+
+    <button class="export-btn" onclick="shareRecords()">📤 공유하기</button>
   </div>
 
-  <div class="record-list" id="record-list"></div>
-
-  <button class="export-btn" onclick="shareRecords()">📤 공유하기</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
   firebase.initializeApp({
@@ -506,8 +532,38 @@
     projectId: "healingcamp-51eb0",
   });
 
+  const auth = firebase.auth();
   const db = firebase.firestore();
   const col = db.collection('tool_rentals');
+
+  // ── 피더 로그인 게이트: 승인된 사람만 통과 ──
+  let appStarted = false;
+  let gateProfileUnsub = null;
+
+  function startApp() {
+    if (appStarted) return;
+    appStarted = true;
+    document.getElementById('view-locked').style.display = 'none';
+    document.getElementById('view-app').style.display = '';
+    initRentalApp();
+  }
+
+  auth.onAuthStateChanged(user => {
+    if (gateProfileUnsub) { gateProfileUnsub(); gateProfileUnsub = null; }
+    if (!user) {
+      document.getElementById('view-locked').style.display = '';
+      document.getElementById('view-app').style.display = 'none';
+      return;
+    }
+    gateProfileUnsub = db.collection('tools_users').doc(user.uid).onSnapshot(doc => {
+      if (doc.exists && doc.data().status === 'approved') {
+        startApp();
+      } else {
+        document.getElementById('view-locked').style.display = '';
+        document.getElementById('view-app').style.display = 'none';
+      }
+    });
+  });
 
   let type = 'give';
   let records = [];
@@ -699,14 +755,16 @@
     alert('이 브라우저는 공유하기를 지원하지 않아요.');
   }
 
-  // 실시간 리스너
-  col.orderBy('ts', 'desc').onSnapshot(snapshot => {
-    records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    render();
-  }, () => {
-    document.getElementById('record-list').innerHTML =
-      '<div class="empty-state"><span class="empty-icon">⚠️</span>연결 오류. 새로고침 해주세요.</div>';
-  });
+  // 실시간 리스너 (로그인 게이트 통과 후에만 시작)
+  function initRentalApp() {
+    col.orderBy('ts', 'desc').onSnapshot(snapshot => {
+      records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      render();
+    }, () => {
+      document.getElementById('record-list').innerHTML =
+        '<div class="empty-state"><span class="empty-icon">⚠️</span>연결 오류. 새로고침 해주세요.</div>';
+    });
+  }
 </script>
 </body>
 </html>
