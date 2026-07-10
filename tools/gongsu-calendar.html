@@ -1427,7 +1427,7 @@ function SettingsModal({
     className: "gg-sheet-head"
   }, React.createElement("div", {
     className: "gg-sheet-date"
-  }, "설정"), React.createElement("button", {
+  }, "커스텀 공수"), React.createElement("button", {
     className: "gg-x",
     onClick: onClose,
     "aria-label": "닫기"
@@ -1530,12 +1530,12 @@ function Sidebar({
     onClick: onSettings
   }, React.createElement("span", {
     className: "gg-menuitem-icon"
-  }, "⚙️"), React.createElement("span", null, "설정")), React.createElement("button", {
+  }, "⚙️"), React.createElement("span", null, "커스텀 공수")), React.createElement("button", {
     className: "gg-menuitem",
     onClick: onTeam
   }, React.createElement("span", {
     className: "gg-menuitem-icon"
-  }, "👥"), React.createElement("span", null, "전체 공수"))));
+  }, "👥"), React.createElement("span", null, "공수 랭킹"))));
 }
 const RANK_MEDALS = ["🥇", "🥈", "🥉"];
 function teamRangePreset(kind) {
@@ -1622,7 +1622,7 @@ function TeamModal({
     "aria-label": "닫기"
   }, "✕"), React.createElement("div", {
     className: "gg-fullscreen-title"
-  }, "전체 공수")), React.createElement("div", {
+  }, "공수 랭킹")), React.createElement("div", {
     className: "gg-fullscreen-body"
   }, React.createElement("div", {
     className: "gg-field"
