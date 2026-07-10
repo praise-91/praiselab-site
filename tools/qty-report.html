@@ -707,7 +707,7 @@
       <div class="section-label">자재별 합계</div>
       <div class="summary-list" id="summary-list"></div>
 
-      <button class="export-btn" onclick="shareSummary()">공유하기</button>
+      <button class="export-btn" onclick="openPreview()">미리보기</button>
       <button class="export-btn" onclick="openTemplateEditor()">양식 설정</button>
     </div>
 
@@ -735,26 +735,60 @@
     </div>
   </div>
 
-  <!-- ⑥ 공유 양식 설정 -->
+  <!-- ⑥ 미리보기 -->
+  <div class="view" id="view-preview">
+    <div class="view-head">
+      <button class="back-btn" onclick="history.back()">‹</button>
+      <h2>미리보기</h2>
+    </div>
+
+    <div class="card">
+      <div class="field" style="margin-bottom:0;">
+        <label>공유될 내용 — 바뀐 부분만 직접 수정하세요</label>
+        <textarea id="preview-text" rows="16"></textarea>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-dim);margin:-8px 2px 14px;line-height:1.6;">
+      여기서 수정한 내용은 다음에 열 때 그대로 남아있어요. 자재 목록과 날짜만
+      그때그때 최신 값으로 자동 교체돼요.
+    </div>
+
+    <button class="submit-btn" onclick="sharePreview()">공유하기</button>
+  </div>
+
+  <!-- ⑦ 양식 설정 -->
   <div class="view" id="view-template">
     <div class="view-head">
       <button class="back-btn" onclick="history.back()">‹</button>
-      <h2>공유 양식 설정</h2>
+      <h2>양식 설정</h2>
     </div>
 
     <div class="card">
       <div class="section-label">사용 가능한 자리표시자</div>
       <div style="font-size:13px;color:var(--text-dim);line-height:1.7;margin-bottom:16px;">
-        {기간} → 시작일 ~ 종료일<br>
-        {목록} → 대분류별 자재 합계 목록
+        {날짜} → 오늘 날짜 (요일 포함, 자동)<br>
+        {목록} → 대분류별 자재 합계 목록 (자동)<br>
+        그 외 나머지는 전부 자유롭게 작성하세요. 필요 없는 항목은 그냥 지우면 돼요.
       </div>
       <div class="field">
         <label>내 양식 (비워두면 기본 양식 사용)</label>
-        <textarea id="template-input" rows="8" placeholder="예)
-김찬양팀 물량보고
-{기간}
+        <textarea id="template-input" rows="14" placeholder="예)
+{날짜} 현장명
+김찬양팀
 
-{목록}"></textarea>
+총원 :  0명
+출근 :  0명
+결근 :  0명
+
+유도원 : 0명
+
+작업 위치 :
+사용 장비 :
+사용자재 :
+{목록}
+작업 내용 :
+
+팀리더 전화번호"></textarea>
       </div>
       <button class="submit-btn" id="template-save-btn" onclick="saveTemplate()">저장</button>
       <button class="export-btn" onclick="resetTemplate()">기본 양식으로 되돌리기</button>
@@ -983,6 +1017,10 @@
       case 'view-summary':
         switchSummaryTab('total');
         go('view-summary');
+        break;
+      case 'view-preview':
+        fillPreview();
+        go('view-preview');
         break;
       case 'view-template':
         document.getElementById('template-input').value = localStorage.getItem('qty_export_template') || '';
@@ -1511,18 +1549,50 @@
     return text.trim();
   }
 
-  function buildSummaryText(rows, start, end) {
-    const listText = buildListText(rows);
-    const template = localStorage.getItem('qty_export_template');
-    if (template && template.trim()) {
-      return template
-        .replaceAll('{기간}', `${start} ~ ${end}`)
-        .replaceAll('{목록}', listText);
-    }
-    return `📊 물량 합산 (${start} ~ ${end})\n\n${listText}`;
+  const WEEKDAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
+  function formatKoreanDate(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS_KO[d.getDay()]})`;
   }
 
-  // ── 공유 양식 설정 ──
+  const DEFAULT_EXPORT_TEMPLATE = `{날짜} 현장명
+김찬양팀
+
+총원 :  0명
+출근 :  0명
+결근 :  0명
+
+유도원 : 0명
+
+작업 위치 :
+사용 장비 :
+사용자재 :
+{목록}
+작업 내용 :
+
+팀리더 전화번호`;
+
+  // ── 미리보기 (공유될 내용을 그 자리에서 직접 수정) ──
+  let lastPreviewDate = '';
+  let lastPreviewList = '';
+
+  function fillPreview() {
+    const rows = getSummaryData();
+    lastPreviewDate = formatKoreanDate(todayStr());
+    lastPreviewList = buildListText(rows) || '(입력된 자재 없음)';
+    const template = localStorage.getItem('qty_export_template') || DEFAULT_EXPORT_TEMPLATE;
+    document.getElementById('preview-text').value = template
+      .replaceAll('{날짜}', lastPreviewDate)
+      .replaceAll('{목록}', lastPreviewList);
+  }
+
+  function openPreview() {
+    fillPreview();
+    go('view-preview');
+    pushHistory('view-preview');
+  }
+
+  // ── 양식 설정 ──
   function openTemplateEditor() {
     document.getElementById('template-input').value = localStorage.getItem('qty_export_template') || '';
     go('view-template');
@@ -1547,18 +1617,26 @@
     showToast('✅ 기본 양식으로 되돌렸어요');
   }
 
-  async function shareSummary() {
+  async function sharePreview() {
+    const finalText = document.getElementById('preview-text').value;
+
+    // 다음에 열었을 때도 날짜/자재목록만 최신 값으로 자동 반영되도록,
+    // 방금 채워넣은 값이 아직 그대로 남아있으면 자리표시자로 되돌려서 저장한다.
+    // (사용자가 그 부분을 직접 고쳤다면 고친 텍스트가 그대로 다음 기본값이 된다)
+    let toSave = finalText;
+    if (lastPreviewList && toSave.includes(lastPreviewList)) toSave = toSave.replace(lastPreviewList, '{목록}');
+    if (lastPreviewDate && toSave.includes(lastPreviewDate)) toSave = toSave.replace(lastPreviewDate, '{날짜}');
+    localStorage.setItem('qty_export_template', toSave);
+
     const rows = getSummaryData();
-    if (!rows.length) { alert('공유할 데이터가 없어요!'); return; }
     const start = document.getElementById('summary-start').value;
     const end = document.getElementById('summary-end').value;
     const fileName = `물량합산_${start}_${end}.csv`;
     const file = new File([buildSummaryCSVBlob(rows)], fileName, { type: 'text/csv' });
-    const text = buildSummaryText(rows, start, end);
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: '물량 합산', text });
+        await navigator.share({ files: [file], title: '물량 보고', text: finalText });
       } catch (e) {
         if (e.name !== 'AbortError') alert('공유에 실패했어요.');
       }
@@ -1566,7 +1644,7 @@
     }
     if (navigator.share) {
       try {
-        await navigator.share({ title: '물량 합산', text });
+        await navigator.share({ title: '물량 보고', text: finalText });
       } catch (e) {
         if (e.name !== 'AbortError') alert('공유에 실패했어요.');
       }
