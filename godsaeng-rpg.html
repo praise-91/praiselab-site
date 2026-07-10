@@ -60,12 +60,14 @@
   .window-action-btn {
     position: absolute;
     top: -14px; right: 12px;
+  }
+  .btn.window-action-btn {
     width: auto;
     padding: 4px 10px;
     font-size: 12px;
     box-shadow: 0 2px 0 #8f6f1c;
   }
-  .window-action-btn:active { transform: translateY(2px); box-shadow: 0 0 0 #8f6f1c; }
+  .btn.window-action-btn:active { transform: translateY(2px); box-shadow: 0 0 0 #8f6f1c; }
 
   /* ===== 캐릭터 헤더 ===== */
   .char-head { display: flex; align-items: center; gap: 14px; }
@@ -1626,9 +1628,6 @@ $('q-type').addEventListener('change', () => {
   $('q-interval-field').hidden = type !== 'interval';
 });
 
-// 세트 나누기는 운동 능력치(힘/체력)에서만 의미가 있음 — 공부·독서·명상 등에는 불필요
-const SET_ELIGIBLE_STATS = ['str', 'vit'];
-
 // 세트 수(q-sets)만큼 "N세트 횟수" 입력칸을 만듦 — 이미 입력해둔 값은 그대로 유지
 // presetValues를 주면(수정 모드 진입 시) 그 값으로 강제 채움
 function renderRepsInputs(presetValues) {
@@ -1636,7 +1635,7 @@ function renderRepsInputs(presetValues) {
   const existing = presetValues || [...document.querySelectorAll('.q-rep-input')].map(el => el.value);
   let html = '';
   for (let i = 0; i < n; i++) {
-    const val = existing[i] || existing[existing.length - 1] || '10';
+    const val = existing[i] || existing[existing.length - 1] || '1';
     html += `
       <div style="display:flex; flex-direction:column; align-items:center; gap:4px">
         <span style="font-size:11px; color:var(--dim)">${i + 1}세트</span>
@@ -1652,12 +1651,12 @@ $('q-sets').addEventListener('input', () => renderRepsInputs());
 function updateAmountFieldVisibility() {
   const unit = $('q-unit').value;
   const mode = $('q-mode').value;
-  const setsEligible = unit === 'count' && SET_ELIGIBLE_STATS.includes($('q-stat').value);
-  if (!setsEligible) $('q-use-sets').checked = false; // 세트 불가능한 능력치로 바뀌면 세트 모드 해제
+  const setsEligible = unit === 'count'; // 세트 나누기는 횟수 단위 퀘스트/습관이면 능력치 상관없이 가능
+  if (!setsEligible) $('q-use-sets').checked = false; // 횟수 단위가 아니게 바뀌면 세트 모드 해제
   const useSets = setsEligible && $('q-use-sets').checked;
 
   $('q-mode-field').hidden = (unit === 'count'); // 횟수 단위는 타이머 개념이 없음
-  $('q-sets-toggle-field').hidden = !setsEligible; // 세트 나누기는 운동 능력치의 횟수 단위에서만
+  $('q-sets-toggle-field').hidden = !setsEligible; // 세트 나누기는 횟수 단위에서만
   $('q-sets-fields').hidden = !useSets;
   $('q-amount-field').hidden = useSets; // 세트 모드에선 총 횟수 대신 세트별 횟수로 입력
   if (useSets) renderRepsInputs();
@@ -1750,7 +1749,7 @@ $('q-add').addEventListener('click', () => {
   const unit = $('q-unit').value;                              // 'min' | 'count'
   const mode = unit === 'count' ? 'estimate' : $('q-mode').value; // 횟수 단위는 항상 예상입력 취급
   const timerMode = unit === 'min' && mode === 'timer';
-  const useSets = unit === 'count' && SET_ELIGIBLE_STATS.includes($('q-stat').value) && $('q-use-sets').checked;
+  const useSets = unit === 'count' && $('q-use-sets').checked;
 
   if (!name) { $('q-name').focus(); return; }
 
