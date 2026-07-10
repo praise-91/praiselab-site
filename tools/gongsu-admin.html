@@ -133,6 +133,10 @@
 
   .empty-state { text-align: center; padding: 30px 16px; color: var(--text-dim); font-size: 13.5px; }
 
+  .loading-brand { text-align: center; padding-top: 140px; }
+  .loading-brand-title { font-size: 28px; font-weight: 900; color: var(--text); letter-spacing: -0.5px; }
+  .loading-brand-sub { font-size: 13px; color: var(--text-dim); margin-top: 8px; }
+
   .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .cal-nav-label { font-size: 14px; font-weight: 800; }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
@@ -215,7 +219,10 @@
 <div class="container">
 
   <div class="view active" id="view-checking">
-    <div class="empty-state" style="padding-top:80px;">불러오는 중…</div>
+    <div class="loading-brand">
+      <div class="loading-brand-title">Feeder</div>
+      <div class="loading-brand-sub">불러오는 중…</div>
+    </div>
   </div>
 
   <div class="view" id="view-locked">
