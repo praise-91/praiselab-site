@@ -203,6 +203,10 @@
   /* ── 도구 카드 ── */
   .tool-list { display: flex; flex-direction: column; gap: 12px; }
 
+  .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .tool-grid .tool-card { flex-direction: column; text-align: center; gap: 8px; padding: 20px 12px; }
+  .tool-grid .tool-arrow { display: none; }
+
   .tool-card {
     background: var(--steel-mid);
     border: 1.5px solid var(--border);
@@ -425,14 +429,13 @@
       <div class="page-sub">필요한 도구를 선택하세요</div>
     </header>
 
-    <div class="tool-list">
+    <div class="tool-grid">
       <a href="gongsu-calendar.html" class="tool-card">
         <div class="tool-icon">📅</div>
         <div class="tool-info">
           <div class="tool-name">공수달력</div>
           <div class="tool-desc">출력일수 · 예상 급여 계산</div>
         </div>
-        <span class="tool-arrow">›</span>
       </a>
 
       <a href="qty-report.html" class="tool-card">
@@ -441,7 +444,6 @@
           <div class="tool-name">물량작성</div>
           <div class="tool-desc">자재별 물량 입력 · 실시간 합산 · 카톡 공유</div>
         </div>
-        <span class="tool-arrow">›</span>
       </a>
 
       <a href="tool-rental.html" class="tool-card">
@@ -450,9 +452,18 @@
           <div class="tool-name">자재대여</div>
           <div class="tool-desc">공구·자재 대여 기록 · 반납 관리</div>
         </div>
-        <span class="tool-arrow">›</span>
       </a>
 
+      <a href="javascript:void(0)" class="tool-card tool-card--soon">
+        <div class="tool-icon">💬</div>
+        <div class="tool-info">
+          <div class="tool-name">피더 커뮤니티<span class="tool-badge">준비중</span></div>
+          <div class="tool-desc">팀원들과 소식 · 정보를 나누는 공간</div>
+        </div>
+      </a>
+    </div>
+
+    <div class="tool-list">
       <a href="javascript:void(0)" class="tool-card tool-card--admin" id="admin-entry" onclick="openAdminApprove()" style="display:none;">
         <div class="tool-icon">🔑</div>
         <div class="tool-info">
