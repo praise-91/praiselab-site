@@ -145,10 +145,10 @@
   .worker-btn {
     flex: 1;
     padding: 15px 16px;
-    border: 1.5px solid var(--border);
+    border: 1.5px solid transparent;
     border-radius: 12px;
-    background: var(--steel-light);
-    color: var(--text);
+    background: var(--orange);
+    color: #fff;
     font-family: inherit;
     font-size: 16px;
     font-weight: 700;
@@ -156,7 +156,7 @@
     text-align: left;
     transition: all 0.15s;
   }
-  .worker-btn:hover { border-color: var(--orange); }
+  .worker-btn:hover { background: var(--orange-dark); }
 
   .del-btn {
     width: 38px; height: 38px;
@@ -384,19 +384,19 @@
   /* ── 합산 보기 링크 ── */
   .summary-link-btn {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     margin-bottom: 20px;
-    background: var(--steel-mid);
-    border: 1.5px solid var(--border);
+    background: var(--orange);
+    border: 1.5px solid transparent;
     border-radius: 12px;
-    color: var(--text);
+    color: #fff;
     font-family: inherit;
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.15s;
   }
-  .summary-link-btn:hover { border-color: var(--orange); color: var(--orange); }
+  .summary-link-btn:hover { background: var(--orange-dark); }
 
   /* ── 합산 화면 ── */
   .date-range-row { display: flex; gap: 10px; }
@@ -476,17 +476,17 @@
   .tab-btn {
     flex: 1;
     padding: 12px;
-    border: 1.5px solid var(--border);
+    border: 1.5px solid transparent;
     border-radius: 10px;
-    background: var(--steel-mid);
-    color: var(--text-dim);
+    background: rgba(255,107,43,0.1);
+    color: var(--orange);
     font-family: inherit;
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.15s;
   }
-  .tab-btn.active { border-color: var(--orange); color: var(--orange); background: rgba(255,107,43,0.08); }
+  .tab-btn.active { background: var(--orange); color: #fff; }
 
   .field textarea {
     width: 100%;
@@ -626,6 +626,20 @@
 
     <div class="section-label">작업 대분류 선택</div>
     <div class="cat-grid" id="cat-grid"></div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="section-label">대분류가 없어요?</div>
+      <div class="add-row" style="margin-top:0;">
+        <input type="text" id="new-category" placeholder="대분류명 (예: 접지)" />
+        <select class="field-select" id="new-category-unit" style="flex:none;width:76px;">
+          <option value="M">M</option>
+          <option value="EA">EA</option>
+        </select>
+      </div>
+      <div class="add-row" style="margin-top:8px;">
+        <button class="add-btn" id="add-category-btn" onclick="addCategory()" style="flex:1;padding:13px;">+ 대분류 추가</button>
+      </div>
+    </div>
 
     <div class="section-label" style="margin-top:24px;">오늘 입력한 물량</div>
     <div class="entry-list" id="today-list"></div>
@@ -1211,6 +1225,29 @@
         <span class="cat-unit">${escapeHtml(c.unit)} 단위</span>
       </button>
     `).join('');
+  }
+
+  function addCategory() {
+    const nameInput = document.getElementById('new-category');
+    const unitSelect = document.getElementById('new-category-unit');
+    const name = nameInput.value.trim();
+    const unit = unitSelect.value;
+
+    if (!name) { alert('대분류명을 입력해주세요!'); return; }
+    if (categories.some(c => c.name === name)) { alert('이미 있는 대분류예요.'); return; }
+
+    const btn = document.getElementById('add-category-btn');
+    btn.disabled = true;
+    const maxOrder = categories.reduce((m, c) => Math.max(m, c.order || 0), 0);
+    colCategories.add({
+      name,
+      unit,
+      order: maxOrder + 1,
+      ts: firebase.firestore.FieldValue.serverTimestamp(),
+    })
+      .then(() => { nameInput.value = ''; showToast('✅ 대분류 추가 완료! 팀 전체에 공유됐어요'); })
+      .catch(() => alert('추가 실패. 인터넷 연결을 확인해주세요.'))
+      .finally(() => { btn.disabled = false; });
   }
 
   // ── ③ 자재 ──
