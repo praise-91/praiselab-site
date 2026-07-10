@@ -192,7 +192,7 @@
   }
   .add-btn:hover { background: var(--orange-dark); }
   .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  #add-category-btn { background: #fff; color: var(--orange); border: 1.5px solid var(--orange); }
+  #add-category-btn { background: #fff; color: var(--orange); border: none; }
   #add-category-btn:hover { background: rgba(255,107,43,0.08); }
 
   /* ── 대분류 그리드 ── */
@@ -420,8 +420,7 @@
   .manage-row-info { flex: 1; min-width: 0; }
   .manage-row-name { font-size: 14px; font-weight: 700; }
   .manage-row-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
-  .manage-row-qty { font-size: 14px; font-weight: 900; color: var(--orange); white-space: nowrap; }
-  .manage-row-unit { color: var(--give); }
+  .manage-row-qty { font-size: 14px; font-weight: 900; color: var(--give); white-space: nowrap; }
   .del-btn-green { border-color: rgba(59,232,138,0.3); color: rgba(59,232,138,0.7); }
   .del-btn-green:hover { background: rgba(59,232,138,0.1); color: var(--give); }
 
@@ -459,7 +458,7 @@
     cursor: pointer;
     transition: all 0.15s;
   }
-  .tab-btn.active { background: #fff; color: var(--orange); border-color: var(--orange); }
+  .tab-btn.active { background: #fff; color: var(--orange); }
 
   .field textarea {
     width: 100%;
@@ -1541,7 +1540,7 @@
                 <div class="manage-row-name">${escapeHtml(e.item)}</div>
                 <div class="manage-row-meta">${escapeHtml(e.category)} · ${escapeHtml(e.date)}</div>
               </div>
-              <div class="manage-row-qty">${e.qty}<span class="manage-row-unit">${escapeHtml(e.unit)}</span></div>
+              <div class="manage-row-qty">${e.qty}${escapeHtml(e.unit)}</div>
               ${canDel ? `<button class="del-btn del-btn-green" onclick="deleteEntry('${e.id}')">✕</button>` : '<div style="width:38px;flex-shrink:0;"></div>'}
             </div>
           `;
