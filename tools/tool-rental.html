@@ -587,6 +587,16 @@
     batch.commit().catch(() => alert('삭제 실패. 다시 시도해주세요.'));
   }
 
+  // 사용자 입력을 innerHTML에 넣기 전 반드시 이 함수를 거친다 (XSS 방지)
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function formatTime(ts) {
     if (!ts) return '저장 중…';
     const d = ts.toDate();
@@ -620,8 +630,8 @@
             ${r.type === 'give' ? '📤 빌려줌' : '📥 빌려옴'}
           </span>
           <div class="record-info">
-            <div class="record-item">🔩 ${r.item}</div>
-            <div class="record-meta">${r.team} · ${r.person}</div>
+            <div class="record-item">🔩 ${escapeHtml(r.item)}</div>
+            <div class="record-meta">${escapeHtml(r.team)} · ${escapeHtml(r.person)}</div>
           </div>
           <div class="record-time">${formatTime(r.ts)}</div>
         </div>
