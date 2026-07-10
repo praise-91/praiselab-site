@@ -125,6 +125,21 @@
 
   .empty-state { text-align: center; padding: 30px 16px; color: var(--text-dim); font-size: 13.5px; }
 
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .cal-nav-label { font-size: 14px; font-weight: 800; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-dow { text-align: center; font-size: 11px; color: var(--text-dim); font-weight: 700; padding-bottom: 4px; }
+  .cal-day {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; background: var(--steel-light); color: var(--text);
+    font-size: 12.5px; cursor: pointer; border: 1.5px solid transparent;
+  }
+  .cal-day:hover { border-color: var(--orange); }
+  .cal-day.empty { visibility: hidden; cursor: default; }
+  .cal-day.rest { background: rgba(255,107,43,0.18); color: var(--orange); font-weight: 800; }
+  .cal-day.today { border-color: var(--text-dim); }
+  .cal-hint { font-size: 11.5px; color: var(--text-dim); margin-top: 10px; }
+
   table.member-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   table.member-table th {
     text-align: left; font-size: 11px; font-weight: 700; color: var(--text-dim);
@@ -224,15 +239,9 @@
         <label>현장명</label>
         <input type="text" id="site-name" placeholder="예: 거제 조선소" />
       </div>
-      <div class="row2">
-        <div class="field">
-          <label>회사단가 (1인 인건비)</label>
-          <input type="number" id="site-company-rate" placeholder="180000" />
-        </div>
-        <div class="field">
-          <label>지정근무일수</label>
-          <input type="number" id="site-workdays-target" placeholder="22" />
-        </div>
+      <div class="field">
+        <label>회사단가 (1인 인건비)</label>
+        <input type="number" id="site-company-rate" placeholder="180000" />
       </div>
       <div class="field">
         <label>숙식비</label>
@@ -250,6 +259,17 @@
         <button class="btn block" id="site-save-btn" onclick="saveSite()">저장</button>
         <button class="btn danger" id="site-delete-btn" onclick="deleteSite()" style="display:none;">삭제</button>
       </div>
+    </div>
+
+    <div class="card" id="rest-days-card" style="display:none;">
+      <div class="card-title">휴무일 관리</div>
+      <div class="cal-nav">
+        <button class="btn small" onclick="shiftCalMonth(-1)">‹ 이전달</button>
+        <span class="cal-nav-label" id="cal-nav-label"></span>
+        <button class="btn small" onclick="shiftCalMonth(1)">다음달 ›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-hint">날짜를 누르면 휴무일로 표시/해제돼요. 결근율 계산에서 휴무일은 제외돼요.</div>
     </div>
 
     <div class="card" id="period-card" style="display:none;">
@@ -426,27 +446,80 @@
     return Math.round((toUTC(b) - toUTC(a)) / 86400000);
   }
 
-  // 지정근무일수를 그대로 쓰지 않고, 진행 중인 기간이면 오늘까지 지난 날짜
-  // 비율만큼, 그리고 팀원 입사일 이전 기간은 제외하고 비례 계산한다.
-  function effectiveWorkDaysTarget(site, member) {
-    const target = site.workDaysTarget || 0;
-    if (target <= 0) return 0;
-
+  // 결근율 = (기대근무일수 - 실제출근일수) / 기대근무일수
+  // 기대근무일수 = [입사일~오늘 중 더 늦은 시작, 기간끝~오늘 중 더 이른 끝] 사이의
+  // 달력일수에서 관리자가 표시한 휴무일을 뺀 값 (아직 오지 않은 날짜는 자동 제외)
+  function expectedWorkDays(site, member) {
     const joined = member.joinedAt || '';
-    let effStart = joined && joined > periodStart ? joined : periodStart;
-    let effEnd = periodEnd;
-
-    if (periodKind !== 'all') {
-      const today = todayStr();
-      if (today < effEnd) effEnd = today;
-    }
-
+    const effStart = joined && joined > periodStart ? joined : periodStart;
+    const today = todayStr();
+    const effEnd = today < periodEnd ? today : periodEnd;
     if (effStart > effEnd) return 0;
 
-    const totalSpan = daysBetween(periodStart, periodEnd) + 1;
-    const applicableSpan = daysBetween(effStart, effEnd) + 1;
-    if (totalSpan <= 0) return target;
-    return target * (applicableSpan / totalSpan);
+    const totalDays = daysBetween(effStart, effEnd) + 1;
+    const rest = site.restDays || {};
+    const restCount = Object.keys(rest).filter(d => d >= effStart && d <= effEnd).length;
+    return Math.max(0, totalDays - restCount);
+  }
+
+  function attendedDaysFor(uid) {
+    const joined = (siteMembers.find(m => m.id === uid) || {}).joinedAt || '';
+    const effStart = joined && joined > periodStart ? joined : periodStart;
+    const today = todayStr();
+    const effEnd = today < periodEnd ? today : periodEnd;
+    const lb = leaderboardAll.find(l => l.id === uid);
+    if (!lb || !lb.gongsuByDate) return 0;
+    return Object.keys(lb.gongsuByDate).filter(d => d >= effStart && d <= effEnd).length;
+  }
+
+  // ── 휴무일 달력 ──
+  let calYear = 0, calMonth = 0;
+
+  function ensureCalInit() {
+    if (calYear) return;
+    const now = new Date();
+    calYear = now.getFullYear();
+    calMonth = now.getMonth();
+  }
+
+  function shiftCalMonth(delta) {
+    ensureCalInit();
+    calMonth += delta;
+    if (calMonth < 0) { calMonth = 11; calYear -= 1; }
+    if (calMonth > 11) { calMonth = 0; calYear += 1; }
+    renderRestCalendar();
+  }
+
+  function renderRestCalendar() {
+    if (!currentSite) return;
+    ensureCalInit();
+    document.getElementById('cal-nav-label').textContent = `${calYear}년 ${calMonth + 1}월`;
+
+    const rest = currentSite.restDays || {};
+    const today = todayStr();
+    const firstWeekday = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+    const dows = ['일', '월', '화', '수', '목', '금', '토'].map(d => `<div class="cal-dow">${d}</div>`).join('');
+    const blanks = Array.from({ length: firstWeekday }, () => '<div class="cal-day empty"></div>').join('');
+    const days = Array.from({ length: daysInMonth }, (_, i) => {
+      const day = i + 1;
+      const ds = dateStr(calYear, calMonth, day);
+      const isRest = !!rest[ds];
+      const isToday = ds === today;
+      return `<div class="cal-day${isRest ? ' rest' : ''}${isToday ? ' today' : ''}" onclick="toggleRestDay('${ds}')">${day}</div>`;
+    }).join('');
+
+    document.getElementById('cal-grid').innerHTML = dows + blanks + days;
+  }
+
+  function toggleRestDay(ds) {
+    if (!currentSiteId || !currentSite) return;
+    const isRest = !!(currentSite.restDays && currentSite.restDays[ds]);
+    const patch = {};
+    patch[`restDays.${ds}`] = isRest ? firebase.firestore.FieldValue.delete() : true;
+    colSites.doc(currentSiteId).update(patch)
+      .catch(() => alert('저장 실패. 인터넷 연결을 확인해주세요.'));
   }
 
   // ── 현장 선택/생성/수정/삭제 ──
@@ -470,6 +543,7 @@
 
     if (!currentSite) {
       document.getElementById('site-settings-card').style.display = 'none';
+      document.getElementById('rest-days-card').style.display = 'none';
       document.getElementById('period-card').style.display = 'none';
       document.getElementById('add-member-card').style.display = 'none';
       document.getElementById('member-table-card').style.display = 'none';
@@ -480,6 +554,7 @@
 
     document.getElementById('no-site-msg').style.display = 'none';
     document.getElementById('site-settings-card').style.display = '';
+    document.getElementById('rest-days-card').style.display = '';
     document.getElementById('period-card').style.display = '';
     document.getElementById('add-member-card').style.display = '';
     document.getElementById('member-table-card').style.display = '';
@@ -488,6 +563,7 @@
     fillSiteForm(currentSite);
     renderSiteSelect();
     renderPresetRow();
+    renderRestCalendar();
 
     siteMembersUnsub = colSites.doc(id).collection('members').onSnapshot(snap => {
       siteMembers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -499,7 +575,6 @@
   function fillSiteForm(site) {
     document.getElementById('site-name').value = site.name || '';
     document.getElementById('site-company-rate').value = site.companyRate || '';
-    document.getElementById('site-workdays-target').value = site.workDaysTarget || '';
     document.getElementById('site-lodging-type').value = site.lodgingType || 'none';
     document.getElementById('site-lodging-amount').value = site.lodgingAmount || '';
     onLodgingTypeChange();
@@ -519,12 +594,12 @@
     document.getElementById('site-settings-title').textContent = '새 현장';
     document.getElementById('site-name').value = '';
     document.getElementById('site-company-rate').value = '';
-    document.getElementById('site-workdays-target').value = '22';
     document.getElementById('site-lodging-type').value = 'none';
     document.getElementById('site-lodging-amount').value = '';
     onLodgingTypeChange();
     document.getElementById('site-settings-card').style.display = '';
     document.getElementById('site-delete-btn').style.display = 'none';
+    document.getElementById('rest-days-card').style.display = 'none';
     document.getElementById('period-card').style.display = 'none';
     document.getElementById('add-member-card').style.display = 'none';
     document.getElementById('member-table-card').style.display = 'none';
@@ -535,14 +610,13 @@
     const name = document.getElementById('site-name').value.trim();
     if (!name) { alert('현장명을 입력해주세요!'); return; }
     const companyRate = Number(document.getElementById('site-company-rate').value) || 0;
-    const workDaysTarget = Number(document.getElementById('site-workdays-target').value) || 0;
     const lodgingType = document.getElementById('site-lodging-type').value;
     const lodgingAmount = lodgingType === 'cash' ? (Number(document.getElementById('site-lodging-amount').value) || 0) : 0;
 
     const btn = document.getElementById('site-save-btn');
     btn.disabled = true;
 
-    const data = { name, companyRate, workDaysTarget, lodgingType, lodgingAmount };
+    const data = { name, companyRate, lodgingType, lodgingAmount };
 
     const promise = currentSiteId
       ? colSites.doc(currentSiteId).set(data, { merge: true })
@@ -648,8 +722,9 @@
       const personalRate = m.personalRate || 0;
       const profit = (companyRate - personalRate) * workdays;
       totalProfit += profit;
-      const effTarget = effectiveWorkDaysTarget(currentSite, m);
-      const absentRate = effTarget > 0 ? Math.max(0, (effTarget - workdays) / effTarget) * 100 : 0;
+      const expected = expectedWorkDays(currentSite, m);
+      const attended = attendedDaysFor(m.id);
+      const absentRate = expected > 0 ? Math.max(0, (expected - attended) / expected) * 100 : 0;
 
       let lodgingBadge = '<span style="color:var(--text-dim);">-</span>';
       if (lodgingType === 'voucher') {
