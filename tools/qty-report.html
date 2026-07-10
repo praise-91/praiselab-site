@@ -794,7 +794,7 @@
     { name: '배관',       unit: 'M',  emoji: '🧵', order: 4 },
     { name: '레이스웨이', unit: 'M',  emoji: '🛤️', order: 5 },
     { name: '단말',       unit: 'EA', emoji: '🔗', order: 6 },
-    { name: '기구설치',   unit: 'EA', emoji: '💡', order: 7 },
+    { name: '포설',       unit: 'M',  emoji: '🪢', order: 7 },
     { name: '기타',       unit: 'EA', emoji: '📁', order: 8 },
   ];
 
@@ -806,6 +806,9 @@
   const HFIX_SIZES = ['2.5sq', '4sq'];
   const HFIX_COLORS = ['흑', '백', '청', '녹', '적', '황'];
   const SQ_SIZES = ['1.5sq', '2sq', '4sq', '6sq', '10sq', '16sq', '35sq', '50sq', '75sq', '90sq', '120sq', '150sq', '240sq', '300sq'];
+  const CABLE_SQ_SIZES = ['1.5sq', '2.5sq', '4sq', '6sq', '10sq', '16sq', '35sq', '50sq', '70sq', '95sq', '120sq', '150sq', '185sq', '240sq', '300sq'];
+  const CABLE_SQ_SIZES_CUSTOM = [...CABLE_SQ_SIZES, '__CUSTOM__'];
+  const CABLE_CORES = ['2C', '3C', '4C'];
 
   function trayDuctTypes(category, withAccessories) {
     const types = [
@@ -859,6 +862,14 @@
     { category: '단말', name: '케이블', unit: 'M', spec1: { label: '굵기', options: SQ_SIZES }, order: 1 },
     { category: '단말', name: '터미널', unit: 'EA', spec1: { label: '굵기', options: SQ_SIZES }, order: 2 },
     { category: '단말', name: '터미널 (2홀)', unit: 'EA', spec1: { label: '굵기', options: ['120sq', '150sq', '240sq', '300sq'] }, order: 3 },
+    { category: '포설', name: 'HFIX', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, order: 1 },
+    { category: '포설', name: 'CV', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, spec2: { label: '코어', options: CABLE_CORES }, order: 2 },
+    { category: '포설', name: 'FCV', spec1: { label: 'SQ', options: CABLE_SQ_SIZES_CUSTOM }, spec2: { label: '코어', options: CABLE_CORES }, order: 3 },
+    { category: '포설', name: 'TFR-CV', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, spec2: { label: '코어', options: CABLE_CORES }, order: 4 },
+    { category: '포설', name: 'GV', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, spec2: { label: '코어', options: CABLE_CORES }, order: 5 },
+    { category: '포설', name: 'TFR-GV', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, spec2: { label: '코어', options: CABLE_CORES }, order: 6 },
+    { category: '포설', name: 'CAT6', order: 7 },
+    { category: '포설', name: 'UTP', order: 8 },
   ];
 
   // 기본 자재 판별: isDefault 필드가 있거나 DEFAULT_TYPES 목록에 포함된 것
@@ -1118,6 +1129,13 @@
   }
 
   function pickSpec(option) {
+    if (option === '__CUSTOM__') {
+      const input = window.prompt('SQ 규격을 직접 입력하세요 (예: 400)');
+      const trimmed = input && input.trim();
+      if (!trimmed) return;
+      option = /sq$/i.test(trimmed) ? trimmed : `${trimmed}sq`;
+    }
+
     const type = currentType;
     const unit = type.unit || currentCategory.unit;
 
@@ -1146,9 +1164,10 @@
     document.getElementById('spec-title').textContent =
       onSpec2 ? `${type.name} ${pickedSpec1}` : type.name;
     document.getElementById('spec-step-label').textContent = `${spec.label} 선택`;
-    document.getElementById('spec-grid').innerHTML = spec.options.map(o => `
-      <button class="spec-btn" onclick="pickSpec('${escapeHtml(o)}')">${escapeHtml(o)}</button>
-    `).join('');
+    document.getElementById('spec-grid').innerHTML = spec.options.map(o => {
+      const label = o === '__CUSTOM__' ? '✏️ 직접입력' : o;
+      return `<button class="spec-btn" onclick="pickSpec('${escapeHtml(o)}')">${escapeHtml(label)}</button>`;
+    }).join('');
   }
 
   // ── 최근 입력 원터치 ──
@@ -1577,6 +1596,30 @@
     })).catch(() => {});
   }
 
+  // ── 1회성 마이그레이션: 기존에 이미 심어진 "기구설치" 카테고리를 "포설"로
+  // 전환하고 케이블 포설 자재를 추가한다 (seedIfEmpty는 완전히 빈 DB에만
+  // 동작하므로, 이미 시딩된 실서비스 데이터는 이 마이그레이션으로 별도 처리) ──
+  let categoriesLoaded = false, itemsLoaded = false, entriesLoaded = false;
+  function maybeMigratePoseol() {
+    if (!categoriesLoaded || !itemsLoaded || !entriesLoaded) return;
+    const cat = categories.find(c => c.name === '기구설치');
+    const lockRef = colCategories.doc('_migrate_poseol_lock');
+    db.runTransaction(tx => tx.get(lockRef).then(lockSnap => {
+      if (lockSnap.exists) return;
+      tx.set(lockRef, { migratedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      if (cat) {
+        tx.update(colCategories.doc(cat.id), { name: '포설', unit: 'M', emoji: '🪢' });
+        items.filter(i => i.category === '기구설치').forEach(i => tx.update(colItems.doc(i.id), { category: '포설' }));
+        entries.filter(e => e.category === '기구설치').forEach(e => tx.update(colEntries.doc(e.id), { category: '포설' }));
+      }
+      DEFAULT_TYPES.filter(t => t.category === '포설').forEach(t => tx.set(colItems.doc(), {
+        ...t,
+        isDefault: true,
+        ts: firebase.firestore.FieldValue.serverTimestamp(),
+      }));
+    })).catch(() => {});
+  }
+
   // ── 실시간 리스너 (로그인 게이트 통과 후에만 시작) ──
   function startApp() {
     if (appStarted) return;
@@ -1592,11 +1635,15 @@
     colCategories.orderBy('order').onSnapshot(snap => {
       categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderCategories();
+      categoriesLoaded = true;
+      maybeMigratePoseol();
     });
 
     colItems.orderBy('name').onSnapshot(snap => {
       items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderItems();
+      itemsLoaded = true;
+      maybeMigratePoseol();
     });
 
     colEntries.orderBy('ts', 'desc').onSnapshot(snap => {
@@ -1604,6 +1651,8 @@
       renderTodayEntries();
       renderRecent();
       renderManage();
+      entriesLoaded = true;
+      maybeMigratePoseol();
     });
 
     colSettings.doc('export_template').onSnapshot(doc => {
