@@ -454,6 +454,15 @@
         </div>
         <span class="tool-arrow">›</span>
       </a>
+
+      <a href="gongsu-admin.html" class="tool-card tool-card--admin" id="gongsu-admin-entry" style="display:none;">
+        <div class="tool-icon">📊</div>
+        <div class="tool-info">
+          <div class="tool-name">공수달력 관리자</div>
+          <div class="tool-desc">현장별 팀단가 · 숙식비 · 차익금 관리</div>
+        </div>
+        <span class="tool-arrow">›</span>
+      </a>
     </div>
   </div>
 
@@ -663,8 +672,14 @@
   function updateAdminEntry() {
     const entry = document.getElementById('admin-entry');
     const badge = document.getElementById('pending-count-badge');
-    if (!myProfile || !myProfile.isAdmin) { entry.style.display = 'none'; return; }
+    const gongsuEntry = document.getElementById('gongsu-admin-entry');
+    if (!myProfile || !myProfile.isAdmin) {
+      entry.style.display = 'none';
+      gongsuEntry.style.display = 'none';
+      return;
+    }
     entry.style.display = '';
+    gongsuEntry.style.display = '';
     const pendingCount = users.filter(u => u.status === 'pending').length;
     if (pendingCount > 0) {
       badge.style.display = '';

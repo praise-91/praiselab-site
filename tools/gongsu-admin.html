@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공수달력 : 관리자</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+  :root {
+    --orange: #FF6B2B;
+    --orange-dark: #E05520;
+    --steel: #1A1E2E;
+    --steel-mid: #252A3D;
+    --steel-light: #2E3450;
+    --text: #F0F2FF;
+    --text-dim: #8892B0;
+    --give: #3BE88A;
+    --loss: #FF6B6B;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--steel);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+  }
+
+  .container { max-width: 560px; margin: 0 auto; }
+
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(26, 30, 46, 0.8);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -20px -16px 20px;
+  }
+
+  .brand {
+    font-size: 15px; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: 8px; text-decoration: none;
+  }
+
+  .whoami {
+    background: none; border: none; color: var(--text-dim);
+    font-family: inherit; font-size: 12.5px; cursor: pointer;
+  }
+
+  header.page-head { text-align: center; padding: 20px 0 24px; }
+  .header-icon { font-size: 36px; display: block; margin-bottom: 10px; }
+  header.page-head h1 { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }
+  header.page-head .page-sub { font-size: 13px; color: var(--text-dim); margin-top: 6px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .locked-wrap { text-align: center; padding: 60px 20px; }
+  .locked-wrap .header-icon { font-size: 40px; }
+  .locked-wrap h1 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+  .locked-wrap p { font-size: 13.5px; color: var(--text-dim); margin-bottom: 20px; }
+  .locked-wrap a {
+    display: inline-block; padding: 12px 22px; background: var(--orange);
+    color: #fff; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 14px;
+  }
+
+  .card {
+    background: var(--steel-mid);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-size: 12px; font-weight: 700; color: var(--text-dim);
+    letter-spacing: 0.6px; margin-bottom: 12px; text-transform: uppercase;
+  }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block; font-size: 12px; font-weight: 700; color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .field input, .field select {
+    width: 100%; padding: 12px 14px; background: var(--steel-light);
+    border: 1.5px solid var(--border); border-radius: 9px; color: var(--text);
+    font-family: inherit; font-size: 14.5px; outline: none; -webkit-appearance: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--orange); }
+
+  .row2 { display: flex; gap: 10px; }
+  .row2 .field { flex: 1 1 0; min-width: 0; }
+
+  .btn {
+    padding: 12px 18px; background: var(--orange); border: none; border-radius: 10px;
+    color: #fff; font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
+  }
+  .btn:hover { background: var(--orange-dark); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.block { width: 100%; }
+  .btn.ghost {
+    background: none; border: 1.5px solid var(--border); color: var(--text-dim);
+  }
+  .btn.danger { background: var(--loss); color: #2a0d0d; }
+  .btn.small { padding: 8px 12px; font-size: 12.5px; }
+
+  .preset-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .preset-btn {
+    padding: 8px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+    background: var(--steel-light); color: var(--text-dim); font-family: inherit;
+    font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+  .preset-btn.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+
+  .empty-state { text-align: center; padding: 30px 16px; color: var(--text-dim); font-size: 13.5px; }
+
+  table.member-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.member-table th {
+    text-align: left; font-size: 11px; font-weight: 700; color: var(--text-dim);
+    padding: 6px 6px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  table.member-table td { padding: 8px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  table.member-table tr:last-child td { border-bottom: none; }
+  table.member-table input[type="number"] {
+    width: 78px; padding: 6px 8px; background: var(--steel-light); border: 1.5px solid var(--border);
+    border-radius: 7px; color: var(--text); font-family: inherit; font-size: 13px;
+  }
+  .mt-name { font-weight: 700; }
+  .mt-profit { font-weight: 800; }
+  .mt-profit.pos { color: var(--give); }
+  .mt-profit.neg { color: var(--loss); }
+  .mt-absent { color: var(--text-dim); }
+  .mt-absent.warn { color: var(--loss); }
+  .mt-lodging-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  }
+  .mt-lodging-badge.stay { background: rgba(255,107,107,0.15); color: var(--loss); }
+  .mt-lodging-badge.paid { background: rgba(59,232,138,0.15); color: var(--give); }
+  .mt-lodging-badge.voucher { background: rgba(136,146,176,0.2); color: var(--text-dim); }
+  .mt-del { background: none; border: none; color: var(--text-dim); font-size: 15px; cursor: pointer; padding: 4px; }
+  .mt-del:hover { color: var(--loss); }
+  .mt-checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  .mt-checkbox-row input { width: auto; }
+  .mt-checkbox-row label { margin: 0; font-size: 12.5px; color: var(--text-dim); font-weight: 500; }
+
+  .summary-total {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-top: 12px; margin-top: 4px; border-top: 1px solid var(--border);
+  }
+  .summary-total .label { font-size: 13px; color: var(--text-dim); font-weight: 700; }
+  .summary-total .value { font-size: 22px; font-weight: 900; }
+
+  .toast {
+    position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-80px);
+    background: var(--give); color: #0a1a0f; padding: 12px 24px; border-radius: 50px;
+    font-size: 14px; font-weight: 700; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap; z-index: 999;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast">저장 완료</div>
+
+<header class="site-header">
+  <a href="https://praiselab.net/tools/" class="brand">Feeder</a>
+  <button class="whoami" id="whoami" onclick="logout()" style="display:none;"></button>
+</header>
+
+<div class="container">
+
+  <div class="view active" id="view-locked">
+    <div class="locked-wrap">
+      <span class="header-icon">🔒</span>
+      <h1>로그인이 필요해요</h1>
+      <p>피더 홈에서 로그인 후 다시 들어와주세요</p>
+      <a href="index.html">피더 홈으로 →</a>
+    </div>
+  </div>
+
+  <div class="view" id="view-forbidden">
+    <div class="locked-wrap">
+      <span class="header-icon">⛔</span>
+      <h1>관리자만 볼 수 있어요</h1>
+      <p>이 화면은 관리자 계정으로만 접근 가능해요</p>
+      <a href="gongsu-calendar.html">공수달력으로 →</a>
+    </div>
+  </div>
+
+  <div class="view" id="view-main">
+    <header class="page-head">
+      <span class="header-icon">📊</span>
+      <h1>공수달력 관리자</h1>
+      <div class="page-sub">팀원 단가·숙식비·차익금 관리</div>
+    </header>
+
+    <div class="card">
+      <div class="card-title">현장 선택</div>
+      <div class="field">
+        <select id="site-select" onchange="onSiteSelectChange()"></select>
+      </div>
+      <button class="btn ghost block" onclick="startNewSite()">+ 새 현장 추가</button>
+    </div>
+
+    <div class="card" id="site-settings-card" style="display:none;">
+      <div class="card-title" id="site-settings-title">현장 설정</div>
+      <div class="field">
+        <label>현장명</label>
+        <input type="text" id="site-name" placeholder="예: 거제 조선소" />
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>회사단가 (1인 인건비)</label>
+          <input type="number" id="site-company-rate" placeholder="180000" />
+        </div>
+        <div class="field">
+          <label>지정근무일수</label>
+          <input type="number" id="site-workdays-target" placeholder="22" />
+        </div>
+      </div>
+      <div class="field">
+        <label>숙식비</label>
+        <select id="site-lodging-type" onchange="onLodgingTypeChange()">
+          <option value="none">없음</option>
+          <option value="cash">현금 지급</option>
+          <option value="voucher">식권 지급</option>
+        </select>
+      </div>
+      <div class="field" id="site-lodging-amount-field" style="display:none;">
+        <label>숙식비 금액</label>
+        <input type="number" id="site-lodging-amount" placeholder="200000" />
+      </div>
+      <div class="row2" style="margin-top: 4px;">
+        <button class="btn block" id="site-save-btn" onclick="saveSite()">저장</button>
+        <button class="btn danger" id="site-delete-btn" onclick="deleteSite()" style="display:none;">현장 삭제</button>
+      </div>
+    </div>
+
+    <div class="card" id="period-card" style="display:none;">
+      <div class="card-title">기간</div>
+      <div class="preset-row" id="preset-row"></div>
+      <div class="row2">
+        <div class="field">
+          <input type="date" id="period-start" onchange="onCustomRangeChange()" />
+        </div>
+        <div class="field">
+          <input type="date" id="period-end" onchange="onCustomRangeChange()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="add-member-card" style="display:none;">
+      <div class="card-title">팀원 추가</div>
+      <div class="field">
+        <select id="member-picker"></select>
+      </div>
+      <button class="btn block" onclick="addMember()">이 현장에 추가</button>
+    </div>
+
+    <div class="card" id="member-table-card" style="display:none;">
+      <div class="card-title">팀원별 공수·차익금</div>
+      <div style="overflow-x:auto;">
+        <table class="member-table" id="member-table">
+          <thead>
+            <tr>
+              <th>이름</th>
+              <th>공수</th>
+              <th>개인단가</th>
+              <th>차익금</th>
+              <th>결근율</th>
+              <th>숙식비</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="member-table-body"></tbody>
+        </table>
+      </div>
+      <div class="summary-total">
+        <span class="label">총 차익금</span>
+        <span class="value" id="total-profit">0원</span>
+      </div>
+    </div>
+
+    <div class="empty-state" id="no-site-msg">현장을 선택하거나 새로 추가해주세요</div>
+  </div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyAIPHUtjoIEjVDmgMgXD3-Moq5oz--2_xY",
+    authDomain: "healingcamp-51eb0.firebaseapp.com",
+    projectId: "healingcamp-51eb0",
+  });
+
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const colToolsUsers = db.collection('tools_users');
+  const colSites = db.collection('gongsu_sites');
+  const colLeaderboard = db.collection('gongsu_leaderboard');
+
+  function logout() { auth.signOut(); }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg || '저장 완료';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  function fmtWon(n) {
+    const v = Math.round(n || 0);
+    return (v < 0 ? '-' : '') + Math.abs(v).toLocaleString('ko-KR') + '원';
+  }
+
+  function go(viewId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+  }
+
+  function dateStr(y, m, d) {
+    return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+
+  function rangePreset(kind) {
+    const now = new Date();
+    if (kind === 'lastMonth') {
+      const y = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      const m = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+      return [dateStr(y, m, 1), dateStr(y, m, new Date(y, m + 1, 0).getDate())];
+    }
+    if (kind === 'all') return ['0001-01-01', '9999-12-31'];
+    return [dateStr(now.getFullYear(), now.getMonth(), 1), dateStr(now.getFullYear(), now.getMonth(), new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate())];
+  }
+
+  // ── 상태 ──
+  let sites = [];
+  let toolsUsersAll = [];
+  let leaderboardAll = [];
+  let currentSiteId = localStorage.getItem('gongsuAdminSite') || '';
+  let currentSite = null;
+  let siteMembers = [];
+  let siteMembersUnsub = null;
+  let periodKind = 'month';
+  let periodStart = rangePreset('month')[0];
+  let periodEnd = rangePreset('month')[1];
+
+  const PRESETS = [
+    { kind: 'month', label: '이번달' },
+    { kind: 'lastMonth', label: '지난달' },
+    { kind: 'all', label: '전체' },
+  ];
+
+  function renderPresetRow() {
+    const row = document.getElementById('preset-row');
+    row.innerHTML = PRESETS.map(p => `
+      <button class="preset-btn${periodKind === p.kind ? ' active' : ''}" onclick="applyPreset('${p.kind}')">${p.label}</button>
+    `).join('');
+  }
+
+  function applyPreset(kind) {
+    periodKind = kind;
+    const [s, e] = rangePreset(kind);
+    periodStart = s; periodEnd = e;
+    document.getElementById('period-start').value = s;
+    document.getElementById('period-end').value = e;
+    renderPresetRow();
+    renderMemberTable();
+  }
+
+  function onCustomRangeChange() {
+    periodKind = '';
+    periodStart = document.getElementById('period-start').value;
+    periodEnd = document.getElementById('period-end').value;
+    renderPresetRow();
+    renderMemberTable();
+  }
+
+  function workdaysFor(uid) {
+    const lb = leaderboardAll.find(l => l.id === uid);
+    if (!lb || !lb.gongsuByDate) return 0;
+    let sum = 0;
+    Object.entries(lb.gongsuByDate).forEach(([date, g]) => {
+      if (date >= periodStart && date <= periodEnd) sum += g || 0;
+    });
+    return sum;
+  }
+
+  // ── 현장 선택/생성/수정/삭제 ──
+  function renderSiteSelect() {
+    const sel = document.getElementById('site-select');
+    sel.innerHTML = '<option value="">현장을 선택하세요</option>' +
+      sites.map(s => `<option value="${s.id}"${s.id === currentSiteId ? ' selected' : ''}>${escapeHtml(s.name)}</option>`).join('');
+  }
+
+  function onSiteSelectChange() {
+    const id = document.getElementById('site-select').value;
+    selectSite(id);
+  }
+
+  function selectSite(id) {
+    currentSiteId = id;
+    localStorage.setItem('gongsuAdminSite', id || '');
+    currentSite = sites.find(s => s.id === id) || null;
+    if (siteMembersUnsub) { siteMembersUnsub(); siteMembersUnsub = null; }
+    siteMembers = [];
+
+    if (!currentSite) {
+      document.getElementById('site-settings-card').style.display = 'none';
+      document.getElementById('period-card').style.display = 'none';
+      document.getElementById('add-member-card').style.display = 'none';
+      document.getElementById('member-table-card').style.display = 'none';
+      document.getElementById('no-site-msg').style.display = '';
+      renderSiteSelect();
+      return;
+    }
+
+    document.getElementById('no-site-msg').style.display = 'none';
+    document.getElementById('site-settings-card').style.display = '';
+    document.getElementById('period-card').style.display = '';
+    document.getElementById('add-member-card').style.display = '';
+    document.getElementById('member-table-card').style.display = '';
+    document.getElementById('site-settings-title').textContent = '현장 설정';
+    document.getElementById('site-delete-btn').style.display = '';
+    fillSiteForm(currentSite);
+    renderSiteSelect();
+    renderPresetRow();
+
+    siteMembersUnsub = colSites.doc(id).collection('members').onSnapshot(snap => {
+      siteMembers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderMemberPicker();
+      renderMemberTable();
+    });
+  }
+
+  function fillSiteForm(site) {
+    document.getElementById('site-name').value = site.name || '';
+    document.getElementById('site-company-rate').value = site.companyRate || '';
+    document.getElementById('site-workdays-target').value = site.workDaysTarget || '';
+    document.getElementById('site-lodging-type').value = site.lodgingType || 'none';
+    document.getElementById('site-lodging-amount').value = site.lodgingAmount || '';
+    onLodgingTypeChange();
+  }
+
+  function onLodgingTypeChange() {
+    const type = document.getElementById('site-lodging-type').value;
+    document.getElementById('site-lodging-amount-field').style.display = type === 'cash' ? '' : 'none';
+  }
+
+  function startNewSite() {
+    currentSiteId = '';
+    currentSite = null;
+    if (siteMembersUnsub) { siteMembersUnsub(); siteMembersUnsub = null; }
+    siteMembers = [];
+    document.getElementById('site-select').value = '';
+    document.getElementById('site-settings-title').textContent = '새 현장';
+    document.getElementById('site-name').value = '';
+    document.getElementById('site-company-rate').value = '';
+    document.getElementById('site-workdays-target').value = '22';
+    document.getElementById('site-lodging-type').value = 'none';
+    document.getElementById('site-lodging-amount').value = '';
+    onLodgingTypeChange();
+    document.getElementById('site-settings-card').style.display = '';
+    document.getElementById('site-delete-btn').style.display = 'none';
+    document.getElementById('period-card').style.display = 'none';
+    document.getElementById('add-member-card').style.display = 'none';
+    document.getElementById('member-table-card').style.display = 'none';
+    document.getElementById('no-site-msg').style.display = 'none';
+  }
+
+  function saveSite() {
+    const name = document.getElementById('site-name').value.trim();
+    if (!name) { alert('현장명을 입력해주세요!'); return; }
+    const companyRate = Number(document.getElementById('site-company-rate').value) || 0;
+    const workDaysTarget = Number(document.getElementById('site-workdays-target').value) || 0;
+    const lodgingType = document.getElementById('site-lodging-type').value;
+    const lodgingAmount = lodgingType === 'cash' ? (Number(document.getElementById('site-lodging-amount').value) || 0) : 0;
+
+    const btn = document.getElementById('site-save-btn');
+    btn.disabled = true;
+
+    const data = { name, companyRate, workDaysTarget, lodgingType, lodgingAmount };
+
+    const promise = currentSiteId
+      ? colSites.doc(currentSiteId).set(data, { merge: true })
+      : colSites.add({ ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() })
+          .then(ref => { currentSiteId = ref.id; localStorage.setItem('gongsuAdminSite', ref.id); });
+
+    promise.then(() => {
+      showToast('현장 저장 완료');
+      selectSite(currentSiteId);
+    }).catch(() => alert('저장 실패. 인터넷 연결을 확인해주세요.'))
+      .finally(() => { btn.disabled = false; });
+  }
+
+  function deleteSite() {
+    if (!currentSiteId) return;
+    if (!confirm('이 현장과 소속 팀원 설정을 모두 삭제할까요? 되돌릴 수 없어요.')) return;
+    const id = currentSiteId;
+    colSites.doc(id).collection('members').get().then(snap => {
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      batch.delete(colSites.doc(id));
+      return batch.commit();
+    }).then(() => {
+      showToast('현장 삭제 완료');
+      selectSite('');
+    }).catch(() => alert('삭제 실패. 인터넷 연결을 확인해주세요.'));
+  }
+
+  // ── 팀원 추가/삭제 ──
+  function renderMemberPicker() {
+    const sel = document.getElementById('member-picker');
+    const addedUids = new Set(siteMembers.map(m => m.id));
+    const candidates = toolsUsersAll.filter(u => u.status === 'approved' && !addedUids.has(u.id));
+    sel.innerHTML = candidates.length
+      ? candidates.map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join('')
+      : '<option value="">추가할 수 있는 팀원이 없어요</option>';
+  }
+
+  function addMember() {
+    if (!currentSiteId) return;
+    const sel = document.getElementById('member-picker');
+    const uid = sel.value;
+    if (!uid) return;
+    const user = toolsUsersAll.find(u => u.id === uid);
+    colSites.doc(currentSiteId).collection('members').doc(uid).set({
+      name: user ? user.name : '',
+      personalRate: 0,
+      usesLodging: false,
+      memo: '',
+      addedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }).then(() => showToast('팀원 추가 완료'))
+      .catch(() => alert('추가 실패. 인터넷 연결을 확인해주세요.'));
+  }
+
+  function removeMember(uid) {
+    if (!confirm('이 팀원을 현장에서 제거할까요?')) return;
+    colSites.doc(currentSiteId).collection('members').doc(uid).delete()
+      .catch(() => alert('삭제 실패. 인터넷 연결을 확인해주세요.'));
+  }
+
+  const debounceTimers = {};
+  function updateMemberField(uid, field, value) {
+    const key = uid + ':' + field;
+    clearTimeout(debounceTimers[key]);
+    debounceTimers[key] = setTimeout(() => {
+      colSites.doc(currentSiteId).collection('members').doc(uid).set({ [field]: value }, { merge: true })
+        .catch(() => alert('저장 실패. 인터넷 연결을 확인해주세요.'));
+    }, 500);
+  }
+
+  function onRateInput(uid, el) {
+    updateMemberField(uid, 'personalRate', Number(el.value) || 0);
+  }
+
+  function onLodgingCheck(uid, el) {
+    updateMemberField(uid, 'usesLodging', el.checked);
+  }
+
+  function renderMemberTable() {
+    if (!currentSite) return;
+    const tbody = document.getElementById('member-table-body');
+    if (!siteMembers.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:20px 0;">아직 추가된 팀원이 없어요</td></tr>';
+      document.getElementById('total-profit').textContent = fmtWon(0);
+      return;
+    }
+
+    const companyRate = currentSite.companyRate || 0;
+    const workDaysTarget = currentSite.workDaysTarget || 0;
+    const lodgingType = currentSite.lodgingType || 'none';
+    const lodgingAmount = currentSite.lodgingAmount || 0;
+
+    let totalProfit = 0;
+    tbody.innerHTML = siteMembers.map(m => {
+      const workdays = workdaysFor(m.id);
+      const personalRate = m.personalRate || 0;
+      const profit = (companyRate - personalRate) * workdays;
+      totalProfit += profit;
+      const absentRate = workDaysTarget > 0 ? Math.max(0, (workDaysTarget - workdays) / workDaysTarget) * 100 : 0;
+
+      let lodgingBadge = '<span style="color:var(--text-dim);">-</span>';
+      if (lodgingType === 'voucher') {
+        lodgingBadge = '<span class="mt-lodging-badge voucher">식권</span>';
+      } else if (lodgingType === 'cash') {
+        lodgingBadge = m.usesLodging
+          ? '<span class="mt-lodging-badge stay">숙소이용</span>'
+          : `<span class="mt-lodging-badge paid">${fmtWon(lodgingAmount)}</span>`;
+      }
+
+      return `
+        <tr>
+          <td class="mt-name">${escapeHtml(m.name)}</td>
+          <td>${workdaysFor(m.id)}</td>
+          <td><input type="number" value="${personalRate}" onchange="onRateInput('${m.id}', this)" /></td>
+          <td class="mt-profit ${profit >= 0 ? 'pos' : 'neg'}">${fmtWon(profit)}</td>
+          <td class="mt-absent${absentRate > 0 ? ' warn' : ''}">${absentRate.toFixed(1)}%</td>
+          <td>
+            ${lodgingBadge}
+            ${lodgingType === 'cash' ? `<div class="mt-checkbox-row"><input type="checkbox" id="lodge-${m.id}" ${m.usesLodging ? 'checked' : ''} onchange="onLodgingCheck('${m.id}', this)" /><label for="lodge-${m.id}">숙소이용</label></div>` : ''}
+          </td>
+          <td><button class="mt-del" onclick="removeMember('${m.id}')">✕</button></td>
+        </tr>
+      `;
+    }).join('');
+
+    document.getElementById('total-profit').textContent = fmtWon(totalProfit);
+    document.getElementById('total-profit').style.color = totalProfit >= 0 ? 'var(--give)' : 'var(--loss)';
+  }
+
+  // ── 초기화 ──
+  let isAdminFlag = false;
+  let gateProfileUnsub = null;
+  let dataUnsubs = [];
+
+  function startApp() {
+    document.getElementById('period-start').value = periodStart;
+    document.getElementById('period-end').value = periodEnd;
+    renderPresetRow();
+
+    dataUnsubs.push(colToolsUsers.orderBy('name').onSnapshot(snap => {
+      toolsUsersAll = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderMemberPicker();
+    }));
+
+    dataUnsubs.push(colLeaderboard.onSnapshot(snap => {
+      leaderboardAll = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderMemberTable();
+    }));
+
+    dataUnsubs.push(colSites.orderBy('createdAt').onSnapshot(snap => {
+      sites = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderSiteSelect();
+      if (currentSiteId && sites.some(s => s.id === currentSiteId)) {
+        selectSite(currentSiteId);
+      } else {
+        selectSite('');
+      }
+    }));
+  }
+
+  auth.onAuthStateChanged(user => {
+    if (gateProfileUnsub) { gateProfileUnsub(); gateProfileUnsub = null; }
+    dataUnsubs.forEach(u => u()); dataUnsubs = [];
+
+    if (!user) {
+      document.getElementById('whoami').style.display = 'none';
+      go('view-locked');
+      return;
+    }
+
+    gateProfileUnsub = colToolsUsers.doc(user.uid).onSnapshot(doc => {
+      if (!doc.exists || doc.data().status !== 'approved') {
+        document.getElementById('whoami').style.display = 'none';
+        go('view-locked');
+        return;
+      }
+      isAdminFlag = !!doc.data().isAdmin;
+      if (!isAdminFlag) {
+        document.getElementById('whoami').style.display = 'none';
+        go('view-forbidden');
+        return;
+      }
+      const whoami = document.getElementById('whoami');
+      whoami.style.display = '';
+      whoami.textContent = doc.data().name;
+      go('view-main');
+      startApp();
+    });
+  });
+</script>
+</body>
+</html>
