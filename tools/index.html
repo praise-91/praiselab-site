@@ -196,6 +196,10 @@
   }
   .empty-state .empty-icon { font-size: 32px; display: block; margin-bottom: 10px; opacity: 0.4; }
 
+  .loading-brand { text-align: center; padding-top: 140px; }
+  .loading-brand-title { font-size: 28px; font-weight: 900; color: var(--text); letter-spacing: -0.5px; }
+  .loading-brand-sub { font-size: 13px; color: var(--text-dim); margin-top: 8px; }
+
   /* ── 도구 카드 ── */
   .tool-list { display: flex; flex-direction: column; gap: 12px; }
 
@@ -335,7 +339,10 @@
 
   <!-- 로딩 -->
   <div class="view active" id="view-loading">
-    <div class="empty-state" style="padding-top:80px;" id="loading-text">불러오는 중…</div>
+    <div class="loading-brand" id="loading-text">
+      <div class="loading-brand-title">Feeder</div>
+      <div class="loading-brand-sub">불러오는 중…</div>
+    </div>
     <div id="loading-retry" style="display:none; text-align:center; padding-top:16px;">
       <div style="font-size:13px; color:var(--text-dim); margin-bottom:14px;">연결이 지연되고 있어요. 인터넷 연결을 확인해주세요.</div>
       <button class="submit-btn" style="width:auto; padding:12px 28px;" onclick="location.reload()">다시 시도</button>

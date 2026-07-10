@@ -377,6 +377,10 @@
 
   .export-btn:hover { border-color: var(--orange); color: var(--orange); }
 
+  .loading-brand { text-align: center; padding-top: 140px; }
+  .loading-brand-title { font-size: 28px; font-weight: 900; color: var(--text); letter-spacing: -0.5px; }
+  .loading-brand-sub { font-size: 13px; color: var(--text-dim); margin-top: 8px; }
+
   /* ── 로그인 필요 화면 ── */
   .locked-wrap { text-align: center; padding: 60px 20px; }
   .locked-icon { font-size: 40px; display: block; margin-bottom: 16px; }
@@ -468,6 +472,11 @@
 
 <div class="container">
 
+  <div class="loading-brand" id="view-loading">
+    <div class="loading-brand-title">Feeder</div>
+    <div class="loading-brand-sub">불러오는 중…</div>
+  </div>
+
   <div class="locked-wrap" id="view-locked" style="display:none;">
     <span class="locked-icon">🔒</span>
     <div class="locked-msg">로그인이 필요해요.<br>피더 홈에서 로그인 후 다시 들어와주세요.</div>
@@ -543,6 +552,7 @@
   function startApp() {
     if (appStarted) return;
     appStarted = true;
+    document.getElementById('view-loading').style.display = 'none';
     document.getElementById('view-locked').style.display = 'none';
     document.getElementById('view-app').style.display = '';
     initRentalApp();
@@ -551,6 +561,7 @@
   auth.onAuthStateChanged(user => {
     if (gateProfileUnsub) { gateProfileUnsub(); gateProfileUnsub = null; }
     if (!user) {
+      document.getElementById('view-loading').style.display = 'none';
       document.getElementById('view-locked').style.display = '';
       document.getElementById('view-app').style.display = 'none';
       return;
@@ -559,6 +570,7 @@
       if (doc.exists && doc.data().status === 'approved') {
         startApp();
       } else {
+        document.getElementById('view-loading').style.display = 'none';
         document.getElementById('view-locked').style.display = '';
         document.getElementById('view-app').style.display = 'none';
       }

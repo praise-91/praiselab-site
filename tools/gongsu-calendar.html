@@ -53,9 +53,9 @@ html, body { margin:0; padding:0; height:100%; background:#F6F4EF; }
   -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums;
   padding-bottom: 24px;
 }
-.gg-loading { display:flex; align-items:center; justify-content:center; min-height:100vh; }
-.gg-spinner { width:26px;height:26px;border:3px solid #E7E1D6;border-top-color:#C97A1E;border-radius:50%;animation:gg-spin .8s linear infinite; }
-@keyframes gg-spin { to { transform: rotate(360deg); } }
+.gg-loading { display:flex; align-items:center; justify-content:center; min-height:100vh; text-align:center; }
+.gg-loading-title { font-size:28px; font-weight:900; color:#22201C; letter-spacing:-0.5px; }
+.gg-loading-sub { font-size:13px; color:#A79C8C; margin-top:8px; }
 button { font-family: inherit; cursor: pointer; border: none; background: none; }
 :focus-visible { outline: 2px solid #C97A1E; outline-offset: 2px; border-radius: 6px; }
 
@@ -1050,9 +1050,11 @@ function App() {
   if (!state) {
     return React.createElement("div", {
       className: "gg-root gg-loading"
-    }, React.createElement("div", {
-      className: "gg-spinner"
-    }));
+    }, React.createElement("div", null, React.createElement("div", {
+      className: "gg-loading-title"
+    }, "Feeder"), React.createElement("div", {
+      className: "gg-loading-sub"
+    }, "불러오는 중…")));
   }
   return React.createElement("div", {
     className: "gg-root"
