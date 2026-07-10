@@ -862,6 +862,33 @@ function App() {
   const [showChipEdit, setShowChipEdit] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showTeam, setShowTeam] = useState(false);
+  const closeOverlay = () => history.back();
+  useEffect(() => {
+    const onPop = () => {
+      setDayModal(null);
+      setShowSummary(false);
+      setShowChipEdit(false);
+      setShowTeam(false);
+      setShowMenu(false);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  const overlayKey = dayModal ? "day" : showMenu ? "menu" : showSummary ? "summary" : showChipEdit ? "settings" : showTeam ? "team" : null;
+  const prevOverlayKey = useRef(null);
+  useEffect(() => {
+    const prev = prevOverlayKey.current;
+    if (overlayKey && !prev) {
+      history.pushState({
+        gcOverlay: overlayKey
+      }, "");
+    } else if (overlayKey && prev && overlayKey !== prev) {
+      history.replaceState({
+        gcOverlay: overlayKey
+      }, "");
+    }
+    prevOverlayKey.current = overlayKey;
+  }, [overlayKey]);
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -1098,28 +1125,28 @@ function App() {
     entry: state.entries[dayModal.date],
     customChips: state.customChips,
     defaultUnitPrice: state.defaultUnitPrice,
-    onClose: () => setDayModal(null),
+    onClose: closeOverlay,
     onSave: patch => {
       saveEntry(dayModal.date, patch);
-      setDayModal(null);
+      closeOverlay();
     },
     onDelete: () => {
       deleteEntry(dayModal.date);
-      setDayModal(null);
+      closeOverlay();
     }
   }), showSummary && React.createElement(SummaryModal, {
     state,
     initialY: cursor.y,
     initialM: cursor.m,
-    onClose: () => setShowSummary(false)
+    onClose: closeOverlay
   }), showChipEdit && React.createElement(SettingsModal, {
     customChips: state.customChips,
     defaultUnitPrice: state.defaultUnitPrice,
-    onClose: () => setShowChipEdit(false),
+    onClose: closeOverlay,
     onSaveChips: saveCustomChips,
     onSavePrice: saveDefaultPrice
   }), showMenu && React.createElement(Sidebar, {
-    onClose: () => setShowMenu(false),
+    onClose: closeOverlay,
     onSettings: () => {
       setShowMenu(false);
       setShowChipEdit(true);
@@ -1129,7 +1156,7 @@ function App() {
       setShowTeam(true);
     }
   }), showTeam && React.createElement(TeamModal, {
-    onClose: () => setShowTeam(false)
+    onClose: closeOverlay
   }));
 }
 function DayModal({
