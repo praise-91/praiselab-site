@@ -58,6 +58,12 @@
     font-family: inherit; font-size: 12.5px; cursor: pointer;
   }
 
+  .site-header-title {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    font-size: 13px; font-weight: 700; color: var(--text-dim);
+    white-space: nowrap;
+  }
+
   header.page-head { text-align: center; padding: 20px 0 24px; }
   .header-icon { font-size: 36px; display: block; margin-bottom: 10px; }
   header.page-head h1 { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }
@@ -196,6 +202,7 @@
 
 <header class="site-header">
   <a href="https://praiselab.net/tools/" class="brand">Feeder</a>
+  <span class="site-header-title">공수달력 관리자</span>
   <button class="whoami" id="whoami" onclick="logout()" style="display:none;"></button>
 </header>
 
@@ -220,12 +227,6 @@
   </div>
 
   <div class="view" id="view-main">
-    <header class="page-head">
-      <span class="header-icon">📊</span>
-      <h1>공수달력 관리자</h1>
-      <div class="page-sub">팀원 단가·숙식비·차익금 관리</div>
-    </header>
-
     <div class="card">
       <div class="card-title">현장 선택</div>
       <div class="row2">
