@@ -70,6 +70,18 @@
   }
   .whoami:hover { border-color: var(--orange); color: var(--orange); }
 
+  .admin-btn {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .admin-btn:hover { border-color: var(--orange); color: var(--orange); }
+
   header.page-head { text-align: center; padding: 28px 0 24px; }
   .header-icon { font-size: 40px; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 12px rgba(255,107,43,0.5)); }
   header.page-head h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
@@ -355,6 +367,7 @@
     Praiselab
   </a>
   <button class="whoami" id="whoami" onclick="logout()" style="display:none;"></button>
+  <button class="admin-btn" id="admin-entry-btn" onclick="openAdminNameEntry()" style="display:none;">관리자</button>
 </header>
 
 <div class="container">
@@ -376,6 +389,22 @@
       <div class="section-label">이름 선택</div>
       <div class="name-list" id="name-list"></div>
       <button class="toggle-link" onclick="go('view-register')">등록된 이름이 없나요? 등록하기 →</button>
+    </div>
+  </div>
+
+  <!-- 관리자 이름 입력 -->
+  <div class="view" id="view-admin-name">
+    <div class="view-head">
+      <button class="back-btn" onclick="go('view-login')">‹</button>
+      <h2>관리자 로그인</h2>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>관리자 이름</label>
+        <input type="text" id="admin-name-input" placeholder="이름"
+          onkeydown="if(event.key==='Enter')adminLoginByName();" />
+      </div>
+      <button class="submit-btn" onclick="adminLoginByName()">다음</button>
     </div>
   </div>
 
@@ -543,11 +572,12 @@
   // ── 로그인 화면: 이름 목록 ──
   function renderNameList() {
     const list = document.getElementById('name-list');
-    if (!users.length) {
+    const regular = users.filter(u => !u.isAdmin);
+    if (!regular.length) {
       list.innerHTML = '<div class="empty-state"><span class="empty-icon">👷</span>아직 등록된 이름이 없어요.<br>아래에서 등록해주세요.</div>';
       return;
     }
-    list.innerHTML = users.map(u => `
+    list.innerHTML = regular.map(u => `
       <button class="name-btn" onclick="selectName('${u.id}')">
         ${escapeHtml(u.name)}
         ${u.status === 'pending' ? '<span class="pending-tag">승인 대기</span>' : ''}
@@ -564,6 +594,20 @@
     document.getElementById('pw-error').style.display = 'none';
     go('view-password');
     setTimeout(() => document.getElementById('pw-input').focus(), 150);
+  }
+
+  function openAdminNameEntry() {
+    document.getElementById('admin-name-input').value = '';
+    go('view-admin-name');
+    setTimeout(() => document.getElementById('admin-name-input').focus(), 150);
+  }
+
+  function adminLoginByName() {
+    const name = document.getElementById('admin-name-input').value.trim();
+    if (!name) return;
+    const u = users.find(x => x.isAdmin && x.name === name);
+    if (!u) { alert('등록된 관리자 이름이 아니에요.'); return; }
+    selectName(u.id);
   }
 
   function confirmLogin() {
@@ -689,9 +733,12 @@
     if (!user) {
       myProfile = null;
       document.getElementById('whoami').style.display = 'none';
+      document.getElementById('admin-entry-btn').style.display = '';
       go('view-login');
       return;
     }
+
+    document.getElementById('admin-entry-btn').style.display = 'none';
 
     myProfileUnsub = colUsers.doc(user.uid).onSnapshot(doc => {
       if (!doc.exists) { go('view-login'); return; }
