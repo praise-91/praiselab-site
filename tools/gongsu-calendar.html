@@ -38,6 +38,15 @@ html, body { margin:0; padding:0; height:100%; background:#F6F4EF; }
   background:#22201C; color:#fff; font-weight:700; font-size:14px; text-decoration:none;
 }
 .gc-locked a:hover { filter:brightness(1.15); }
+
+.gc-admin-banner {
+  position: sticky; top: 52px; z-index: 14;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: #F6E7D2; color: #7A4A12; padding: 10px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif;
+  font-size: 12.5px; font-weight: 700; text-align: center; border-bottom: 1px solid #E7C89A;
+}
+.gc-admin-banner a { color: #7A4A12; text-decoration: underline; font-weight: 800; }
 .gg-root {
   font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif;
   min-height: 100vh; background:#F6F4EF; color:#22201C;
@@ -246,6 +255,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   <p>피더 홈에서 로그인 후 다시 들어와주세요</p>
   <a href="index.html">피더 홈으로 →</a>
 </div>
+<div class="gc-admin-banner" id="gc-admin-banner" style="display:none;">
+  🔧 관리자 모드: <span id="gc-admin-target-name"></span>님의 공수달력 수정 중
+  <a href="gongsu-admin.html">← 관리자 화면으로</a>
+</div>
 <div id="root"></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -277,7 +290,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
       return;
     }
 
-    gcProfileUnsub = colToolsUsers.doc(user.uid).onSnapshot(doc => {
+    gcProfileUnsub = colToolsUsers.doc(user.uid).onSnapshot(async doc => {
       if (!doc.exists || doc.data().status !== 'approved') {
         document.getElementById('gc-whoami').style.display = 'none';
         document.getElementById('gc-locked').style.display = 'flex';
@@ -294,13 +307,27 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
       window.gcMyName = doc.data().name;
       window.colGongsuLeaderboard = colGongsuLeaderboard;
 
+      // 관리자가 ?as=uid로 들어오면 자기 uid 대신 그 팀원의 달력을 보고 수정한다
+      const asUid = new URLSearchParams(location.search).get('as');
+      let targetUid = user.uid;
+      let targetName = window.gcMyName;
+      if (asUid && asUid !== user.uid && doc.data().isAdmin) {
+        const targetDoc = await colToolsUsers.doc(asUid).get();
+        if (targetDoc.exists) {
+          targetUid = asUid;
+          targetName = targetDoc.data().name;
+          document.getElementById('gc-admin-target-name').textContent = targetName;
+          document.getElementById('gc-admin-banner').style.display = 'flex';
+        }
+      }
+
       window.gcSyncLeaderboard = async function (entries) {
         const gongsuByDate = {};
         Object.entries(entries || {}).forEach(([date, e]) => {
           if (e && e.gongsu) gongsuByDate[date] = e.gongsu;
         });
-        await colGongsuLeaderboard.doc(user.uid).set({
-          name: window.gcMyName,
+        await colGongsuLeaderboard.doc(targetUid).set({
+          name: targetName,
           gongsuByDate,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
@@ -310,14 +337,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
         gcAppStarted = true;
         window.storage = {
           async get(key) {
-            const doc = await colGongsuCalendars.doc(user.uid).get();
+            const doc = await colGongsuCalendars.doc(targetUid).get();
             if (!doc.exists || doc.data().data == null) throw new Error('not found');
             return { key, value: doc.data().data };
           },
           async set(key, value) {
             try {
               const state = JSON.parse(value);
-              await colGongsuCalendars.doc(user.uid).set({
+              await colGongsuCalendars.doc(targetUid).set({
                 data: value,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
               });
