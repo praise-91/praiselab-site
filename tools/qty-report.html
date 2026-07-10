@@ -471,6 +471,38 @@
   }
   .export-btn:hover { border-color: var(--orange); color: var(--orange); }
 
+  /* ── 합산/전체기록 탭 ── */
+  .tab-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab-btn {
+    flex: 1;
+    padding: 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: var(--steel-mid);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn.active { border-color: var(--orange); color: var(--orange); background: rgba(255,107,43,0.08); }
+
+  .field textarea {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--steel-light);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.6;
+    outline: none;
+    resize: vertical;
+  }
+  .field textarea:focus { border-color: var(--orange); }
+
   /* ── 최근 입력 원터치 ── */
   .recent-list {
     display: flex;
@@ -554,7 +586,7 @@
     Feeder
   </a>
   <button class="whoami" id="whoami" onclick="changeWorker()" style="display:none;"></button>
-  <button class="admin-btn" id="admin-btn" onclick="openAdminLogin()" style="display:none;">🔐 관리자</button>
+  <button class="admin-btn" id="admin-btn" onclick="openAdminLogin()" style="display:none;">관리자</button>
 </header>
 
 <div class="container">
@@ -585,8 +617,7 @@
 
   <!-- ② 홈: 대분류 -->
   <div class="view" id="view-home">
-    <button class="summary-link-btn" onclick="openManage()">🗂 전체 기록 관리</button>
-    <button class="summary-link-btn" onclick="openSummary()">📊 합산 보기</button>
+    <button class="summary-link-btn" onclick="openSummary()">합산 보기</button>
 
     <div id="recent-wrap" style="display:none;">
       <div class="section-label">⚡ 최근 입력 — 누르면 바로 수량 입력</div>
@@ -646,58 +677,88 @@
     </div>
   </div>
 
-  <!-- ⑤ 합산 보기 -->
+  <!-- ⑤ 합산 보기 / 전체 기록 관리 (탭) -->
   <div class="view" id="view-summary">
     <div class="view-head">
       <button class="back-btn" onclick="history.back()">‹</button>
-      <h2>합산 보기</h2>
+      <h2 id="summary-title">합산 보기</h2>
     </div>
 
-    <div class="card">
-      <div class="date-range-row">
-        <div class="field" style="margin-bottom:0;">
-          <label>시작일</label>
-          <input type="date" id="summary-start" onchange="renderSummary()" />
-        </div>
-        <div class="field" style="margin-bottom:0;">
-          <label>종료일</label>
-          <input type="date" id="summary-end" onchange="renderSummary()" />
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-total" onclick="switchSummaryTab('total')">합산 보기</button>
+      <button class="tab-btn" id="tab-manage" onclick="switchSummaryTab('manage')">전체 기록 관리</button>
+    </div>
+
+    <!-- 합산 보기 탭 -->
+    <div id="summary-tab-total">
+      <div class="card">
+        <div class="date-range-row">
+          <div class="field" style="margin-bottom:0;">
+            <label>시작일</label>
+            <input type="date" id="summary-start" onchange="renderSummary()" />
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>종료일</label>
+            <input type="date" id="summary-end" onchange="renderSummary()" />
+          </div>
         </div>
       </div>
+
+      <div class="section-label">자재별 합계</div>
+      <div class="summary-list" id="summary-list"></div>
+
+      <button class="export-btn" onclick="shareSummary()">공유하기</button>
+      <button class="export-btn" onclick="openTemplateEditor()">양식 설정</button>
     </div>
 
-    <div class="section-label">자재별 합계</div>
-    <div class="summary-list" id="summary-list"></div>
+    <!-- 전체 기록 관리 탭 -->
+    <div id="summary-tab-manage" style="display:none;">
+      <div class="card">
+        <div class="field">
+          <label>작업자</label>
+          <select class="field-select" id="manage-worker" onchange="renderManage()"></select>
+        </div>
+        <div class="date-range-row">
+          <div class="field" style="margin-bottom:0;">
+            <label>시작일</label>
+            <input type="date" id="manage-start" onchange="renderManage()" />
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>종료일</label>
+            <input type="date" id="manage-end" onchange="renderManage()" />
+          </div>
+        </div>
+      </div>
 
-    <button class="export-btn" onclick="shareSummary()">📤 공유하기</button>
+      <div class="section-label">기록 목록</div>
+      <div class="entry-list" id="manage-list"></div>
+    </div>
   </div>
 
-  <!-- ⑥ 전체 기록 관리 -->
-  <div class="view" id="view-manage">
+  <!-- ⑥ 공유 양식 설정 -->
+  <div class="view" id="view-template">
     <div class="view-head">
       <button class="back-btn" onclick="history.back()">‹</button>
-      <h2>전체 기록 관리</h2>
+      <h2>공유 양식 설정</h2>
     </div>
 
     <div class="card">
+      <div class="section-label">사용 가능한 자리표시자</div>
+      <div style="font-size:13px;color:var(--text-dim);line-height:1.7;margin-bottom:16px;">
+        {기간} → 시작일 ~ 종료일<br>
+        {목록} → 대분류별 자재 합계 목록
+      </div>
       <div class="field">
-        <label>작업자</label>
-        <select class="field-select" id="manage-worker" onchange="renderManage()"></select>
-      </div>
-      <div class="date-range-row">
-        <div class="field" style="margin-bottom:0;">
-          <label>시작일</label>
-          <input type="date" id="manage-start" onchange="renderManage()" />
-        </div>
-        <div class="field" style="margin-bottom:0;">
-          <label>종료일</label>
-          <input type="date" id="manage-end" onchange="renderManage()" />
-        </div>
-      </div>
-    </div>
+        <label>내 양식 (비워두면 기본 양식 사용)</label>
+        <textarea id="template-input" rows="8" placeholder="예)
+김찬양팀 물량보고
+{기간}
 
-    <div class="section-label">기록 목록</div>
-    <div class="entry-list" id="manage-list"></div>
+{목록}"></textarea>
+      </div>
+      <button class="submit-btn" id="template-save-btn" onclick="saveTemplate()">저장</button>
+      <button class="export-btn" onclick="resetTemplate()">기본 양식으로 되돌리기</button>
+    </div>
   </div>
 
   <!-- ⑦ 비밀번호 입력 -->
@@ -831,6 +892,7 @@
   let currentGroup = null;
   let pendingWorker = null; // 비밀번호 입력 대기 중인 작업자 객체
   let currentWorkerIsAdmin = false; // 로그아웃 후 작업자 전환 화면에서도 유지
+  let currentSummaryTab = 'total';
 
   function isAdmin() {
     return currentWorkerIsAdmin;
@@ -919,13 +981,12 @@
         go('view-entry');
         break;
       case 'view-summary':
-        renderSummary();
+        switchSummaryTab('total');
         go('view-summary');
         break;
-      case 'view-manage':
-        renderManageWorkerOptions();
-        renderManage();
-        go('view-manage');
+      case 'view-template':
+        document.getElementById('template-input').value = localStorage.getItem('qty_export_template') || '';
+        go('view-template');
         break;
       case 'view-password':
         if (pendingWorker) {
@@ -951,7 +1012,7 @@
     const adminBtn = document.getElementById('admin-btn');
     if (currentWorker) {
       whoami.style.display = '';
-      whoami.textContent = (isAdmin() ? '⭐ ' : '👷 ') + currentWorker;
+      whoami.textContent = currentWorker;
       if (adminBtn) adminBtn.style.display = 'none';
     } else {
       whoami.style.display = 'none';
@@ -1069,9 +1130,9 @@
     list.innerHTML = regular.map(w => `
       <div class="worker-row">
         <button class="worker-btn" onclick="selectWorker('${w.id}')">
-          👷 ${escapeHtml(w.name)}
+          ${escapeHtml(w.name)}
         </button>
-        ${isAdmin() ? `<button class="pw-btn" onclick="showWorkerPw('${escapeHtml(w.password || '')}')">🔑</button>` : ''}
+        ${isAdmin() ? `<button class="pw-btn" onclick="showWorkerPw('${escapeHtml(w.password || '')}')">PW</button>` : ''}
         ${isAdmin() ? `<button class="del-btn" onclick="deleteWorker('${w.id}', '${escapeHtml(w.name)}')">✕</button>` : ''}
       </div>
     `).join('');
@@ -1292,7 +1353,7 @@
       const count = inCategory.filter(i => i.group === g).length;
       return `
         <button class="item-btn" onclick="openGroup('${escapeHtml(g)}')">
-          🗂 ${escapeHtml(g)}
+          ${escapeHtml(g)}
           <span><span class="group-count">${count}종</span><span class="chev">›</span></span>
         </button>
       `;
@@ -1356,14 +1417,31 @@
     `).join('');
   }
 
-  // ── ⑤ 합산 보기 ──
+  // ── ⑤ 합산 보기 / 전체 기록 관리 ──
   function openSummary() {
     const today = todayStr();
     document.getElementById('summary-start').value = today;
     document.getElementById('summary-end').value = today;
-    renderSummary();
+    document.getElementById('manage-start').value = today;
+    document.getElementById('manage-end').value = today;
+    switchSummaryTab('total');
     go('view-summary');
     pushHistory('view-summary');
+  }
+
+  function switchSummaryTab(tab) {
+    currentSummaryTab = tab;
+    document.getElementById('tab-total').classList.toggle('active', tab === 'total');
+    document.getElementById('tab-manage').classList.toggle('active', tab === 'manage');
+    document.getElementById('summary-tab-total').style.display = tab === 'total' ? '' : 'none';
+    document.getElementById('summary-tab-manage').style.display = tab === 'manage' ? '' : 'none';
+    document.getElementById('summary-title').textContent = tab === 'total' ? '합산 보기' : '전체 기록 관리';
+    if (tab === 'manage') {
+      renderManageWorkerOptions();
+      renderManage();
+    } else {
+      renderSummary();
+    }
   }
 
   function formatQty(n) {
@@ -1423,14 +1501,50 @@
     return new Blob(['﻿' + header + body], { type: 'text/csv;charset=utf-8;' });
   }
 
-  function buildSummaryText(rows, start, end) {
-    let text = `📊 물량 합산 (${start} ~ ${end})\n`;
+  function buildListText(rows) {
+    let text = '';
     let cat = null;
     rows.forEach(r => {
-      if (r.category !== cat) { cat = r.category; text += `\n[${cat}]\n`; }
+      if (r.category !== cat) { cat = r.category; text += (text ? '\n' : '') + `[${cat}]\n`; }
       text += `${r.item} ${formatQty(r.qty)}${r.unit}\n`;
     });
     return text.trim();
+  }
+
+  function buildSummaryText(rows, start, end) {
+    const listText = buildListText(rows);
+    const template = localStorage.getItem('qty_export_template');
+    if (template && template.trim()) {
+      return template
+        .replaceAll('{기간}', `${start} ~ ${end}`)
+        .replaceAll('{목록}', listText);
+    }
+    return `📊 물량 합산 (${start} ~ ${end})\n\n${listText}`;
+  }
+
+  // ── 공유 양식 설정 ──
+  function openTemplateEditor() {
+    document.getElementById('template-input').value = localStorage.getItem('qty_export_template') || '';
+    go('view-template');
+    pushHistory('view-template');
+  }
+
+  function saveTemplate() {
+    const val = document.getElementById('template-input').value;
+    if (val.trim()) {
+      localStorage.setItem('qty_export_template', val);
+    } else {
+      localStorage.removeItem('qty_export_template');
+    }
+    showToast('✅ 양식 저장 완료!');
+    history.back();
+  }
+
+  function resetTemplate() {
+    if (!confirm('기본 양식으로 되돌릴까요?')) return;
+    localStorage.removeItem('qty_export_template');
+    document.getElementById('template-input').value = '';
+    showToast('✅ 기본 양식으로 되돌렸어요');
   }
 
   async function shareSummary() {
@@ -1462,16 +1576,6 @@
   }
 
   // ── ⑥ 전체 기록 관리 ──
-  function openManage() {
-    const today = todayStr();
-    document.getElementById('manage-start').value = today;
-    document.getElementById('manage-end').value = today;
-    renderManageWorkerOptions();
-    renderManage();
-    go('view-manage');
-    pushHistory('view-manage');
-  }
-
   function renderManageWorkerOptions() {
     const sel = document.getElementById('manage-worker');
     if (!sel) return;
