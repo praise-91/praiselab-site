@@ -580,15 +580,15 @@
           </select>
         </div>
         <div class="field" id="q-sets-toggle-field" hidden>
-          <label><input type="checkbox" id="q-use-sets"> 세트로 나누기</label>
+          <label><input type="checkbox" id="q-use-sets"> 나눠서 체크하기</label>
         </div>
         <div class="field" id="q-sets-fields" hidden>
           <div class="field" style="margin-bottom:12px">
-            <label>세트 수</label>
+            <label>체크 횟수</label>
             <input type="number" id="q-sets" min="1" step="1" value="3">
           </div>
           <div class="field" style="margin-bottom:0">
-            <label>세트별 횟수</label>
+            <label>체크당 횟수</label>
             <div id="q-reps-list" style="display:flex; flex-wrap:wrap; gap:8px"></div>
           </div>
         </div>
@@ -908,10 +908,10 @@ function calcExpGainFor(item) {
   const amount = unit === 'count' ? item.count : item.min;
   return calcExpGain(unit, amount);
 }
-// 퀘스트/습관을 리스트에 표시할 때 쓰는 수치 텍스트 (예: "30분" / "20회" / "12·10·8회 (3세트)")
+// 퀘스트/습관을 리스트에 표시할 때 쓰는 수치 텍스트 (예: "30분" / "20회" / "12·10·8회 (3체크)")
 function amountLabel(item) {
   const unit = item.unit || 'min';
-  if (unit === 'count' && item.sets) return `${item.reps.join('·')}회 (${item.sets}세트)`;
+  if (unit === 'count' && item.sets) return `${item.reps.join('·')}회 (${item.sets}체크)`;
   return unit === 'count' ? `${item.count}회` : `${item.min}분`;
 }
 
@@ -1484,8 +1484,8 @@ function renderQuestRow(q, i) {
     const nextReps = q.reps[Math.min(cur, q.reps.length - 1)];
     const nextExp = calcSetExpGain(q, cur, cur === 0);
     const undoBtn = cur > 0 ? ` · <button type="button" class="quest-cancel" data-set-undo="${i}">되돌리기</button>` : '';
-    leftBtn = `<button class="quest-check" data-set-clear="${i}" aria-label="세트 완료">　</button>`;
-    metaText = `${s.icon} ${s.name} · ${cur}/${q.sets}세트 (이번엔 ${nextReps}회) · 이번 세트 +${nextExp} EXP${undoBtn}`;
+    leftBtn = `<button class="quest-check" data-set-clear="${i}" aria-label="체크 완료">　</button>`;
+    metaText = `${s.icon} ${s.name} · ${cur}/${q.sets}체크 (이번엔 ${nextReps}회) · 이번 체크 +${nextExp} EXP${undoBtn}`;
   } else {
     leftBtn = `<button class="quest-check" data-clear="${i}" aria-label="완료">　</button>`;
     metaText = `${s.icon} ${s.name} · ${amountLabel(q)} · 완료 시 +${calcExpGainFor(q)} EXP`;
@@ -1535,8 +1535,8 @@ function renderHabitRow(h, i) {
     const nextReps = h.reps[Math.min(cur, h.reps.length - 1)];
     const nextExp = calcSetExpGain(h, cur, cur === 0);
     const undoBtn = cur > 0 ? ` · <button type="button" class="quest-cancel" data-habit-set-undo="${i}">되돌리기</button>` : '';
-    leftBtn = `<button class="quest-check" data-habit-set-clear="${i}" aria-label="세트 완료">　</button>`;
-    metaText = `${s.icon} ${s.name} · ${repeatLabel(h)} · ${cur}/${h.sets}세트 (이번엔 ${nextReps}회) · 🔥${shown}일 · 이번 세트 +${nextExp} EXP${undoBtn}`;
+    leftBtn = `<button class="quest-check" data-habit-set-clear="${i}" aria-label="체크 완료">　</button>`;
+    metaText = `${s.icon} ${s.name} · ${repeatLabel(h)} · ${cur}/${h.sets}체크 (이번엔 ${nextReps}회) · 🔥${shown}일 · 이번 체크 +${nextExp} EXP${undoBtn}`;
   } else {
     const preview = calcExpGainFor(h) + streakBonus(nextStreak(h));
     leftBtn = `<button class="quest-check" data-habit-clear="${i}" aria-label="완료">　</button>`;
@@ -1638,7 +1638,7 @@ function renderRepsInputs(presetValues) {
     const val = existing[i] || existing[existing.length - 1] || '1';
     html += `
       <div style="display:flex; flex-direction:column; align-items:center; gap:4px">
-        <span style="font-size:11px; color:var(--dim)">${i + 1}세트</span>
+        <span style="font-size:11px; color:var(--dim)">${i + 1}체크</span>
         <input type="number" class="q-rep-input" min="1" step="1" value="${val}" style="width:56px; text-align:center; padding:8px 4px">
       </div>`;
   }
@@ -1759,7 +1759,7 @@ $('q-add').addEventListener('click', () => {
     if (!setsVal || setsVal < 1) { $('q-sets').focus(); return; }
     repsVal = [...document.querySelectorAll('.q-rep-input')].map(el => parseInt(el.value, 10));
     if (repsVal.length !== setsVal || repsVal.some(r => !r || r < 1)) {
-      toast('⚠️ 세트별 횟수를 모두 1 이상으로 입력해 주세요.');
+      toast('⚠️ 체크당 횟수를 모두 1 이상으로 입력해 주세요.');
       return;
     }
   } else {
@@ -1930,7 +1930,7 @@ $('quest-list').addEventListener('click', e => {
     render();
 
     const s = STATS.find(x => x.id === q.statId);
-    const label = finished ? `${q.sets}/${q.sets}세트 완료!` : `${q.currentSet}/${q.sets}세트`;
+    const label = finished ? `${q.sets}/${q.sets}체크 완료!` : `${q.currentSet}/${q.sets}체크`;
     toast(`${label} · ${s.icon} ${s.name} +${gained} EXP · 💰+${gained}G`);
     if (after > before) setTimeout(() => toast(`LEVEL UP! ${s.name} Lv.${after} 달성!`, true), 600);
     announceStageProgress(prevTotalExp);
@@ -2086,9 +2086,9 @@ $('habit-list').addEventListener('click', e => {
 
     const s = STATS.find(x => x.id === h.statId);
     if (finished) {
-      toast(`${h.sets}/${h.sets}세트 완료! · ${s.icon} ${s.name} +${gained} EXP · 💰+${gained}G (🔥${h.streak}일차 보너스 +${bonus})`);
+      toast(`${h.sets}/${h.sets}체크 완료! · ${s.icon} ${s.name} +${gained} EXP · 💰+${gained}G (🔥${h.streak}일차 보너스 +${bonus})`);
     } else {
-      toast(`${h.currentSet}/${h.sets}세트 · ${s.icon} ${s.name} +${gained} EXP · 💰+${gained}G`);
+      toast(`${h.currentSet}/${h.sets}체크 · ${s.icon} ${s.name} +${gained} EXP · 💰+${gained}G`);
     }
     if (after > before) setTimeout(() => toast(`LEVEL UP! ${s.name} Lv.${after} 달성!`, true), 600);
     if (finished) announceTodayFinish(prevRatio);
