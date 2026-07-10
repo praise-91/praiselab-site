@@ -351,6 +351,7 @@
   const colToolsUsers = db.collection('tools_users');
   const colSites = db.collection('gongsu_sites');
   const colLeaderboard = db.collection('gongsu_leaderboard');
+  const colGongsuCalendars = db.collection('gongsu_calendars');
 
   function logout() { auth.signOut(); }
 
@@ -701,8 +702,29 @@
     }, 500);
   }
 
+  // 관리자가 정한 개인단가를 팀원 본인 공수달력의 "기본 공수단가"에도 반영해서
+  // 팀원이 보는 예상 급여와 관리자가 계산하는 차익금 기준이 어긋나지 않게 한다.
+  // 아직 공수달력을 한 번도 안 연 팀원(문서 없음)은 건드리지 않는다.
+  async function syncRateToCalendar(uid, rate) {
+    try {
+      const doc = await colGongsuCalendars.doc(uid).get();
+      if (!doc.exists || doc.data().data == null) return;
+      const state = JSON.parse(doc.data().data);
+      if (state.defaultUnitPrice === rate) return;
+      state.defaultUnitPrice = rate;
+      await colGongsuCalendars.doc(uid).set({
+        data: JSON.stringify(state),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    } catch (e) {
+      // 관리자 화면 자체 저장(personalRate)은 이미 끝난 상태라 이 동기화는 조용히 실패 처리
+    }
+  }
+
   function onRateInput(uid, el) {
-    updateMemberField(uid, 'personalRate', Number(el.value) || 0);
+    const rate = Number(el.value) || 0;
+    updateMemberField(uid, 'personalRate', rate);
+    syncRateToCalendar(uid, rate);
   }
 
   function onLodgingCheck(uid, el) {

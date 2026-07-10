@@ -547,8 +547,14 @@
 
 <div class="container">
 
+  <!-- 로그인 상태 확인 중 (Firebase Auth 응답 전 잠깐 보이는 기본 화면 —
+       로그인 화면을 기본값으로 두면 로그인된 사용자도 매번 잠깐 깜빡여서 이걸로 대체) -->
+  <div class="view active" id="view-checking">
+    <div class="empty-state" style="padding-top:80px;">불러오는 중…</div>
+  </div>
+
   <!-- 로그인 필요 -->
-  <div class="view active" id="view-locked">
+  <div class="view" id="view-locked">
     <header class="page-head">
       <span class="header-icon">🔒</span>
       <h1>로그인이 필요해요</h1>
