@@ -211,15 +211,19 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 .gg-teamrank-list { display:flex; flex-direction:column; background:#FFFFFF; border-radius:14px; border:1px solid #E7E1D6; padding:2px 14px; }
 .gg-teamrank-row { display:flex; flex-direction:column; gap:9px; padding:14px 0; border-bottom:1px solid #E7E1D6; }
+.gg-teamrank-row:last-child { border-bottom:none; }
+.gg-teamrank-row-me { margin:0 -14px; padding:14px; border-radius:12px; background:#F6E7D2; border-bottom-color:transparent; }
 .gg-teamrank-top { display:flex; align-items:center; gap:10px; }
-.gg-teamrank-name { flex:1; font-size:14.5px; font-weight:700; color:#22201C; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gg-teamrank-rank { width:22px; flex-shrink:0; text-align:center; font-size:14px; font-weight:800; color:#A79C8C; }
+.gg-teamrank-name { flex:1; font-size:14.5px; font-weight:700; color:#22201C; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:6px; }
+.gg-teamrank-me-badge { font-size:10.5px; font-weight:800; color:#fff; background:#C97A1E; border-radius:999px; padding:1px 7px; flex-shrink:0; }
 .gg-teamrank-value { font-size:13px; font-weight:800; color:#C97A1E; flex-shrink:0; }
-.gg-teamrank-input { width:84px; flex-shrink:0; text-align:right; }
-.gg-teamrank-remove { flex-shrink:0; width:28px; height:28px; border-radius:8px; color:#A79C8C; font-size:12px; background:#F6F4EF; }
-.gg-teamrank-remove:hover { background:#E7E1D6; }
 .gg-teamrank-track { height:8px; border-radius:5px; background:#F6F4EF; overflow:hidden; }
 .gg-teamrank-fill { height:100%; border-radius:5px; background:#C97A1E; }
 .gg-teamrank-empty { text-align:center; color:#A79C8C; font-size:13px; padding:40px 0; }
+.gg-teampresets { display:flex; gap:8px; margin-bottom:10px; }
+.gg-teampreset-btn { padding:7px 14px; border-radius:9px; background:#FFFFFF; border:1.5px solid #E7E1D6; font-size:13px; font-weight:700; color:#63594E; }
+.gg-teampreset-btn:hover { background:#F6E7D2; border-color:#C97A1E; color:#C97A1E; }
 
 @media (prefers-reduced-motion: reduce) { * { animation-duration:.001ms !important; transition-duration:.001ms !important; } }
 
@@ -250,6 +254,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   const gcDb = firebase.firestore();
   const colToolsUsers = gcDb.collection('tools_users');
   const colGongsuCalendars = gcDb.collection('gongsu_calendars');
+  const colGongsuLeaderboard = gcDb.collection('gongsu_leaderboard');
 
   function gcLogout() { gcAuth.signOut(); }
 
@@ -279,6 +284,22 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
       document.getElementById('gc-locked').style.display = 'none';
       document.getElementById('root').style.display = '';
 
+      window.gcMyUid = user.uid;
+      window.gcMyName = doc.data().name;
+      window.colGongsuLeaderboard = colGongsuLeaderboard;
+
+      window.gcSyncLeaderboard = async function (entries) {
+        const gongsuByDate = {};
+        Object.entries(entries || {}).forEach(([date, e]) => {
+          if (e && e.gongsu) gongsuByDate[date] = e.gongsu;
+        });
+        await colGongsuLeaderboard.doc(user.uid).set({
+          name: window.gcMyName,
+          gongsuByDate,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      };
+
       if (!gcAppStarted) {
         gcAppStarted = true;
         window.storage = {
@@ -289,10 +310,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           },
           async set(key, value) {
             try {
+              const state = JSON.parse(value);
               await colGongsuCalendars.doc(user.uid).set({
                 data: value,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
               });
+              await window.gcSyncLeaderboard(state.entries).catch(() => {});
             } catch (e) {
               alert('저장 실패. 인터넷 연결을 확인해주세요.');
               throw e;
@@ -715,9 +738,7 @@ function defaultState() {
   return {
     defaultUnitPrice: 150000,
     customChips: [],
-    entries: {},
-    team: [],
-    teamRecords: {}
+    entries: {}
   };
 }
 
@@ -948,17 +969,6 @@ function App() {
     ...prev,
     defaultUnitPrice: p
   }));
-  const saveTeam = team => setState(prev => ({
-    ...prev,
-    team
-  }));
-  const saveTeamRecord = (rangeKey, records) => setState(prev => ({
-    ...prev,
-    teamRecords: {
-      ...(prev.teamRecords || {}),
-      [rangeKey]: records
-    }
-  }));
   const moveMonth = delta => setCursor(c => {
     const d = new Date(c.y, c.m + delta, 1);
     return {
@@ -1119,10 +1129,7 @@ function App() {
       setShowTeam(true);
     }
   }), showTeam && React.createElement(TeamModal, {
-    state,
-    onClose: () => setShowTeam(false),
-    onSaveTeam: saveTeam,
-    onSaveRecord: saveTeamRecord
+    onClose: () => setShowTeam(false)
   }));
 }
 function DayModal({
@@ -1530,75 +1537,81 @@ function Sidebar({
     className: "gg-menuitem-icon"
   }, "👥"), React.createElement("span", null, "전체 공수"))));
 }
-function TeamModal({
-  state,
-  onClose,
-  onSaveTeam,
-  onSaveRecord
-}) {
+const RANK_MEDALS = ["🥇", "🥈", "🥉"];
+function teamRangePreset(kind) {
   const now = new Date();
-  const monthStart = dateStr(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = dateStr(now.getFullYear(), now.getMonth(), new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate());
-  const [start, setStart] = useState(monthStart);
-  const [end, setEnd] = useState(monthEnd);
-  const rangeKey = start + "_" + end;
-  const team = state.team || [];
-  const records = (state.teamRecords || {})[rangeKey] || {};
-  const removeMember = id => {
-    onSaveTeam(team.filter(m => m.id !== id));
-    const nextRecords = {
-      ...records
-    };
-    delete nextRecords[id];
-    onSaveRecord(rangeKey, nextRecords);
+  if (kind === "lastMonth") {
+    const y = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    const m = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+    return [dateStr(y, m, 1), dateStr(y, m, new Date(y, m + 1, 0).getDate())];
+  }
+  if (kind === "all") return ["0001-01-01", "9999-12-31"];
+  return [dateStr(now.getFullYear(), now.getMonth(), 1), dateStr(now.getFullYear(), now.getMonth(), new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate())];
+}
+function TeamModal({
+  onClose
+}) {
+  const [start, setStart] = useState(() => teamRangePreset("month")[0]);
+  const [end, setEnd] = useState(() => teamRangePreset("month")[1]);
+  const [members, setMembers] = useState(null);
+  useEffect(() => {
+    const unsub = window.colGongsuLeaderboard.onSnapshot(snap => {
+      setMembers(snap.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+      })));
+    }, () => setMembers([]));
+    return unsub;
+  }, []);
+  const applyPreset = kind => {
+    const [s, e] = teamRangePreset(kind);
+    setStart(s);
+    setEnd(e);
   };
-  const updateValue = (id, v) => {
-    onSaveRecord(rangeKey, {
-      ...records,
-      [id]: v
+  const ranked = useMemo(() => {
+    if (!members) return [];
+    const totals = members.map(m => {
+      let sum = 0;
+      Object.entries(m.gongsuByDate || {}).forEach(([date, g]) => {
+        if (date >= start && date <= end) sum += g || 0;
+      });
+      return {
+        id: m.id,
+        name: m.name || "이름 없음",
+        total: sum
+      };
     });
-  };
-  const maxVal = Math.max(1, ...team.map(m => records[m.id] || 0));
-  const rankOrder = {};
-  [...team].sort((a, b) => (records[b.id] || 0) - (records[a.id] || 0)).forEach((m, i) => {
-    rankOrder[m.id] = i;
-  });
-  const rows = team.length > 0 ? team.map(m => {
-    const v = records[m.id] || 0;
+    return totals.sort((a, b) => b.total - a.total);
+  }, [members, start, end]);
+  const maxVal = Math.max(1, ...ranked.map(m => m.total));
+  const rows = members === null ? React.createElement("div", {
+    className: "gg-teamrank-empty"
+  }, "불러오는 중…") : ranked.length === 0 ? React.createElement("div", {
+    className: "gg-teamrank-empty"
+  }, "이 기간에 입력된 팀원 공수가 없습니다.") : ranked.map((m, i) => {
+    const isMe = m.id === window.gcMyUid;
     return React.createElement("div", {
       key: m.id,
-      className: "gg-teamrank-row",
-      style: {
-        order: rankOrder[m.id]
-      }
+      className: "gg-teamrank-row" + (isMe ? " gg-teamrank-row-me" : "")
     }, React.createElement("div", {
       className: "gg-teamrank-top"
     }, React.createElement("span", {
+      className: "gg-teamrank-rank"
+    }, RANK_MEDALS[i] || i + 1), React.createElement("span", {
       className: "gg-teamrank-name"
-    }, m.name), React.createElement("span", {
+    }, m.name, isMe && React.createElement("span", {
+      className: "gg-teamrank-me-badge"
+    }, "나")), React.createElement("span", {
       className: "gg-teamrank-value"
-    }, fmtG(v)), React.createElement("input", {
-      className: "gg-input gg-teamrank-input",
-      type: "number",
-      step: "0.5",
-      placeholder: "0",
-      value: records[m.id] || "",
-      onChange: e => updateValue(m.id, Number(e.target.value) || 0)
-    }), React.createElement("button", {
-      className: "gg-teamrank-remove",
-      onClick: () => removeMember(m.id),
-      "aria-label": m.name + " 삭제"
-    }, "✕")), React.createElement("div", {
+    }, fmtG(m.total))), React.createElement("div", {
       className: "gg-teamrank-track"
     }, React.createElement("div", {
       className: "gg-teamrank-fill",
       style: {
-        width: v / maxVal * 100 + "%"
+        width: m.total / maxVal * 100 + "%"
       }
     })));
-  }) : React.createElement("div", {
-    className: "gg-teamrank-empty"
-  }, "등록된 팀원이 없습니다.");
+  });
   return React.createElement("div", {
     className: "gg-fullscreen"
   }, React.createElement("div", {
@@ -1614,6 +1627,17 @@ function TeamModal({
   }, React.createElement("div", {
     className: "gg-field"
   }, React.createElement("label", null, "기간"), React.createElement("div", {
+    className: "gg-teampresets"
+  }, React.createElement("button", {
+    className: "gg-teampreset-btn",
+    onClick: () => applyPreset("month")
+  }, "이번달"), React.createElement("button", {
+    className: "gg-teampreset-btn",
+    onClick: () => applyPreset("lastMonth")
+  }, "지난달"), React.createElement("button", {
+    className: "gg-teampreset-btn",
+    onClick: () => applyPreset("all")
+  }, "전체")), React.createElement("div", {
     className: "gg-daterange"
   }, React.createElement("input", {
     className: "gg-input",
@@ -1627,7 +1651,7 @@ function TeamModal({
     onChange: e => setEnd(e.target.value)
   }))), React.createElement("div", {
     className: "gg-field"
-  }, React.createElement("label", null, "팀원별 공수"), React.createElement("div", {
+  }, React.createElement("label", null, "팀원 순위"), React.createElement("div", {
     className: "gg-teamrank-list"
   }, rows))));
 }
