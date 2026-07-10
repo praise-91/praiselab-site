@@ -102,27 +102,26 @@
 
   .row2 { display: flex; gap: 10px; }
   .row2 .field { flex: 1 1 0; min-width: 0; }
+  .row2 .btn.block { flex: 1 1 0; width: auto; min-width: 0; }
 
   .btn {
-    padding: 12px 18px; background: var(--orange); border: none; border-radius: 10px;
-    color: #fff; font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
+    padding: 12px 18px; background: #fff; border: none; border-radius: 10px;
+    color: var(--orange); font-family: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
   }
-  .btn:hover { background: var(--orange-dark); }
+  .btn:hover { background: rgba(255,107,43,0.08); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn.block { width: 100%; }
-  .btn.ghost {
-    background: none; border: 1.5px solid var(--border); color: var(--text-dim);
-  }
-  .btn.danger { background: var(--loss); color: #2a0d0d; }
+  .btn.danger { background: var(--orange); color: #fff; flex: 0 0 auto; white-space: nowrap; }
+  .btn.danger:hover { background: var(--orange-dark); }
   .btn.small { padding: 8px 12px; font-size: 12.5px; }
 
   .preset-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
   .preset-btn {
-    padding: 8px 14px; border-radius: 20px; border: 1.5px solid var(--border);
-    background: var(--steel-light); color: var(--text-dim); font-family: inherit;
+    padding: 8px 14px; border-radius: 20px; border: 1.5px solid transparent;
+    background: #fff; color: var(--orange); font-family: inherit;
     font-size: 12.5px; font-weight: 700; cursor: pointer;
   }
-  .preset-btn.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+  .preset-btn.active { border-color: var(--orange); }
 
   .empty-state { text-align: center; padding: 30px 16px; color: var(--text-dim); font-size: 13.5px; }
 
@@ -212,7 +211,7 @@
       <div class="field">
         <select id="site-select" onchange="onSiteSelectChange()"></select>
       </div>
-      <button class="btn ghost block" onclick="startNewSite()">+ 새 현장 추가</button>
+      <button class="btn block" onclick="startNewSite()">+ 새 현장 추가</button>
     </div>
 
     <div class="card" id="site-settings-card" style="display:none;">
@@ -245,7 +244,7 @@
       </div>
       <div class="row2" style="margin-top: 4px;">
         <button class="btn block" id="site-save-btn" onclick="saveSite()">저장</button>
-        <button class="btn danger" id="site-delete-btn" onclick="deleteSite()" style="display:none;">현장 삭제</button>
+        <button class="btn danger" id="site-delete-btn" onclick="deleteSite()" style="display:none;">삭제</button>
       </div>
     </div>
 
