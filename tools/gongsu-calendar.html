@@ -1618,14 +1618,20 @@ function TeamModal({
         total: sum
       };
     });
-    return totals.sort((a, b) => b.total - a.total);
+    const sorted = totals.sort((a, b) => b.total - a.total);
+    let rank = 0;
+    sorted.forEach((m, i) => {
+      if (i === 0 || m.total !== sorted[i - 1].total) rank = i + 1;
+      m.rank = rank;
+    });
+    return sorted;
   }, [members, start, end]);
   const maxVal = Math.max(1, ...ranked.map(m => m.total));
   const rows = members === null ? React.createElement("div", {
     className: "gg-teamrank-empty"
   }, "불러오는 중…") : ranked.length === 0 ? React.createElement("div", {
     className: "gg-teamrank-empty"
-  }, "이 기간에 입력된 팀원 공수가 없습니다.") : ranked.map((m, i) => {
+  }, "이 기간에 입력된 팀원 공수가 없습니다.") : ranked.map(m => {
     const isMe = m.id === window.gcMyUid;
     return React.createElement("div", {
       key: m.id,
@@ -1634,7 +1640,7 @@ function TeamModal({
       className: "gg-teamrank-top"
     }, React.createElement("span", {
       className: "gg-teamrank-rank"
-    }, RANK_MEDALS[i] || i + 1), React.createElement("span", {
+    }, RANK_MEDALS[m.rank - 1] || m.rank), React.createElement("span", {
       className: "gg-teamrank-name"
     }, m.name, isMe && React.createElement("span", {
       className: "gg-teamrank-me-badge"
