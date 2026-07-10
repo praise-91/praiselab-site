@@ -523,6 +523,11 @@
       <div class="section-label">승인 대기 목록</div>
       <div id="approve-list"></div>
     </div>
+
+    <div class="card">
+      <div class="section-label">등록된 팀원</div>
+      <div id="member-list"></div>
+    </div>
   </div>
 
 </div>
@@ -670,6 +675,7 @@
   // ── 관리자: 가입 승인 ──
   function openAdminApprove() {
     renderApproveList();
+    renderMemberList();
     go('view-admin-approve');
   }
 
@@ -691,6 +697,25 @@
     `).join('');
   }
 
+  function renderMemberList() {
+    const list = document.getElementById('member-list');
+    const approved = users.filter(u => u.status === 'approved');
+    if (!approved.length) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">👷</span>등록된 팀원이 없어요</div>';
+      return;
+    }
+    list.innerHTML = approved.map(u => `
+      <div class="approve-row">
+        <span class="approve-name">${u.isAdmin ? '⭐ ' : ''}${escapeHtml(u.name)}</span>
+        <div class="approve-actions">
+          ${u.id === auth.currentUser.uid
+            ? ''
+            : `<button class="reject-btn" onclick="deleteMember('${u.id}', '${escapeHtml(u.name)}')">삭제</button>`}
+        </div>
+      </div>
+    `).join('');
+  }
+
   function approveUser(id) {
     colUsers.doc(id).update({ status: 'approved' })
       .then(() => showToast('✅ 승인 완료!'))
@@ -701,6 +726,13 @@
     if (!confirm(`'${name}' 신청을 거절할까요? (등록 정보가 삭제돼요)`)) return;
     colUsers.doc(id).delete()
       .then(() => showToast('거절했어요'))
+      .catch(() => alert('처리 실패. 다시 시도해주세요.'));
+  }
+
+  function deleteMember(id, name) {
+    if (!confirm(`'${name}' 님을 삭제할까요?\n앱 접근 권한만 사라지고, 계정 자체는 Firebase 콘솔에서 별도로 지워야 완전히 삭제돼요.`)) return;
+    colUsers.doc(id).delete()
+      .then(() => showToast('삭제했어요'))
       .catch(() => alert('처리 실패. 다시 시도해주세요.'));
   }
 
@@ -722,7 +754,10 @@
   colUsers.orderBy('name').onSnapshot(snap => {
     users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderNameList();
-    if (document.getElementById('view-admin-approve').classList.contains('active')) renderApproveList();
+    if (document.getElementById('view-admin-approve').classList.contains('active')) {
+      renderApproveList();
+      renderMemberList();
+    }
     updateAdminEntry();
   });
 
