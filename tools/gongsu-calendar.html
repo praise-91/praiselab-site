@@ -1621,7 +1621,7 @@ function TeamModal({
     const sorted = totals.sort((a, b) => b.total - a.total);
     let rank = 0;
     sorted.forEach((m, i) => {
-      if (i === 0 || m.total !== sorted[i - 1].total) rank = i + 1;
+      if (i === 0 || m.total !== sorted[i - 1].total) rank += 1;
       m.rank = rank;
     });
     return sorted;
