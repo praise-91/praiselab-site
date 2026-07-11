@@ -431,6 +431,9 @@
       <span class="menu-item-icon">🔑</span><span>관리자 기능</span>
       <span class="tool-badge" id="menu-admin-badge" style="display:none;"></span>
     </button>
+    <button class="menu-item" onclick="closeMenu(); go('view-team-join');">
+      <span class="menu-item-icon">🔗</span><span>팀 참가</span>
+    </button>
     <button class="menu-item" onclick="closeMenu(); showToast('⚙️ 설정 기능은 준비 중이에요');">
       <span class="menu-item-icon">⚙️</span><span>설정</span>
     </button>
@@ -510,9 +513,18 @@
       </div>
       <button class="submit-btn" id="reg-btn" onclick="register()">등록하기</button>
       <div style="font-size:12px;color:var(--text-dim);margin-top:14px;line-height:1.6;text-align:center;">
-        등록 후 관리자 승인이 필요해요. 승인되면 자동으로 화면이 넘어가요.
+        가입하면 바로 이용할 수 있어요. 팀에 들어가려면 가입 후 메뉴에서 팀 코드를 입력하세요.
       </div>
     </div>
+  </div>
+
+  <!-- 팀 참가 -->
+  <div class="view" id="view-team-join">
+    <div class="view-head">
+      <button class="back-btn" onclick="history.back()">‹</button>
+      <h2>팀 참가</h2>
+    </div>
+    <div class="card" id="team-join-body"></div>
   </div>
 
   <!-- 승인 대기 -->
@@ -582,8 +594,8 @@
       <a href="javascript:void(0)" class="tool-card tool-card--admin" onclick="openAdminApprove()">
         <div class="tool-icon">🔑</div>
         <div class="tool-info">
-          <div class="tool-name">가입 승인 관리<span class="tool-badge" id="pending-count-badge" style="display:none;"></span></div>
-          <div class="tool-desc">등록 신청 승인 · 거절</div>
+          <div class="tool-name">팀원 승인 관리<span class="tool-badge" id="pending-count-badge" style="display:none;"></span></div>
+          <div class="tool-desc">팀 참가 신청 승인 · 거절</div>
         </div>
         <span class="tool-arrow">›</span>
       </a>
@@ -599,19 +611,19 @@
     </div>
   </div>
 
-  <!-- 관리자: 가입 승인 -->
+  <!-- 관리자: 팀원 승인 -->
   <div class="view" id="view-admin-approve">
     <div class="view-head">
       <button class="back-btn" onclick="history.back()">‹</button>
-      <h2>가입 승인 관리</h2>
+      <h2>팀원 승인 관리</h2>
     </div>
     <div class="card">
-      <div class="section-label">승인 대기 목록</div>
+      <div class="section-label">참가 승인 대기</div>
       <div id="approve-list"></div>
     </div>
 
     <div class="card">
-      <div class="section-label">등록된 팀원</div>
+      <div class="section-label">소속 팀원</div>
       <div id="member-list"></div>
     </div>
   </div>
@@ -834,25 +846,93 @@
     btn.disabled = true;
 
     const authEmail = `${username}@${EMAIL_DOMAIN}`;
+    // 개인 사용은 승인 없이 바로 가능(status: 'approved') — 팀 참가만 별도 승인 대상(memberStatus)
     auth.createUserWithEmailAndPassword(authEmail, pw)
       .then(cred => colUsers.doc(cred.user.uid).set({
         username,
         nickname,
         email,
         authEmail,
-        status: 'pending',
+        status: 'approved',
         isAdmin: false,
         role: 'member',
         teamCode: null,
+        memberStatus: null,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       }))
-      .then(() => showToast('✅ 등록 완료! 관리자 승인을 기다려주세요'))
+      .then(() => showToast('✅ 가입 완료!'))
       .catch(err => {
         alert(err.code === 'auth/email-already-in-use'
           ? '이미 등록된 아이디예요.'
           : '등록 실패. 인터넷 연결을 확인해주세요.');
       })
       .finally(() => { btn.disabled = false; });
+  }
+
+  // ── 팀 참가 ──
+  const colTeams = db.collection('tools_teams');
+
+  function renderTeamJoin() {
+    const el = document.getElementById('team-join-body');
+    if (!el || !myProfile) return;
+    if (!myProfile.teamCode) {
+      el.innerHTML = `
+        <div class="field">
+          <label>팀 코드</label>
+          <input type="text" id="team-code-input" placeholder="관리자에게 받은 코드"
+            onkeydown="if(event.key==='Enter')joinTeam();" />
+        </div>
+        <button class="submit-btn" id="team-join-btn" onclick="joinTeam()">참가 신청</button>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:14px;line-height:1.6;text-align:center;">
+          팀 코드가 없어도 공수달력 등은 혼자 계속 쓸 수 있어요.
+        </div>`;
+    } else if (myProfile.memberStatus === 'approved') {
+      el.innerHTML = `
+        <div style="font-size:14px;color:var(--text-dim);line-height:1.7;text-align:center;">
+          <b style="color:var(--text)">${escapeHtml(myProfile.teamCode)}</b> 팀 소속이에요.
+        </div>
+        <button class="submit-btn" style="background:transparent;border:1.5px solid var(--border);color:var(--text-dim);margin-top:16px;" onclick="leaveTeam()">팀 탈퇴</button>`;
+    } else {
+      el.innerHTML = `
+        <div style="font-size:14px;color:var(--text-dim);line-height:1.7;text-align:center;">
+          <b style="color:var(--text)">${escapeHtml(myProfile.teamCode)}</b> 팀 참가 승인을 기다리고 있어요.
+        </div>
+        <button class="submit-btn" style="background:transparent;border:1.5px solid var(--border);color:var(--text-dim);margin-top:16px;" onclick="cancelTeamJoin()">신청 취소</button>`;
+    }
+  }
+
+  function joinTeam() {
+    const codeInput = document.getElementById('team-code-input');
+    const code = codeInput.value.trim().toUpperCase();
+    if (!code) { alert('팀 코드를 입력해주세요!'); return; }
+
+    const btn = document.getElementById('team-join-btn');
+    btn.disabled = true;
+    colTeams.doc(code).get()
+      .then(doc => {
+        if (!doc.exists || doc.data().active === false) {
+          alert('존재하지 않거나 비활성화된 팀 코드예요.');
+          return;
+        }
+        return colUsers.doc(auth.currentUser.uid).update({ teamCode: code, memberStatus: 'pending' });
+      })
+      .then(() => showToast('✅ 참가 신청 완료! 관리자 승인을 기다려주세요'))
+      .catch(() => alert('처리 실패. 다시 시도해주세요.'))
+      .finally(() => { btn.disabled = false; });
+  }
+
+  function cancelTeamJoin() {
+    if (!confirm('참가 신청을 취소할까요?')) return;
+    colUsers.doc(auth.currentUser.uid).update({ teamCode: null, memberStatus: null })
+      .then(() => showToast('취소했어요'))
+      .catch(() => alert('처리 실패. 다시 시도해주세요.'));
+  }
+
+  function leaveTeam() {
+    if (!confirm('팀에서 탈퇴할까요?')) return;
+    colUsers.doc(auth.currentUser.uid).update({ teamCode: null, memberStatus: null })
+      .then(() => showToast('탈퇴했어요'))
+      .catch(() => alert('처리 실패. 다시 시도해주세요.'));
   }
 
   // ── 로그아웃 ──
@@ -869,7 +949,8 @@
 
   function renderApproveList() {
     const list = document.getElementById('approve-list');
-    const pending = users.filter(u => u.status === 'pending');
+    const myCode = myProfile && myProfile.adminTeamCode;
+    const pending = users.filter(u => myCode && u.teamCode === myCode && u.memberStatus === 'pending');
     if (!pending.length) {
       list.innerHTML = '<div class="empty-state"><span class="empty-icon">✅</span>승인 대기 중인 신청이 없어요</div>';
       return;
@@ -887,40 +968,41 @@
 
   function renderMemberList() {
     const list = document.getElementById('member-list');
-    const approved = users.filter(u => u.status === 'approved');
+    const myCode = myProfile && myProfile.adminTeamCode;
+    const approved = users.filter(u => myCode && u.teamCode === myCode && u.memberStatus === 'approved');
     if (!approved.length) {
-      list.innerHTML = '<div class="empty-state"><span class="empty-icon">👷</span>등록된 팀원이 없어요</div>';
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">👷</span>소속된 팀원이 없어요</div>';
       return;
     }
     list.innerHTML = approved.map(u => `
       <div class="approve-row">
-        <span class="approve-name">${u.isAdmin ? '⭐ ' : ''}${escapeHtml(displayName(u))}</span>
+        <span class="approve-name">${escapeHtml(displayName(u))}</span>
         <div class="approve-actions">
-          ${u.id === auth.currentUser.uid
-            ? ''
-            : `<button class="reject-btn" onclick="deleteMember('${u.id}', '${escapeHtml(displayName(u))}')">삭제</button>`}
+          <button class="reject-btn" onclick="deleteMember('${u.id}', '${escapeHtml(displayName(u))}')">내보내기</button>
         </div>
       </div>
     `).join('');
   }
 
   function approveUser(id) {
-    colUsers.doc(id).update({ status: 'approved' })
+    colUsers.doc(id).update({ memberStatus: 'approved' })
       .then(() => showToast('✅ 승인 완료!'))
       .catch(() => alert('승인 실패. 다시 시도해주세요.'));
   }
 
+  // 팀 참가 신청 거절/팀원 내보내기: 계정 자체는 건드리지 않고 팀 소속만 해제한다
+  // (개인은 팀 없이도 앱을 계속 쓰므로 예전처럼 계정을 통째로 지우면 안 됨)
   function rejectUser(id, name) {
-    if (!confirm(`'${name}' 신청을 거절할까요? (등록 정보가 삭제돼요)`)) return;
-    colUsers.doc(id).delete()
+    if (!confirm(`'${name}' 님의 참가 신청을 거절할까요?`)) return;
+    colUsers.doc(id).update({ teamCode: null, memberStatus: null })
       .then(() => showToast('거절했어요'))
       .catch(() => alert('처리 실패. 다시 시도해주세요.'));
   }
 
   function deleteMember(id, name) {
-    if (!confirm(`'${name}' 님을 삭제할까요?\n앱 접근 권한만 사라지고, 계정 자체는 Firebase 콘솔에서 별도로 지워야 완전히 삭제돼요.`)) return;
-    colUsers.doc(id).delete()
-      .then(() => showToast('삭제했어요'))
+    if (!confirm(`'${name}' 님을 팀에서 내보낼까요? (계정 자체는 유지돼요)`)) return;
+    colUsers.doc(id).update({ teamCode: null, memberStatus: null })
+      .then(() => showToast('내보냈어요'))
       .catch(() => alert('처리 실패. 다시 시도해주세요.'));
   }
 
@@ -944,7 +1026,8 @@
     communityEntry.classList.remove('tool-card--soon');
     communityEntry.setAttribute('href', 'community.html');
     communityBadge.textContent = '관리자 미리보기';
-    const pendingCount = users.filter(u => u.status === 'pending').length;
+    const myCode = myProfile.adminTeamCode;
+    const pendingCount = users.filter(u => myCode && u.teamCode === myCode && u.memberStatus === 'pending').length;
     [badge, menuBadge].forEach(b => {
       if (pendingCount > 0) { b.style.display = ''; b.textContent = pendingCount; }
       else { b.style.display = 'none'; }
@@ -981,6 +1064,7 @@
       if (!doc.exists) { syncView('view-login'); return; }
       myProfile = doc.data();
       updateAdminEntry();
+      renderTeamJoin();
 
       if (myProfile.status !== 'approved') {
         document.getElementById('pending-name').textContent = displayName(myProfile);
