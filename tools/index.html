@@ -590,6 +590,22 @@
       <button class="back-btn" onclick="history.back()">‹</button>
       <h2>관리자 기능</h2>
     </div>
+    <div class="card" id="operator-note" style="display:none; border-color:rgba(255,107,43,0.4);">
+      <div class="section-label">🛡️ 운영자 권한</div>
+      <div style="font-size:13px;color:var(--text-dim);line-height:1.6;">
+        전체 팀의 승인 대기·팀원 목록을 관리할 수 있어요. 아래 목록에 팀 코드가 함께 표시돼요.
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-label">내 팀 코드</div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div id="admin-team-code" style="font-size:22px; font-weight:900; letter-spacing:2px;">-</div>
+        <button class="approve-btn" style="margin-left:auto;" onclick="copyTeamCode()">복사</button>
+      </div>
+      <div style="font-size:12px; color:var(--text-dim); margin-top:10px; line-height:1.6;">
+        팀원에게 이 코드를 알려주면 메뉴의 "팀 참가"에서 입력해 신청할 수 있어요.
+      </div>
+    </div>
     <div class="tool-list">
       <a href="javascript:void(0)" class="tool-card tool-card--admin" onclick="openAdminApprove()">
         <div class="tool-icon">🔑</div>
@@ -940,24 +956,31 @@
     auth.signOut();
   }
 
-  // ── 관리자: 가입 승인 ──
+  // ── 관리자: 팀원 승인 ──
   function openAdminApprove() {
     renderApproveList();
     renderMemberList();
     go('view-admin-approve');
   }
 
+  // 운영자(isOperator)는 자기 팀(adminTeamCode)에 갇히지 않고 전체 팀을 관리
+  function inScope(u) {
+    if (myProfile && myProfile.isOperator) return !!u.teamCode;
+    const myCode = myProfile && myProfile.adminTeamCode;
+    return myCode && u.teamCode === myCode;
+  }
+
   function renderApproveList() {
     const list = document.getElementById('approve-list');
-    const myCode = myProfile && myProfile.adminTeamCode;
-    const pending = users.filter(u => myCode && u.teamCode === myCode && u.memberStatus === 'pending');
+    const isOp = myProfile && myProfile.isOperator;
+    const pending = users.filter(u => inScope(u) && u.memberStatus === 'pending');
     if (!pending.length) {
       list.innerHTML = '<div class="empty-state"><span class="empty-icon">✅</span>승인 대기 중인 신청이 없어요</div>';
       return;
     }
     list.innerHTML = pending.map(u => `
       <div class="approve-row">
-        <span class="approve-name">${escapeHtml(displayName(u))}</span>
+        <span class="approve-name">${escapeHtml(displayName(u))}${isOp ? ` <span class="tool-badge">${escapeHtml(u.teamCode)}</span>` : ''}</span>
         <div class="approve-actions">
           <button class="approve-btn" onclick="approveUser('${u.id}')">승인</button>
           <button class="reject-btn" onclick="rejectUser('${u.id}', '${escapeHtml(displayName(u))}')">거절</button>
@@ -968,15 +991,15 @@
 
   function renderMemberList() {
     const list = document.getElementById('member-list');
-    const myCode = myProfile && myProfile.adminTeamCode;
-    const approved = users.filter(u => myCode && u.teamCode === myCode && u.memberStatus === 'approved');
+    const isOp = myProfile && myProfile.isOperator;
+    const approved = users.filter(u => inScope(u) && u.memberStatus === 'approved');
     if (!approved.length) {
       list.innerHTML = '<div class="empty-state"><span class="empty-icon">👷</span>소속된 팀원이 없어요</div>';
       return;
     }
     list.innerHTML = approved.map(u => `
       <div class="approve-row">
-        <span class="approve-name">${escapeHtml(displayName(u))}</span>
+        <span class="approve-name">${escapeHtml(displayName(u))}${isOp ? ` <span class="tool-badge">${escapeHtml(u.teamCode)}</span>` : ''}</span>
         <div class="approve-actions">
           <button class="reject-btn" onclick="deleteMember('${u.id}', '${escapeHtml(displayName(u))}')">내보내기</button>
         </div>
@@ -1006,6 +1029,14 @@
       .catch(() => alert('처리 실패. 다시 시도해주세요.'));
   }
 
+  function copyTeamCode() {
+    const code = myProfile && myProfile.adminTeamCode;
+    if (!code) { showToast('아직 발급된 팀 코드가 없어요'); return; }
+    navigator.clipboard.writeText(code)
+      .then(() => showToast('✅ 복사했어요'))
+      .catch(() => alert(code));
+  }
+
   function openMenu() { document.getElementById('menu-overlay').classList.add('show'); }
   function closeMenu() { document.getElementById('menu-overlay').classList.remove('show'); }
 
@@ -1015,7 +1046,7 @@
     const menuBadge = document.getElementById('menu-admin-badge');
     const communityEntry = document.getElementById('community-entry');
     const communityBadge = document.getElementById('community-badge');
-    if (!myProfile || !myProfile.isAdmin) {
+    if (!myProfile || (!myProfile.isAdmin && !myProfile.isOperator)) {
       menuAdmin.style.display = 'none';
       communityEntry.classList.add('tool-card--soon');
       communityEntry.setAttribute('href', 'javascript:void(0)');
@@ -1026,8 +1057,11 @@
     communityEntry.classList.remove('tool-card--soon');
     communityEntry.setAttribute('href', 'community.html');
     communityBadge.textContent = '관리자 미리보기';
-    const myCode = myProfile.adminTeamCode;
-    const pendingCount = users.filter(u => myCode && u.teamCode === myCode && u.memberStatus === 'pending').length;
+    const teamCodeEl = document.getElementById('admin-team-code');
+    if (teamCodeEl) teamCodeEl.textContent = myProfile.adminTeamCode || '아직 발급 전이에요';
+    const operatorNoteEl = document.getElementById('operator-note');
+    if (operatorNoteEl) operatorNoteEl.style.display = myProfile.isOperator ? '' : 'none';
+    const pendingCount = users.filter(u => inScope(u) && u.memberStatus === 'pending').length;
     [badge, menuBadge].forEach(b => {
       if (pendingCount > 0) { b.style.display = ''; b.textContent = pendingCount; }
       else { b.style.display = 'none'; }
