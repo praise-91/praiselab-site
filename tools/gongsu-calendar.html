@@ -41,19 +41,9 @@ html[data-gg-theme="black"] {
 html, body { margin:0; padding:0; height:100%; background:var(--gg-paper); }
 #root { min-height:100%; }
 
-.gc-header {
-  position: sticky; top: 0; z-index: 15;
-  height: 52px; padding: 0 16px;
-  display: flex; align-items: center; justify-content: space-between;
-  background: var(--gg-card); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--gg-line);
-  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif;
-}
-.gc-brand { font-size: 14px; font-weight: 800; color:var(--gg-ink); text-decoration:none; }
-
 .gc-locked {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  min-height: calc(100vh - 52px); padding: 24px; text-align:center;
+  min-height: 100vh; padding: 24px; text-align:center;
   font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif;
   color:var(--gg-ink);
 }
@@ -67,7 +57,7 @@ html, body { margin:0; padding:0; height:100%; background:var(--gg-paper); }
 .gc-locked a:hover { border-color:var(--gg-accent); }
 
 .gc-admin-banner {
-  position: sticky; top: 52px; z-index: 14;
+  position: sticky; top: 0; z-index: 14;
   display: flex; align-items: center; justify-content: center; gap: 10px;
   background: #F6E7D2; color: #7A4A12; padding: 10px 16px;
   font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif;
@@ -252,7 +242,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @keyframes gg-slideleft { from { transform:translateX(-100%); } }
 .gg-sidesheet-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding:0 4px; }
 .gg-sidesheet-title { font-size:17px; font-weight:800; }
-.gg-sidesheet-brand { font-size:17px; font-weight:800; color:var(--gg-accent); background:none; border:none; padding:0; cursor:pointer; font-family:inherit; }
+.gg-sidesheet-brand { font-size:17px; font-weight:800; color:var(--gg-ink); background:none; border:none; padding:0; cursor:pointer; font-family:inherit; }
 .gg-menuitem { display:flex; align-items:center; gap:12px; padding:14px 12px; border-radius:12px; font-size:15px; font-weight:700; color:var(--gg-ink); text-align:left; width:100%; }
 .gg-menuitem:hover, .gg-menuitem:active { background:var(--gg-paper); }
 .gg-menuitem-icon { font-size:17px; width:22px; text-align:center; flex-shrink:0; }
@@ -283,9 +273,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 </style>
 </head>
 <body>
-<header class="gc-header">
-  <a href="https://praiselab.net/tools/" class="gc-brand">Feeder</a>
-</header>
 <div class="gc-locked" id="gc-locked" style="display:none;">
   <span class="gc-locked-icon">🔒</span>
   <h1>로그인이 필요해요</h1>
