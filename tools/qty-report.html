@@ -952,6 +952,7 @@
   let currentType = null;
   let pickedSpec1 = null;
   let currentGroup = null;
+  let drillDepth = 0; // view-items(대분류/종류목록)를 기준으로 규격·수량입력 화면이 몇 단계 깊이 들어왔는지
   let currentSummaryTab = 'total';
   let exportTemplate = '';
 
@@ -992,15 +993,11 @@
 
   // ── 브라우저 히스토리 연동 ──
   function captureState(view) {
-    return { view, category: currentCategory, group: currentGroup, type: currentType, specStep1: pickedSpec1, item: currentItem };
+    return { view, category: currentCategory, group: currentGroup, type: currentType, specStep1: pickedSpec1, item: currentItem, drillDepth };
   }
 
   function pushHistory(view) {
     history.pushState(captureState(view), '');
-  }
-
-  function replaceHistory(view) {
-    history.replaceState(captureState(view), '');
   }
 
   function applyState(state) {
@@ -1010,6 +1007,7 @@
     currentType = state.type || null;
     pickedSpec1 = state.specStep1 || null;
     currentItem = state.item || null;
+    drillDepth = state.drillDepth || 0;
 
     switch (state.view) {
       case 'view-home':
@@ -1084,6 +1082,7 @@
     document.getElementById('item-search').value = '';
     renderItems();
     go('view-items');
+    drillDepth = 0;
     pushHistory('view-items');
   }
 
@@ -1092,6 +1091,7 @@
     document.getElementById('items-title').textContent = `${currentCategory.name} · ${name}`;
     document.getElementById('item-search').value = '';
     renderItems();
+    drillDepth = 0;
     pushHistory('view-items');
   }
 
@@ -1164,6 +1164,7 @@
     document.getElementById('entry-qty-label').textContent = `수량 (${unit})`;
     document.getElementById('entry-qty').value = '';
     go('view-entry');
+    drillDepth += 1;
     pushHistory('view-entry');
     document.getElementById('entry-qty').focus();
   }
@@ -1190,6 +1191,7 @@
     }
     renderSpec();
     go('view-spec');
+    drillDepth += 1;
     pushHistory('view-spec');
   }
 
@@ -1207,6 +1209,7 @@
     if (type.spec2 && pickedSpec1 === null) {
       pickedSpec1 = option;
       renderSpec();
+      drillDepth += 1;
       pushHistory('view-spec');
       return;
     }
@@ -1351,7 +1354,11 @@
       .then(() => {
         showToast(`✅ ${currentItem.name} ${qty}${currentItem.unit} 저장 완료!`);
         go('view-items');
-        replaceHistory('view-items');
+        // 종류→규격→수량입력으로 쌓인 히스토리를 대분류/종류 목록 화면까지 한번에 되감아서
+        // 저장 후 뒤로가기를 누르면 방금 썼던 규격 화면이 아니라 그 이전 화면으로 가게 함
+        const stepsBack = drillDepth;
+        drillDepth = 0;
+        if (stepsBack > 0) history.go(-stepsBack);
       })
       .catch(() => alert('저장 실패. 인터넷 연결을 확인해주세요.'))
       .finally(() => { btn.disabled = false; });
