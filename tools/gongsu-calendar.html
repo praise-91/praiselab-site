@@ -218,6 +218,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-themeswatch.is-on .gg-themeswatch-dot { border-color:var(--gg-accent); box-shadow:0 0 0 2px var(--gg-card), 0 0 0 4px var(--gg-accent); }
 .gg-themeswatch span { font-size:11.5px; color:var(--gg-ink-soft); font-weight:700; }
 
+.gg-taxmode { display:flex; gap:8px; margin-top:2px; }
+.gg-taxmode-btn { flex:1; padding:10px 8px; border-radius:12px; border:1px solid var(--gg-line); background:var(--gg-card); color:var(--gg-ink-soft); font-size:12.5px; font-weight:700; text-align:center; }
+.gg-taxmode-btn.is-on { border-color:var(--gg-accent); color:var(--gg-accent-dark); background:var(--gg-accent-soft); }
+
 .gg-deductlist { display:flex; flex-direction:column; gap:9px; margin-top:10px; }
 .gg-deductrow { display:flex; justify-content:space-between; align-items:baseline; font-size:13.5px; }
 .gg-deductrow span { color:var(--gg-ink-soft); }
@@ -748,6 +752,7 @@ const HEALTH_RATE = 0.03595; // 건강보험 근로자부담
 const LTC_RATE_OF_HEALTH = 0.1314; // 장기요양보험료율 (건강보험료 대비)
 const EMPLOYMENT_RATE = 0.009; // 고용보험 근로자부담
 const PENSION_HEALTH_MIN_DAYS = 8; // 국민연금/건강보험 적용 최소 근무일(월)
+const FREELANCE_TAX_RATE = 0.03; // 3.3% 사업소득 원천징수 중 소득세 3% (지방소득세 0.3%는 LOCAL_TAX_RATE로 계산)
 
 const pad = n => String(n).padStart(2, "0");
 const dateStr = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
@@ -796,6 +801,8 @@ const isDefaultChip = v => DEFAULT_CHIPS.includes(v);
 function defaultState() {
   return {
     defaultUnitPrice: 150000,
+    defaultAllowance: 0,
+    taxMode: "worker",
     customChips: [],
     theme: "cream",
     entries: {}
@@ -811,10 +818,18 @@ function dailyIncomeTax(grossPay) {
   return tax;
 }
 
+/* ---- 3.3% 사업소득 원천징수 (프리랜서 직접 지급용) ---- */
+function freelanceIncomeTax(grossPay) {
+  const tax = Math.floor(grossPay * FREELANCE_TAX_RATE);
+  if (tax < MIN_WITHHOLDING) return 0;
+  return tax;
+}
+
 /* ---- 기간 내 급여/세금/4대보험 종합 계산 ---- */
-function computeSummary(entries, start, end, defaultUnitPrice) {
+function computeSummary(entries, start, end, defaultUnitPrice, taxMode) {
   let totalGross = 0;
   let totalIncomeTax = 0;
+  let totalAllowance = 0;
   const byType = {
     day: {
       count: 0,
@@ -856,10 +871,11 @@ function computeSummary(entries, start, end, defaultUnitPrice) {
     }
     const g = e.gongsu || 0;
     if (g <= 0) return;
+    totalAllowance += e.allowance || 0;
     const unitPrice = e.unitPrice != null ? e.unitPrice : defaultUnitPrice;
     const grossDay = g * unitPrice;
     totalGross += grossDay;
-    totalIncomeTax += dailyIncomeTax(grossDay);
+    totalIncomeTax += taxMode === "freelance33" ? freelanceIncomeTax(grossDay) : dailyIncomeTax(grossDay);
     const t = typeOf(g);
     byType[t].count += 1;
     byType[t].gongsu += g;
@@ -876,22 +892,24 @@ function computeSummary(entries, start, end, defaultUnitPrice) {
     health = 0,
     ltc = 0,
     employment = 0;
-  Object.values(monthGroups).forEach(mg => {
-    employment += mg.gross * EMPLOYMENT_RATE;
-    if (mg.days >= PENSION_HEALTH_MIN_DAYS) {
-      pension += mg.gross * PENSION_RATE;
-      const healthPart = mg.gross * HEALTH_RATE;
-      health += healthPart;
-      ltc += healthPart * LTC_RATE_OF_HEALTH;
-    }
-  });
+  if (taxMode !== "freelance33") {
+    Object.values(monthGroups).forEach(mg => {
+      employment += mg.gross * EMPLOYMENT_RATE;
+      if (mg.days >= PENSION_HEALTH_MIN_DAYS) {
+        pension += mg.gross * PENSION_RATE;
+        const healthPart = mg.gross * HEALTH_RATE;
+        health += healthPart;
+        ltc += healthPart * LTC_RATE_OF_HEALTH;
+      }
+    });
+  }
   pension = Math.floor(pension);
   health = Math.floor(health);
   ltc = Math.floor(ltc);
   employment = Math.floor(employment);
   const totalTax = totalIncomeTax + localIncomeTax;
   const totalInsurance = pension + health + ltc + employment;
-  const netPay = totalGross - totalTax - totalInsurance;
+  const netPay = totalGross - totalTax - totalInsurance + totalAllowance;
   return {
     totalGross,
     totalIncomeTax,
@@ -902,6 +920,7 @@ function computeSummary(entries, start, end, defaultUnitPrice) {
     employment,
     totalTax,
     totalInsurance,
+    totalAllowance,
     netPay,
     byType,
     byExpenseCat,
@@ -922,6 +941,7 @@ function App() {
   const [showChipEdit, setShowChipEdit] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showTeam, setShowTeam] = useState(false);
+  const [showBulkPrice, setShowBulkPrice] = useState(false);
   const closeOverlay = () => history.back();
   useEffect(() => {
     const onPop = () => {
@@ -930,11 +950,12 @@ function App() {
       setShowChipEdit(false);
       setShowTeam(false);
       setShowMenu(false);
+      setShowBulkPrice(false);
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
-  const overlayKey = dayModal ? "day" : showMenu ? "menu" : showSummary ? "summary" : showChipEdit ? "settings" : showTeam ? "team" : null;
+  const overlayKey = dayModal ? "day" : showMenu ? "menu" : showSummary ? "summary" : showChipEdit ? "settings" : showTeam ? "team" : showBulkPrice ? "bulkprice" : null;
   const prevOverlayKey = useRef(null);
   useEffect(() => {
     const prev = prevOverlayKey.current;
@@ -1026,6 +1047,7 @@ function App() {
       const cur = entries[date] || {
         gongsu: 0,
         unitPrice: prev.defaultUnitPrice,
+        allowance: prev.defaultAllowance || 0,
         memo: "",
         expenses: {}
       };
@@ -1059,10 +1081,30 @@ function App() {
     ...prev,
     defaultUnitPrice: p
   }));
+  const saveDefaultAllowance = a => setState(prev => ({
+    ...prev,
+    defaultAllowance: a
+  }));
+  const saveTaxMode = m => setState(prev => ({
+    ...prev,
+    taxMode: m
+  }));
   const saveTheme = t => setState(prev => ({
     ...prev,
     theme: t
   }));
+  const bulkUpdatePrice = (start, end, newPrice) => {
+    const targetDates = Object.keys(state.entries).filter(date => date >= start && date <= end && state.entries[date].gongsu > 0);
+    setState(prev => {
+      const entries = { ...prev.entries };
+      targetDates.forEach(date => {
+        if (!entries[date]) return;
+        entries[date] = { ...entries[date], unitPrice: newPrice };
+      });
+      return { ...prev, entries };
+    });
+    return targetDates.length;
+  };
   const moveMonth = delta => setCursor(c => {
     const d = new Date(c.y, c.m + delta, 1);
     return {
@@ -1192,6 +1234,7 @@ function App() {
     entry: state.entries[dayModal.date],
     customChips: state.customChips,
     defaultUnitPrice: state.defaultUnitPrice,
+    defaultAllowance: state.defaultAllowance,
     onClose: closeOverlay,
     onSave: patch => {
       saveEntry(dayModal.date, patch);
@@ -1209,10 +1252,14 @@ function App() {
   }), showChipEdit && React.createElement(SettingsModal, {
     customChips: state.customChips,
     defaultUnitPrice: state.defaultUnitPrice,
+    defaultAllowance: state.defaultAllowance,
+    taxMode: state.taxMode,
     theme: state.theme || "cream",
     onClose: closeOverlay,
     onSaveChips: saveCustomChips,
     onSavePrice: saveDefaultPrice,
+    onSaveAllowance: saveDefaultAllowance,
+    onSaveTaxMode: saveTaxMode,
     onSaveTheme: saveTheme
   }), showMenu && React.createElement(Sidebar, {
     onClose: closeOverlay,
@@ -1223,9 +1270,20 @@ function App() {
     onTeam: () => {
       setShowMenu(false);
       setShowTeam(true);
+    },
+    onBulkPrice: () => {
+      setShowMenu(false);
+      setShowBulkPrice(true);
     }
   }), showTeam && React.createElement(TeamModal, {
     onClose: closeOverlay
+  }), showBulkPrice && React.createElement(BulkPriceModal, {
+    entries: state.entries,
+    initialY: cursor.y,
+    initialM: cursor.m,
+    defaultUnitPrice: state.defaultUnitPrice,
+    onClose: closeOverlay,
+    onApply: (start, end, price) => bulkUpdatePrice(start, end, price)
   }));
 }
 function DayModal({
@@ -1233,6 +1291,7 @@ function DayModal({
   entry,
   customChips,
   defaultUnitPrice,
+  defaultAllowance,
   onClose,
   onSave,
   onDelete
@@ -1240,6 +1299,7 @@ function DayModal({
   const [tab, setTab] = useState("gongsu");
   const [gongsu, setGongsu] = useState(entry ? entry.gongsu : 0);
   const [unitPrice, setUnitPrice] = useState(entry && entry.unitPrice != null ? entry.unitPrice : defaultUnitPrice);
+  const [allowance, setAllowance] = useState(entry && entry.allowance != null ? entry.allowance : (defaultAllowance || 0));
   const [memo, setMemo] = useState(entry && entry.memo || "");
   const [expenses, setExpenses] = useState(entry && entry.expenses || {});
   const parts = date.split("-").map(Number);
@@ -1292,6 +1352,20 @@ function DayModal({
     onChange: e => setUnitPrice(Math.max(0, Number(e.target.value) || 0))
   }), React.createElement("button", {
     onClick: () => setUnitPrice(v => v + 10000)
+  }, "+"))), React.createElement("div", {
+    className: "gg-field"
+  }, React.createElement("label", null, "일비 (비과세)"), React.createElement("div", {
+    className: "gg-stepper"
+  }, React.createElement("button", {
+    onClick: () => setAllowance(v => Math.max(0, v - 10000))
+  }, "−"), React.createElement("input", {
+    className: "gg-stepval-price-input",
+    type: "number",
+    inputMode: "numeric",
+    value: allowance,
+    onChange: e => setAllowance(Math.max(0, Number(e.target.value) || 0))
+  }), React.createElement("button", {
+    onClick: () => setAllowance(v => v + 10000)
   }, "+"))), React.createElement("div", {
     className: "gg-field"
   }, React.createElement("label", null, "공수", gongsu > 0 && React.createElement("span", {
@@ -1374,6 +1448,7 @@ function DayModal({
     onClick: () => onSave({
       gongsu,
       unitPrice,
+      allowance,
       memo: memo.trim(),
       expenses
     })
@@ -1390,7 +1465,8 @@ function SummaryModal({
   const [start, setStart] = useState(monthStart);
   const [end, setEnd] = useState(monthEnd);
   const [tab, setTab] = useState("pay");
-  const r = useMemo(() => computeSummary(state.entries, start, end, state.defaultUnitPrice), [state, start, end]);
+  const r = useMemo(() => computeSummary(state.entries, start, end, state.defaultUnitPrice, state.taxMode), [state, start, end]);
+  const isFreelance = state.taxMode === "freelance33";
   return React.createElement("div", {
     className: "gg-overlay",
     onClick: onClose
@@ -1441,23 +1517,27 @@ function SummaryModal({
     className: "gg-deductlist"
   }, React.createElement("div", {
     className: "gg-deductrow"
-  }, React.createElement("span", null, "소득세"), React.createElement("strong", null, won(r.totalIncomeTax))), React.createElement("div", {
+  }, React.createElement("span", null, isFreelance ? "소득세 (3%)" : "소득세"), React.createElement("strong", null, won(r.totalIncomeTax))), React.createElement("div", {
     className: "gg-deductrow"
-  }, React.createElement("span", null, "지방소득세"), React.createElement("strong", null, won(r.localIncomeTax))), React.createElement("div", {
+  }, React.createElement("span", null, "지방소득세"), React.createElement("strong", null, won(r.localIncomeTax))), !isFreelance && React.createElement("div", {
     className: "gg-deductrow"
-  }, React.createElement("span", null, "국민연금"), React.createElement("strong", null, won(r.pension))), React.createElement("div", {
+  }, React.createElement("span", null, "국민연금"), React.createElement("strong", null, won(r.pension))), !isFreelance && React.createElement("div", {
     className: "gg-deductrow"
-  }, React.createElement("span", null, "건강보험"), React.createElement("strong", null, won(r.health))), React.createElement("div", {
+  }, React.createElement("span", null, "건강보험"), React.createElement("strong", null, won(r.health))), !isFreelance && React.createElement("div", {
     className: "gg-deductrow"
-  }, React.createElement("span", null, "장기요양보험"), React.createElement("strong", null, won(r.ltc))), React.createElement("div", {
+  }, React.createElement("span", null, "장기요양보험"), React.createElement("strong", null, won(r.ltc))), !isFreelance && React.createElement("div", {
     className: "gg-deductrow"
   }, React.createElement("span", null, "고용보험"), React.createElement("strong", null, won(r.employment)))), React.createElement("div", {
     className: "gg-deducttotal"
-  }, React.createElement("span", null, "공제 합계"), React.createElement("strong", null, won(r.totalTax + r.totalInsurance)))), React.createElement("div", {
+  }, React.createElement("span", null, "공제 합계"), React.createElement("strong", null, won(r.totalTax + r.totalInsurance)))), r.totalAllowance > 0 && React.createElement("div", {
+    className: "gg-field"
+  }, React.createElement("div", {
+    className: "gg-deductrow"
+  }, React.createElement("span", null, "일비 (비과세)"), React.createElement("strong", null, "+" + won(r.totalAllowance)))), React.createElement("div", {
     className: "gg-netpaybox"
   }, React.createElement("span", null, "실수령액"), React.createElement("strong", null, won(r.netPay))), React.createElement("p", {
     className: "gg-hint"
-  }, "국민연금·건강보험은 해당 월에 8일 이상 근무해야 적용됩니다. 세금·보험료는 참고용 추정치이며 실제 금액은 다를 수 있습니다.")) : React.createElement(React.Fragment, null, React.createElement("div", {
+  }, isFreelance ? "3.3% 사업소득 원천징수 기준(소득세 3%+지방소득세 0.3%)이며 4대보험은 적용되지 않습니다. 참고용 추정치이니 실제 금액은 다를 수 있습니다." : "국민연금·건강보험은 해당 월에 8일 이상 근무해야 적용됩니다. 세금·보험료는 참고용 추정치이며 실제 금액은 다를 수 있습니다.")) : React.createElement(React.Fragment, null, React.createElement("div", {
     className: "gg-field"
   }, React.createElement("label", null, "기타경비 내역"), React.createElement("div", {
     className: "gg-receipt"
@@ -1489,14 +1569,20 @@ function SummaryModal({
 function SettingsModal({
   customChips,
   defaultUnitPrice,
+  defaultAllowance,
+  taxMode: taxModeProp,
   theme,
   onClose,
   onSaveChips,
   onSavePrice,
+  onSaveAllowance,
+  onSaveTaxMode,
   onSaveTheme
 }) {
   const [chips, setChips] = useState(customChips);
   const [price, setPrice] = useState(defaultUnitPrice);
+  const [allowance, setAllowance] = useState(defaultAllowance || 0);
+  const [taxMode, setTaxMode] = useState(taxModeProp || "worker");
   const [newChip, setNewChip] = useState("");
   const [newChipName, setNewChipName] = useState("");
   const addChip = () => {
@@ -1542,6 +1628,30 @@ function SettingsModal({
     value: price,
     onChange: e => setPrice(Number(e.target.value) || 0)
   })), React.createElement("div", {
+    className: "gg-field"
+  }, React.createElement("label", null, "기본 일비 (비과세)"), React.createElement("input", {
+    className: "gg-input",
+    type: "number",
+    inputMode: "numeric",
+    value: allowance,
+    onChange: e => setAllowance(Number(e.target.value) || 0)
+  }), React.createElement("p", {
+    className: "gg-hint"
+  }, "근무일 입력 시 자동으로 채워지는 기본값입니다. 날짜별로 개별 수정할 수 있어요.")), React.createElement("div", {
+    className: "gg-field"
+  }, React.createElement("label", null, "정산 방식"), React.createElement("div", {
+    className: "gg-taxmode"
+  }, React.createElement("button", {
+    type: "button",
+    className: "gg-taxmode-btn" + (taxMode === "worker" ? " is-on" : ""),
+    onClick: () => setTaxMode("worker")
+  }, "일용근로 (4대보험)"), React.createElement("button", {
+    type: "button",
+    className: "gg-taxmode-btn" + (taxMode === "freelance33" ? " is-on" : ""),
+    onClick: () => setTaxMode("freelance33")
+  }, "3.3% 사업소득")), React.createElement("p", {
+    className: "gg-hint"
+  }, "3.3%는 관리자가 팀원에게 프리랜서(사업소득) 방식으로 직접 지급할 때만 선택하세요. 4대보험이 전부 빠지고 소득세 3%+지방소득세 0.3%만 적용됩니다.")), React.createElement("div", {
     className: "gg-field"
   }, React.createElement("label", null, "기본 칩 (고정, 수정 불가)"), React.createElement("div", {
     className: "gg-chipedit"
@@ -1618,6 +1728,8 @@ function SettingsModal({
     onClick: () => {
       onSaveChips(chips);
       onSavePrice(price);
+      onSaveAllowance(allowance);
+      onSaveTaxMode(taxMode);
       onClose();
     }
   }, "저장"))));
@@ -1625,7 +1737,8 @@ function SettingsModal({
 function Sidebar({
   onClose,
   onSettings,
-  onTeam
+  onTeam,
+  onBulkPrice
 }) {
   return React.createElement("div", {
     className: "gg-overlay gg-sidesheet-overlay",
@@ -1654,11 +1767,96 @@ function Sidebar({
     className: "gg-menuitem-icon"
   }, "👥"), React.createElement("span", null, "공수 랭킹")), React.createElement("button", {
     className: "gg-menuitem",
+    onClick: onBulkPrice
+  }, React.createElement("span", {
+    className: "gg-menuitem-icon"
+  }, "💰"), React.createElement("span", null, "단가 일괄변경")), React.createElement("button", {
+    className: "gg-menuitem",
     style: { marginTop: "auto" },
     onClick: () => { onClose(); gcLogout(); }
   }, React.createElement("span", {
     className: "gg-menuitem-icon"
   }, "🚪"), React.createElement("span", null, "로그아웃"))));
+}
+function BulkPriceModal({
+  entries,
+  initialY,
+  initialM,
+  defaultUnitPrice,
+  onClose,
+  onApply
+}) {
+  const monthStart = dateStr(initialY, initialM, 1);
+  const monthEnd = dateStr(initialY, initialM, new Date(initialY, initialM + 1, 0).getDate());
+  const [start, setStart] = useState(monthStart);
+  const [end, setEnd] = useState(monthEnd);
+  const [price, setPrice] = useState(defaultUnitPrice);
+  const targetCount = useMemo(() => Object.keys(entries).filter(d => d >= start && d <= end && entries[d].gongsu > 0).length, [entries, start, end]);
+  const apply = () => {
+    if (!(price > 0)) return;
+    if (targetCount === 0) {
+      alert("선택한 기간에 공수가 입력된 날짜가 없습니다.");
+      return;
+    }
+    if (!confirm(`${start} ~ ${end} 기간에 기록된 ${targetCount}일의 단가를 ${won(price)}으로 변경할까요?`)) return;
+    onApply(start, end, price);
+    onClose();
+  };
+  return React.createElement("div", {
+    className: "gg-overlay",
+    onClick: onClose
+  }, React.createElement("div", {
+    className: "gg-sheet",
+    onClick: e => e.stopPropagation()
+  }, React.createElement("div", {
+    className: "gg-sheet-grip"
+  }), React.createElement("div", {
+    className: "gg-sheet-head"
+  }, React.createElement("div", {
+    className: "gg-sheet-date"
+  }, "단가 일괄변경"), React.createElement("button", {
+    className: "gg-x",
+    onClick: onClose,
+    "aria-label": "닫기"
+  }, "✕")), React.createElement("div", {
+    className: "gg-field"
+  }, React.createElement("label", null, "기간"), React.createElement("div", {
+    className: "gg-daterange"
+  }, React.createElement("input", {
+    className: "gg-input",
+    type: "date",
+    value: start,
+    onChange: e => setStart(e.target.value)
+  }), React.createElement("span", null, "~"), React.createElement("input", {
+    className: "gg-input",
+    type: "date",
+    value: end,
+    onChange: e => setEnd(e.target.value)
+  }))), React.createElement("div", {
+    className: "gg-field"
+  }, React.createElement("label", null, "새 단가"), React.createElement("div", {
+    className: "gg-stepper"
+  }, React.createElement("button", {
+    onClick: () => setPrice(v => Math.max(0, v - 10000))
+  }, "−"), React.createElement("input", {
+    className: "gg-stepval-price-input",
+    type: "number",
+    inputMode: "numeric",
+    value: price,
+    onChange: e => setPrice(Math.max(0, Number(e.target.value) || 0))
+  }), React.createElement("button", {
+    onClick: () => setPrice(v => v + 10000)
+  }, "+"))), React.createElement("p", {
+    className: "gg-hint"
+  }, `이 기간에 공수가 입력된 날짜 ${targetCount}일의 단가가 한번에 바뀝니다.`), React.createElement("div", {
+    className: "gg-sheet-actions"
+  }, React.createElement("button", {
+    className: "gg-btn gg-btn-primary",
+    style: {
+      background: "var(--gg-accent)"
+    },
+    onClick: apply
+  }, "적용"))));
 }
 const RANK_MEDALS = ["🥇", "🥈", "🥉"];
 function teamRangePreset(kind) {
