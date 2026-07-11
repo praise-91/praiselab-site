@@ -17,6 +17,8 @@
     --text-dim: #767A85;
     --give-bg: #E5F5EC;
     --give-text: #1E8E56;
+    --muted-bg: #F1F0EC;
+    --muted-text: #8B8F9C;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -138,6 +140,136 @@
     line-height: 1.7;
   }
   .empty-state .empty-icon { font-size: 30px; display: block; margin-bottom: 10px; opacity: 0.5; }
+
+  /* ── 글쓰기 토글 버튼 ── */
+  .new-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--orange);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 14px;
+  }
+  .new-btn:hover { background: var(--orange-dark); }
+
+  /* ── 입력 폼 ── */
+  .form-card { margin-bottom: 16px; }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 12px; font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 12px 14px;
+    background: #FAFAF8;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  .field textarea { resize: vertical; min-height: 72px; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--orange); }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1 1 0; min-width: 0; }
+
+  .check-row {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-dim); font-weight: 500;
+    cursor: pointer;
+  }
+  .check-row input { width: auto; }
+
+  .form-actions { display: flex; gap: 8px; margin-top: 18px; }
+  .form-actions .submit-btn { flex: 1; }
+  .cancel-btn {
+    padding: 13px 18px;
+    background: #FFFFFF;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--orange);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+  }
+  .submit-btn:hover { background: var(--orange-dark); }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── 목록 ── */
+  .list { display: flex; flex-direction: column; gap: 10px; }
+
+  .job-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .job-card.is-closed { opacity: 0.55; }
+  .job-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .job-site { font-size: 14px; font-weight: 700; }
+  .job-region { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .badge { flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+  .badge.stay-yes { background: var(--give-bg); color: var(--give-text); }
+  .badge.stay-no { background: var(--muted-bg); color: var(--muted-text); }
+  .badge.stay-negotiable { background: rgba(255,107,43,0.1); color: var(--orange-dark); }
+  .badge.closed { background: var(--muted-bg); color: var(--muted-text); }
+
+  .job-meta { font-size: 12px; color: var(--text-dim); line-height: 1.9; }
+  .job-meta b { color: var(--text); font-weight: 700; }
+  .job-desc { font-size: 13px; color: var(--text); margin-top: 8px; line-height: 1.6; white-space: pre-wrap; }
+
+  .job-card-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--muted-bg);
+  }
+  .job-wage { font-size: 14px; font-weight: 700; color: var(--orange); }
+  .job-contact { font-size: 12px; color: var(--text-dim); }
+
+  .admin-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .mini-btn {
+    flex: 1; padding: 8px; font-size: 12px; font-weight: 700;
+    border-radius: 8px; cursor: pointer; font-family: inherit;
+    border: 1.5px solid var(--border); background: #fff; color: var(--text-dim);
+  }
+  .mini-btn:hover { border-color: var(--orange); color: var(--orange); }
+  .mini-btn.danger:hover { border-color: #E24B4A; color: #E24B4A; }
+
+  .post-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .post-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .post-cat { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: var(--muted-bg); color: var(--muted-text); }
+  .post-title { font-size: 14px; font-weight: 700; margin: 6px 0 4px; }
+  .post-content { font-size: 13px; color: var(--text); line-height: 1.6; white-space: pre-wrap; }
+  .post-meta { font-size: 11.5px; color: var(--text-dim); margin-top: 8px; }
+  .post-del { font-size: 11.5px; color: var(--text-dim); background: none; border: none; font-family: inherit; cursor: pointer; padding: 0; }
+  .post-del:hover { color: #E24B4A; }
 </style>
 </head>
 <body>
@@ -175,31 +307,134 @@
       <div class="page-sub">현장 소식 · 정보를 나누는 공간</div>
     </header>
 
-    <div class="notice-strip" id="admin-preview-notice" style="display:none;">
-      🚧 관리자 미리보기 — 글쓰기·목록 기능은 다음 단계에서 만들어질 예정이에요
-    </div>
-
     <div class="tabs">
       <button class="tab active" id="tab-jobs" onclick="switchTab('jobs')">구인</button>
       <button class="tab" id="tab-free" onclick="switchTab('free')">자유게시판</button>
     </div>
 
+    <!-- 구인 게시판 -->
     <div class="board-panel active" id="panel-jobs">
-      <div class="card">
-        <div class="empty-state">
-          <span class="empty-icon">🧑‍🔧</span>
-          아직 등록된 구인 글이 없어요
+      <button class="new-btn" id="job-new-btn" style="display:none;" onclick="openJobForm()">+ 구인 등록</button>
+
+      <div class="card form-card" id="job-form" style="display:none;">
+        <div class="field">
+          <label>현장명</label>
+          <input type="text" id="job-site" placeholder="예: 김포 물류센터 신축" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>시/도</label>
+            <select id="job-sido"></select>
+          </div>
+          <div class="field">
+            <label>시/군/구</label>
+            <input type="text" id="job-sigungu" placeholder="예: 김포시" />
+          </div>
+        </div>
+        <div class="field">
+          <label>공종</label>
+          <select id="job-worktype">
+            <option value="전기(내선)">전기(내선)</option>
+            <option value="전기(플랜트·고압)">전기(플랜트·고압)</option>
+            <option value="통신">통신</option>
+            <option value="소방">소방</option>
+            <option value="설비">설비</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>모집인원</label>
+          <input type="number" id="job-headcount" min="1" placeholder="숫자만 입력" />
+        </div>
+        <div class="field">
+          <label>공사기간</label>
+          <label class="check-row" style="margin-bottom:8px;">
+            <input type="checkbox" id="job-period-negotiable" onchange="togglePeriodInputs()" /> 협의
+          </label>
+          <div class="field-row" id="job-period-dates">
+            <input type="date" id="job-period-start" />
+            <input type="date" id="job-period-end" />
+          </div>
+        </div>
+        <div class="field">
+          <label>숙소 제공 여부</label>
+          <select id="job-stay" onchange="toggleStayDetail()">
+            <option value="yes">제공</option>
+            <option value="no">미제공</option>
+            <option value="negotiable">협의</option>
+          </select>
+        </div>
+        <div id="job-stay-detail">
+          <div class="field">
+            <label>숙소 형태</label>
+            <input type="text" id="job-stay-type" placeholder="예: 원룸, 2인1실" />
+          </div>
+          <div class="field">
+            <label>숙식비</label>
+            <select id="job-meal-cost">
+              <option value="free">무료</option>
+              <option value="partial">일부 부담</option>
+              <option value="cash">현금 지급</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>일당 / 단가</label>
+          <label class="check-row" style="margin-bottom:8px;">
+            <input type="checkbox" id="job-wage-negotiable" onchange="toggleWageInput()" /> 협의
+          </label>
+          <input type="number" id="job-wage" placeholder="숫자만 입력 (원)" />
+        </div>
+        <div class="field">
+          <label>세부작업 내용</label>
+          <textarea id="job-desc" placeholder="작업 내용을 적어주세요"></textarea>
+        </div>
+        <div class="field">
+          <label>연락방법</label>
+          <select id="job-contact-method" style="margin-bottom:8px;">
+            <option value="phone">전화번호</option>
+            <option value="kakao">카톡 오픈채팅 링크</option>
+          </select>
+          <input type="text" id="job-contact-value" placeholder="연락처를 입력해주세요" />
+        </div>
+        <div class="form-actions">
+          <button class="cancel-btn" onclick="closeJobForm()">취소</button>
+          <button class="submit-btn" id="job-save-btn" onclick="saveJob()">등록하기</button>
         </div>
       </div>
+
+      <div class="list" id="job-list"></div>
     </div>
 
+    <!-- 자유게시판 -->
     <div class="board-panel" id="panel-free">
-      <div class="card">
-        <div class="empty-state">
-          <span class="empty-icon">💬</span>
-          아직 게시물이 없어요
+      <button class="new-btn" id="post-new-btn" onclick="openPostForm()">+ 글쓰기</button>
+
+      <div class="card form-card" id="post-form" style="display:none;">
+        <div class="field">
+          <label>제목</label>
+          <input type="text" id="post-title" placeholder="제목을 입력해주세요" />
+        </div>
+        <div class="field">
+          <label>카테고리</label>
+          <select id="post-category">
+            <option value="현장후기">현장후기</option>
+            <option value="정보·꿀팁">정보·꿀팁</option>
+            <option value="질문">질문</option>
+            <option value="자유">자유</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>내용</label>
+          <textarea id="post-content" placeholder="내용을 입력해주세요" style="min-height:120px;"></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="cancel-btn" onclick="closePostForm()">취소</button>
+          <button class="submit-btn" id="post-save-btn" onclick="savePost()">등록하기</button>
         </div>
       </div>
+
+      <div class="list" id="post-list"></div>
     </div>
   </div>
 
@@ -218,8 +453,37 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   const colToolsUsers = db.collection('tools_users');
+  const colJobs = db.collection('community_jobs');
+  const colPosts = db.collection('community_posts');
+
+  const SIDO_LIST = [
+    '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시',
+    '대전광역시', '울산광역시', '세종특별자치시', '경기도', '강원특별자치도',
+    '충청북도', '충청남도', '전북특별자치도', '전라남도', '경상북도',
+    '경상남도', '제주특별자치도',
+  ];
+
+  const STAY_LABEL = { yes: '숙소제공', no: '숙소미제공', negotiable: '숙소협의' };
+  const MEAL_LABEL = { free: '숙식비 무료', partial: '숙식비 일부 부담', cash: '숙식비 현금 지급' };
 
   let gateProfileUnsub = null;
+  let myUid = null;
+  let myName = '';
+  let myIsAdmin = false;
+
+  let jobs = [];
+  let jobsUnsub = null;
+  let posts = [];
+  let postsUnsub = null;
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
 
   function go(viewId) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -238,25 +502,292 @@
     auth.signOut().then(() => { location.href = 'index.html'; });
   }
 
-  // ── 피더 로그인 게이트 (다른 도구들과 동일 패턴) ──
+  function formatDate(ts) {
+    if (!ts) return '';
+    const d = ts.toDate();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${mm}/${dd}`;
+  }
+
+  // ══════════════ 구인 게시판 ══════════════
+
+  function initSidoSelect() {
+    const sel = document.getElementById('job-sido');
+    sel.innerHTML = SIDO_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
+  }
+
+  function togglePeriodInputs() {
+    const negotiable = document.getElementById('job-period-negotiable').checked;
+    document.getElementById('job-period-dates').style.display = negotiable ? 'none' : 'flex';
+  }
+
+  function toggleStayDetail() {
+    const stay = document.getElementById('job-stay').value;
+    document.getElementById('job-stay-detail').style.display = stay === 'yes' ? 'block' : 'none';
+  }
+
+  function toggleWageInput() {
+    const negotiable = document.getElementById('job-wage-negotiable').checked;
+    document.getElementById('job-wage').style.display = negotiable ? 'none' : 'block';
+  }
+
+  function resetJobForm() {
+    document.getElementById('job-site').value = '';
+    document.getElementById('job-sigungu').value = '';
+    document.getElementById('job-headcount').value = '';
+    document.getElementById('job-period-negotiable').checked = false;
+    document.getElementById('job-period-start').value = '';
+    document.getElementById('job-period-end').value = '';
+    document.getElementById('job-stay').value = 'yes';
+    document.getElementById('job-stay-type').value = '';
+    document.getElementById('job-wage-negotiable').checked = false;
+    document.getElementById('job-wage').value = '';
+    document.getElementById('job-desc').value = '';
+    document.getElementById('job-contact-value').value = '';
+    togglePeriodInputs();
+    toggleStayDetail();
+    toggleWageInput();
+  }
+
+  function openJobForm() {
+    resetJobForm();
+    document.getElementById('job-form').style.display = 'block';
+    document.getElementById('job-new-btn').style.display = 'none';
+  }
+
+  function closeJobForm() {
+    document.getElementById('job-form').style.display = 'none';
+    document.getElementById('job-new-btn').style.display = myIsAdmin ? 'block' : 'none';
+  }
+
+  function saveJob() {
+    const siteName = document.getElementById('job-site').value.trim();
+    const sigungu = document.getElementById('job-sigungu').value.trim();
+    const headcount = parseInt(document.getElementById('job-headcount').value, 10);
+    const description = document.getElementById('job-desc').value.trim();
+    const contactValue = document.getElementById('job-contact-value').value.trim();
+
+    if (!siteName) { alert('현장명을 입력해주세요!'); return; }
+    if (!sigungu) { alert('시/군/구를 입력해주세요!'); return; }
+    if (!headcount || headcount < 1) { alert('모집인원을 입력해주세요!'); return; }
+    if (!description) { alert('세부작업 내용을 입력해주세요!'); return; }
+    if (!contactValue) { alert('연락처를 입력해주세요!'); return; }
+
+    const periodNegotiable = document.getElementById('job-period-negotiable').checked;
+    const wageNegotiable = document.getElementById('job-wage-negotiable').checked;
+    const stay = document.getElementById('job-stay').value;
+
+    const doc = {
+      siteName,
+      regionSido: document.getElementById('job-sido').value,
+      regionSigungu: sigungu,
+      workType: document.getElementById('job-worktype').value,
+      headcount,
+      periodType: periodNegotiable ? 'negotiable' : 'dates',
+      periodStart: periodNegotiable ? null : (document.getElementById('job-period-start').value || null),
+      periodEnd: periodNegotiable ? null : (document.getElementById('job-period-end').value || null),
+      stay,
+      stayType: stay === 'yes' ? document.getElementById('job-stay-type').value.trim() : '',
+      mealCost: stay === 'yes' ? document.getElementById('job-meal-cost').value : '',
+      wageNegotiable,
+      wage: wageNegotiable ? null : (parseInt(document.getElementById('job-wage').value, 10) || null),
+      description,
+      contactMethod: document.getElementById('job-contact-method').value,
+      contactValue,
+      status: 'open',
+      authorUid: myUid,
+      authorName: myName,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const btn = document.getElementById('job-save-btn');
+    btn.disabled = true;
+    colJobs.add(doc)
+      .then(() => { closeJobForm(); })
+      .catch(() => alert('등록 실패. 인터넷 연결을 확인해주세요.'))
+      .finally(() => { btn.disabled = false; });
+  }
+
+  function toggleJobStatus(id, current) {
+    const next = current === 'open' ? 'closed' : 'open';
+    colJobs.doc(id).update({ status: next })
+      .catch(() => alert('처리 실패. 다시 시도해주세요.'));
+  }
+
+  function deleteJob(id) {
+    if (!confirm('이 구인글을 삭제할까요?')) return;
+    colJobs.doc(id).delete()
+      .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
+  }
+
+  function renderJobs() {
+    const list = document.getElementById('job-list');
+    if (!jobs.length) {
+      list.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">🧑‍🔧</span>아직 등록된 구인 글이 없어요</div></div>';
+      return;
+    }
+    list.innerHTML = jobs.map(j => {
+      const stayBadge = `<span class="badge stay-${j.stay}">${STAY_LABEL[j.stay] || ''}</span>`;
+      const closedBadge = j.status === 'closed' ? '<span class="badge closed">마감</span>' : '';
+      const period = j.periodType === 'negotiable'
+        ? '협의'
+        : `${j.periodStart || '미정'} ~ ${j.periodEnd || '미정'}`;
+      const wage = j.wageNegotiable ? '협의' : (j.wage ? `${j.wage.toLocaleString()}원` : '협의');
+      const stayDetail = j.stay === 'yes' && (j.stayType || j.mealCost)
+        ? `<div class="job-meta">${escapeHtml(j.stayType || '')}${j.stayType && j.mealCost ? ' · ' : ''}${MEAL_LABEL[j.mealCost] || ''}</div>`
+        : '';
+      const contactLabel = j.contactMethod === 'kakao' ? '카톡' : '전화';
+      const adminActions = myIsAdmin ? `
+        <div class="admin-actions">
+          <button class="mini-btn" onclick="toggleJobStatus('${j.id}','${j.status}')">${j.status === 'open' ? '마감 처리' : '모집 재개'}</button>
+          <button class="mini-btn danger" onclick="deleteJob('${j.id}')">삭제</button>
+        </div>` : '';
+      return `
+        <div class="job-card ${j.status === 'closed' ? 'is-closed' : ''}">
+          <div class="job-card-top">
+            <div>
+              <div class="job-site">${escapeHtml(j.siteName)}</div>
+              <div class="job-region">${escapeHtml(j.regionSido)} ${escapeHtml(j.regionSigungu)} · ${escapeHtml(j.workType)}</div>
+            </div>
+            <div style="display:flex;gap:4px;">${closedBadge}${stayBadge}</div>
+          </div>
+          <div class="job-meta">모집 <b>${j.headcount}명</b> · 기간 <b>${escapeHtml(period)}</b></div>
+          ${stayDetail}
+          <div class="job-desc">${escapeHtml(j.description)}</div>
+          <div class="job-card-foot">
+            <span class="job-wage">${escapeHtml(wage)}</span>
+            <span class="job-contact">${contactLabel} · ${escapeHtml(j.contactValue)}</span>
+          </div>
+          ${adminActions}
+        </div>`;
+    }).join('');
+  }
+
+  function startJobsFeed() {
+    if (jobsUnsub) return;
+    jobsUnsub = colJobs.orderBy('createdAt', 'desc').onSnapshot(snap => {
+      jobs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderJobs();
+    }, () => {
+      document.getElementById('job-list').innerHTML = '<div class="card"><div class="empty-state">⚠️ 연결 오류. 새로고침 해주세요.</div></div>';
+    });
+  }
+
+  // ══════════════ 자유게시판 ══════════════
+
+  function resetPostForm() {
+    document.getElementById('post-title').value = '';
+    document.getElementById('post-category').value = '현장후기';
+    document.getElementById('post-content').value = '';
+  }
+
+  function openPostForm() {
+    resetPostForm();
+    document.getElementById('post-form').style.display = 'block';
+    document.getElementById('post-new-btn').style.display = 'none';
+  }
+
+  function closePostForm() {
+    document.getElementById('post-form').style.display = 'none';
+    document.getElementById('post-new-btn').style.display = 'block';
+  }
+
+  function savePost() {
+    const title = document.getElementById('post-title').value.trim();
+    const content = document.getElementById('post-content').value.trim();
+    if (!title) { alert('제목을 입력해주세요!'); return; }
+    if (!content) { alert('내용을 입력해주세요!'); return; }
+
+    const doc = {
+      title,
+      category: document.getElementById('post-category').value,
+      content,
+      authorUid: myUid,
+      authorName: myName,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const btn = document.getElementById('post-save-btn');
+    btn.disabled = true;
+    colPosts.add(doc)
+      .then(() => { closePostForm(); })
+      .catch(() => alert('등록 실패. 인터넷 연결을 확인해주세요.'))
+      .finally(() => { btn.disabled = false; });
+  }
+
+  function deletePost(id) {
+    if (!confirm('이 글을 삭제할까요?')) return;
+    colPosts.doc(id).delete()
+      .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
+  }
+
+  function renderPosts() {
+    const list = document.getElementById('post-list');
+    if (!posts.length) {
+      list.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">💬</span>아직 게시물이 없어요</div></div>';
+      return;
+    }
+    list.innerHTML = posts.map(p => {
+      const canDelete = myIsAdmin || p.authorUid === myUid;
+      return `
+        <div class="post-card">
+          <div class="post-card-top">
+            <span class="post-cat">${escapeHtml(p.category)}</span>
+            ${canDelete ? `<button class="post-del" onclick="deletePost('${p.id}')">삭제</button>` : ''}
+          </div>
+          <div class="post-title">${escapeHtml(p.title)}</div>
+          <div class="post-content">${escapeHtml(p.content)}</div>
+          <div class="post-meta">${escapeHtml(p.authorName)} · ${formatDate(p.createdAt)}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function startPostsFeed() {
+    if (postsUnsub) return;
+    postsUnsub = colPosts.orderBy('createdAt', 'desc').onSnapshot(snap => {
+      posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderPosts();
+    }, () => {
+      document.getElementById('post-list').innerHTML = '<div class="card"><div class="empty-state">⚠️ 연결 오류. 새로고침 해주세요.</div></div>';
+    });
+  }
+
+  // ══════════════ 로그인 게이트 ══════════════
+
+  initSidoSelect();
+  togglePeriodInputs();
+  toggleStayDetail();
+  toggleWageInput();
+
   auth.onAuthStateChanged(user => {
     if (gateProfileUnsub) { gateProfileUnsub(); gateProfileUnsub = null; }
 
     if (!user) {
+      myUid = null;
       go('view-locked');
       return;
     }
 
     gateProfileUnsub = colToolsUsers.doc(user.uid).onSnapshot(doc => {
       if (!doc.exists || doc.data().status !== 'approved') {
+        myUid = null;
         go('view-locked');
         return;
       }
       const profile = doc.data();
+      myUid = user.uid;
+      myName = profile.name;
+      myIsAdmin = !!profile.isAdmin;
+
       const whoami = document.getElementById('whoami');
       whoami.style.display = '';
       whoami.textContent = profile.name;
-      document.getElementById('admin-preview-notice').style.display = profile.isAdmin ? '' : 'none';
+
+      document.getElementById('job-new-btn').style.display = myIsAdmin ? 'block' : 'none';
+
+      startJobsFeed();
+      startPostsFeed();
       go('view-app');
     });
   });
