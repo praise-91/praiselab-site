@@ -299,7 +299,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   const colGongsuCalendars = gcDb.collection('gongsu_calendars');
   const colGongsuLeaderboard = gcDb.collection('gongsu_leaderboard');
 
-  function gcLogout() { gcAuth.signOut(); }
+  function gcLogout() { gcAuth.signOut().then(() => { location.href = 'index.html'; }); }
 
   let gcProfileUnsub = null;
   let gcAppStarted = false;
