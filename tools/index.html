@@ -27,6 +27,7 @@
     color: var(--text);
     min-height: 100vh;
     padding: 20px 16px 40px;
+    word-break: keep-all;
   }
 
   .container { max-width: 480px; margin: 0 auto; }
@@ -41,7 +42,7 @@
     background: rgba(26, 30, 46, 0.8);
     border-bottom: 1px solid var(--border);
     padding: 0 20px;
-    height: 52px;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -49,14 +50,16 @@
   }
 
   .brand {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: -0.3px;
     color: var(--text);
     display: flex;
     align-items: center;
     gap: 8px;
     text-decoration: none;
   }
+  .brand-icon { font-size: 21px; filter: drop-shadow(0 0 8px rgba(255,107,43,0.4)); }
 
   .whoami {
     font-size: 12px;
@@ -201,40 +204,38 @@
   .loading-brand-sub { font-size: 13px; color: var(--text-dim); margin-top: 8px; }
 
   /* ── 도구 카드 ── */
-  .tool-list { display: flex; flex-direction: column; gap: 12px; }
+  .tool-list { display: flex; flex-direction: column; }
 
-  .tool-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
-  .tool-grid .tool-card { flex-direction: column; text-align: center; gap: 8px; padding: 20px 12px; }
-  .tool-grid .tool-arrow { display: none; }
-  .tool-grid .tool-name { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .tool-grid .tool-badge { margin-left: 0; }
+  .section-label.tool-section { margin: 20px 0 10px; }
+  .section-label.tool-section:first-of-type { margin-top: 4px; }
 
   .tool-card {
     background: var(--steel-mid);
     border: 1.5px solid var(--border);
     border-radius: 16px;
-    padding: 20px;
+    padding: 18px;
     display: flex;
     align-items: center;
     gap: 16px;
     text-decoration: none;
     color: var(--text);
     transition: all 0.15s;
+    margin-bottom: 12px;
   }
   .tool-card:hover { border-color: var(--orange); transform: translateY(-2px); }
 
   .tool-icon {
-    width: 56px; height: 56px;
-    border-radius: 14px;
-    background: rgba(229,72,77,0.1);
-    border: 1px solid rgba(229,72,77,0.25);
+    width: 50px; height: 50px;
+    border-radius: 13px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
     display: flex; align-items: center; justify-content: center;
-    font-size: 26px;
+    font-size: 23px;
     flex-shrink: 0;
   }
 
   .tool-info { flex: 1; min-width: 0; }
-  .tool-name { font-size: 16px; font-weight: 900; margin-bottom: 4px; }
+  .tool-name { font-size: 15px; font-weight: 900; margin-bottom: 4px; }
   .tool-desc { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
 
   .tool-arrow {
@@ -248,6 +249,33 @@
 
   .tool-card--soon { opacity: 0.55; cursor: default; }
   .tool-card--soon:hover { border-color: var(--border); transform: none; }
+
+  /* 히어로: 매일 쓰는 핵심 기능(공수달력) */
+  .tool-card--hero {
+    padding: 20px;
+    border-color: rgba(255,107,43,0.4);
+    background: linear-gradient(135deg, rgba(255,107,43,0.13), rgba(255,107,43,0.03) 55%, var(--steel-mid));
+  }
+  .tool-card--hero .tool-icon {
+    width: 56px; height: 56px; font-size: 26px;
+    background: rgba(255,107,43,0.14);
+    border-color: rgba(255,107,43,0.3);
+  }
+  .tool-card--hero .tool-name { font-size: 17px; }
+  .tool-card--hero .tool-arrow { color: var(--orange); }
+
+  /* 팀 업무: 2단 그리드 */
+  .tool-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .tool-duo .tool-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px;
+    margin-bottom: 0;
+  }
+  .tool-duo .tool-icon { width: 42px; height: 42px; font-size: 20px; }
+  .tool-duo .tool-name { font-size: 15px; }
+  .tool-duo .tool-desc { font-size: 12px; }
 
   .tool-badge {
     font-size: 11px;
@@ -336,7 +364,7 @@
 
 <header class="site-header">
   <a href="https://praiselab.net/" class="brand">
-    Praise
+    <span class="brand-icon">🧰</span>피더
   </a>
   <button class="whoami" id="whoami" onclick="logout()" style="display:none;"></button>
 </header>
@@ -425,26 +453,23 @@
 
   <!-- 도구 목록 (로그인 후) -->
   <div class="view" id="view-app">
-    <header class="page-head">
-      <span class="header-icon">🧰</span>
-      <h1>피더</h1>
-      <div class="page-sub">현장도구모음</div>
-    </header>
+    <div class="section-label tool-section">내 공수</div>
+    <a href="gongsu-calendar.html" class="tool-card tool-card--hero">
+      <div class="tool-icon">📅</div>
+      <div class="tool-info">
+        <div class="tool-name">공수달력</div>
+        <div class="tool-desc">출력일수 · 예상 급여 계산</div>
+      </div>
+      <span class="tool-arrow">›</span>
+    </a>
 
-    <div class="tool-grid">
-      <a href="gongsu-calendar.html" class="tool-card">
-        <div class="tool-icon">📅</div>
-        <div class="tool-info">
-          <div class="tool-name">공수달력</div>
-          <div class="tool-desc">출력일수 · 예상 급여 계산</div>
-        </div>
-      </a>
-
+    <div class="section-label tool-section">팀 업무</div>
+    <div class="tool-duo">
       <a href="qty-report.html" class="tool-card">
         <div class="tool-icon">🧾</div>
         <div class="tool-info">
           <div class="tool-name">물량작성</div>
-          <div class="tool-desc">자재별 물량 입력 · 실시간 합산 · 카톡 공유</div>
+          <div class="tool-desc">입력 · 합산 · 공유</div>
         </div>
       </a>
 
@@ -452,37 +477,42 @@
         <div class="tool-icon">🔧</div>
         <div class="tool-info">
           <div class="tool-name">자재대여</div>
-          <div class="tool-desc">공구·자재 대여 기록 · 반납 관리</div>
-        </div>
-      </a>
-
-      <a href="javascript:void(0)" class="tool-card tool-card--soon" id="community-entry">
-        <div class="tool-icon">💬</div>
-        <div class="tool-info">
-          <div class="tool-name">피더 커뮤니티<span class="tool-badge" id="community-badge">준비중</span></div>
-          <div class="tool-desc">현장 소식 · 정보를 나누는 공간</div>
+          <div class="tool-desc">대여 기록 · 반납</div>
         </div>
       </a>
     </div>
 
-    <div class="tool-list">
-      <a href="javascript:void(0)" class="tool-card tool-card--admin" id="admin-entry" onclick="openAdminApprove()" style="display:none;">
-        <div class="tool-icon">🔑</div>
-        <div class="tool-info">
-          <div class="tool-name">가입 승인 관리<span class="tool-badge" id="pending-count-badge" style="display:none;"></span></div>
-          <div class="tool-desc">등록 신청 승인 · 거절</div>
-        </div>
-        <span class="tool-arrow">›</span>
-      </a>
+    <div class="section-label tool-section">커뮤니티</div>
+    <a href="javascript:void(0)" class="tool-card tool-card--soon" id="community-entry">
+      <div class="tool-icon">💬</div>
+      <div class="tool-info">
+        <div class="tool-name">피더 커뮤니티<span class="tool-badge" id="community-badge">준비중</span></div>
+        <div class="tool-desc">현장 소식 · 정보를 나누는 공간</div>
+      </div>
+      <span class="tool-arrow">›</span>
+    </a>
 
-      <a href="gongsu-admin.html" class="tool-card tool-card--admin" id="gongsu-admin-entry" style="display:none;">
-        <div class="tool-icon">📊</div>
-        <div class="tool-info">
-          <div class="tool-name">공수달력 관리자</div>
-          <div class="tool-desc">현장별 팀단가 · 숙식비 · 차익금 관리</div>
-        </div>
-        <span class="tool-arrow">›</span>
-      </a>
+    <div id="admin-section" style="display:none;">
+      <div class="section-label tool-section">관리자</div>
+      <div class="tool-list">
+        <a href="javascript:void(0)" class="tool-card tool-card--admin" id="admin-entry" onclick="openAdminApprove()">
+          <div class="tool-icon">🔑</div>
+          <div class="tool-info">
+            <div class="tool-name">가입 승인 관리<span class="tool-badge" id="pending-count-badge" style="display:none;"></span></div>
+            <div class="tool-desc">등록 신청 승인 · 거절</div>
+          </div>
+          <span class="tool-arrow">›</span>
+        </a>
+
+        <a href="gongsu-admin.html" class="tool-card tool-card--admin" id="gongsu-admin-entry">
+          <div class="tool-icon">📊</div>
+          <div class="tool-info">
+            <div class="tool-name">공수달력 관리자</div>
+            <div class="tool-desc">현장별 팀단가 · 숙식비 · 차익금 관리</div>
+          </div>
+          <span class="tool-arrow">›</span>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -707,21 +737,18 @@
   }
 
   function updateAdminEntry() {
-    const entry = document.getElementById('admin-entry');
+    const adminSection = document.getElementById('admin-section');
     const badge = document.getElementById('pending-count-badge');
-    const gongsuEntry = document.getElementById('gongsu-admin-entry');
     const communityEntry = document.getElementById('community-entry');
     const communityBadge = document.getElementById('community-badge');
     if (!myProfile || !myProfile.isAdmin) {
-      entry.style.display = 'none';
-      gongsuEntry.style.display = 'none';
+      adminSection.style.display = 'none';
       communityEntry.classList.add('tool-card--soon');
       communityEntry.setAttribute('href', 'javascript:void(0)');
       communityBadge.textContent = '준비중';
       return;
     }
-    entry.style.display = '';
-    gongsuEntry.style.display = '';
+    adminSection.style.display = '';
     communityEntry.classList.remove('tool-card--soon');
     communityEntry.setAttribute('href', 'community.html');
     communityBadge.textContent = '관리자 미리보기';
