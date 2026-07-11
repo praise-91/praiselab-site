@@ -409,8 +409,62 @@
     height: 52px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     margin: -20px -16px 20px;
   }
+
+  .hamburger-btn {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 17px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .hamburger-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* ── 사이드 메뉴 ── */
+  .menu-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.5);
+    justify-content: flex-end;
+  }
+  .menu-overlay.show { display: flex; }
+  .menu-sheet {
+    width: 78%; max-width: 300px; height: 100%;
+    background: var(--steel-mid);
+    border-left: 1px solid var(--border);
+    padding: 20px 16px;
+    display: flex; flex-direction: column;
+    animation: menuSlideIn 0.22s cubic-bezier(0.2,0.9,0.3,1);
+  }
+  @keyframes menuSlideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+  .menu-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; padding: 0 2px;
+  }
+  .menu-title { font-size: 15px; font-weight: 900; color: var(--text-dim); letter-spacing: 0.5px; }
+  .menu-close {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: none; border: none; color: var(--text-dim);
+    font-size: 16px; cursor: pointer;
+  }
+  .menu-close:hover { color: var(--orange); }
+  .menu-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 10px; border-radius: 12px;
+    background: none; border: none;
+    color: var(--text); font-family: inherit;
+    font-size: 15px; font-weight: 700;
+    text-align: left; cursor: pointer; width: 100%;
+  }
+  .menu-item:hover { background: var(--steel-light); }
+  .menu-item-icon { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; }
+  .menu-item--logout { margin-top: auto; color: #ff8a8a; }
 
   .brand {
     font-size: 15px;
@@ -468,7 +522,26 @@
   <a href="https://praiselab.net/tools/" class="brand">
     Feeder
   </a>
+  <button class="hamburger-btn" id="hamburger-btn" onclick="openMenu()" style="display:none;" aria-label="메뉴">☰</button>
 </header>
+
+<div class="menu-overlay" id="menu-overlay" onclick="closeMenu()">
+  <div class="menu-sheet" onclick="event.stopPropagation()">
+    <div class="menu-head">
+      <span class="menu-title">메뉴</span>
+      <button class="menu-close" onclick="closeMenu()" aria-label="닫기">✕</button>
+    </div>
+    <button class="menu-item" id="menu-admin" onclick="closeMenu(); location.href='index.html?admin=1';" style="display:none;">
+      <span class="menu-item-icon">🔑</span><span>관리자 기능</span>
+    </button>
+    <button class="menu-item" onclick="closeMenu(); showToast('⚙️ 설정 기능은 준비 중이에요');">
+      <span class="menu-item-icon">⚙️</span><span>설정</span>
+    </button>
+    <button class="menu-item menu-item--logout" onclick="closeMenu(); logout();">
+      <span class="menu-item-icon">🚪</span><span>로그아웃</span>
+    </button>
+  </div>
+</div>
 
 <div class="container">
 
@@ -545,9 +618,24 @@
   const db = firebase.firestore();
   const col = db.collection('tool_rentals');
 
+  function openMenu() { document.getElementById('menu-overlay').classList.add('show'); }
+  function closeMenu() { document.getElementById('menu-overlay').classList.remove('show'); }
+  function logout() { auth.signOut(); }
+
+  function updateHamburger() {
+    document.getElementById('hamburger-btn').style.display = '';
+    document.getElementById('menu-admin').style.display = isAdminFlag ? '' : 'none';
+  }
+  function hideHamburger() {
+    isAdminFlag = false;
+    document.getElementById('hamburger-btn').style.display = 'none';
+    closeMenu();
+  }
+
   // ── 피더 로그인 게이트: 승인된 사람만 통과 ──
   let appStarted = false;
   let gateProfileUnsub = null;
+  let isAdminFlag = false;
 
   function startApp() {
     if (appStarted) return;
@@ -561,6 +649,7 @@
   auth.onAuthStateChanged(user => {
     if (gateProfileUnsub) { gateProfileUnsub(); gateProfileUnsub = null; }
     if (!user) {
+      hideHamburger();
       document.getElementById('view-loading').style.display = 'none';
       document.getElementById('view-locked').style.display = '';
       document.getElementById('view-app').style.display = 'none';
@@ -568,8 +657,11 @@
     }
     gateProfileUnsub = db.collection('tools_users').doc(user.uid).onSnapshot(doc => {
       if (doc.exists && doc.data().status === 'approved') {
+        isAdminFlag = !!doc.data().isAdmin;
+        updateHamburger();
         startApp();
       } else {
+        hideHamburger();
         document.getElementById('view-loading').style.display = 'none';
         document.getElementById('view-locked').style.display = '';
         document.getElementById('view-app').style.display = 'none';
@@ -620,8 +712,10 @@
     .finally(() => { btn.disabled = false; });
   }
 
-  function showToast() {
+  const TOAST_DEFAULT_MSG = document.getElementById('toast').textContent;
+  function showToast(msg) {
     const t = document.getElementById('toast');
+    t.textContent = msg || TOAST_DEFAULT_MSG;
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2200);
   }
