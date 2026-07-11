@@ -59,8 +59,6 @@
     gap: 8px;
     text-decoration: none;
   }
-  .brand-icon { font-size: 21px; filter: drop-shadow(0 0 8px rgba(255,107,43,0.4)); }
-
   .hamburger-btn {
     width: 36px; height: 36px;
     display: flex; align-items: center; justify-content: center;
@@ -418,7 +416,7 @@
 
 <header class="site-header">
   <a href="https://praiselab.net/" class="brand">
-    <span class="brand-icon">🧰</span>피더
+    Feeder
   </a>
   <button class="hamburger-btn" id="hamburger-btn" onclick="openMenu()" style="display:none;" aria-label="메뉴">☰</button>
 </header>
@@ -468,8 +466,8 @@
 
     <div class="card">
       <div class="field">
-        <label>이름</label>
-        <input type="text" id="login-name" placeholder="이름" />
+        <label>아이디</label>
+        <input type="text" id="login-name" placeholder="아이디" autocomplete="username" />
       </div>
       <div class="field">
         <label>비밀번호 6자리</label>
@@ -477,7 +475,7 @@
           onkeydown="if(event.key==='Enter')login();" />
       </div>
       <button class="submit-btn" id="login-btn" onclick="login()">로그인</button>
-      <div class="error-msg" id="login-error">🔒 이름 또는 비밀번호가 맞지 않아요</div>
+      <div class="error-msg" id="login-error">🔒 아이디 또는 비밀번호가 맞지 않아요</div>
       <button class="toggle-link" onclick="go('view-register')">회원가입</button>
     </div>
   </div>
@@ -486,12 +484,12 @@
   <div class="view" id="view-register">
     <div class="view-head">
       <button class="back-btn" onclick="history.back()">‹</button>
-      <h2>이름 등록</h2>
+      <h2>회원가입</h2>
     </div>
     <div class="card">
       <div class="field">
-        <label>이름</label>
-        <input type="text" id="reg-name" placeholder="이름" />
+        <label>아이디</label>
+        <input type="text" id="reg-username" placeholder="영문/숫자 4~20자" autocomplete="off" />
       </div>
       <div class="field">
         <label>비밀번호 6자리</label>
@@ -499,7 +497,15 @@
       </div>
       <div class="field">
         <label>비밀번호 확인</label>
-        <input type="password" id="reg-pw-input2" inputmode="numeric" maxlength="6" placeholder="••••••"
+        <input type="password" id="reg-pw-input2" inputmode="numeric" maxlength="6" placeholder="••••••" />
+      </div>
+      <div class="field">
+        <label>닉네임</label>
+        <input type="text" id="reg-nickname" placeholder="현장에서 불릴 이름" />
+      </div>
+      <div class="field">
+        <label>이메일</label>
+        <input type="email" id="reg-email" placeholder="example@email.com"
           onkeydown="if(event.key==='Enter')register();" />
       </div>
       <button class="submit-btn" id="reg-btn" onclick="register()">등록하기</button>
@@ -526,7 +532,6 @@
 
   <!-- 도구 목록 (로그인 후) -->
   <div class="view" id="view-app">
-    <div class="section-label tool-section">내 공수</div>
     <a href="gongsu-calendar.html" class="tool-card tool-card--hero">
       <div class="tool-icon">📅</div>
       <div class="tool-info">
@@ -733,6 +738,11 @@
     }).catch(() => {}); // 홈 미리보기용 조회라 실패해도 조용히 무시(칩만 안 보임)
   }
 
+  // 신규가입자는 nickname, 구가입자(이름 예외 유지)는 name — 표시용 통합 헬퍼
+  function displayName(u) {
+    return u.nickname || u.name || u.username || '이름없음';
+  }
+
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, '&amp;')
@@ -774,29 +784,31 @@
 
   // ── 로그인 ──
   function login() {
-    const name = document.getElementById('login-name').value.trim();
+    const input = document.getElementById('login-name').value.trim();
     const pw = document.getElementById('login-pw').value;
     const errorEl = document.getElementById('login-error');
     errorEl.style.display = 'none';
 
-    if (!name) { alert('이름을 입력해주세요!'); return; }
+    if (!input) { alert('아이디를 입력해주세요!'); return; }
     if (!/^\d{6}$/.test(pw)) {
       errorEl.textContent = '🔒 비밀번호는 숫자 6자리예요';
       errorEl.style.display = 'block';
       return;
     }
-    const u = users.find(x => x.name === name);
+    // 신규가입자는 username, 구가입자(이름 예외 유지)는 name으로 매칭
+    const u = users.find(x => x.username === input) || users.find(x => x.name === input);
     if (!u) {
-      errorEl.textContent = '🔒 이름 또는 비밀번호가 맞지 않아요';
+      errorEl.textContent = '🔒 아이디 또는 비밀번호가 맞지 않아요';
       errorEl.style.display = 'block';
       return;
     }
 
     const btn = document.getElementById('login-btn');
     btn.disabled = true;
-    auth.signInWithEmailAndPassword(u.email, pw)
+    // authEmail = Firebase Auth 로그인용 합성 이메일(신규), 없으면 구가입자의 email 필드(과거엔 이 필드에 합성 이메일을 저장했음)
+    auth.signInWithEmailAndPassword(u.authEmail || u.email, pw)
       .catch(() => {
-        errorEl.textContent = '🔒 이름 또는 비밀번호가 맞지 않아요';
+        errorEl.textContent = '🔒 아이디 또는 비밀번호가 맞지 않아요';
         errorEl.style.display = 'block';
         document.getElementById('login-pw').value = '';
       })
@@ -805,31 +817,39 @@
 
   // ── 등록 ──
   function register() {
-    const name = document.getElementById('reg-name').value.trim();
+    const username = document.getElementById('reg-username').value.trim();
     const pw = document.getElementById('reg-pw-input').value;
     const pw2 = document.getElementById('reg-pw-input2').value;
+    const nickname = document.getElementById('reg-nickname').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
 
-    if (!name) { alert('이름을 입력해주세요!'); return; }
-    if (users.some(u => u.name === name)) { alert('이미 등록된 이름이에요.'); return; }
+    if (!/^[a-zA-Z0-9]{4,20}$/.test(username)) { alert('아이디는 영문/숫자 4~20자로 입력해주세요!'); return; }
+    if (users.some(u => u.username === username)) { alert('이미 등록된 아이디예요.'); return; }
     if (!/^\d{6}$/.test(pw)) { alert('비밀번호는 숫자 6자리로 입력해주세요!'); return; }
     if (pw !== pw2) { alert('비밀번호 확인이 일치하지 않아요.'); return; }
+    if (!nickname) { alert('닉네임을 입력해주세요!'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('이메일 형식을 확인해주세요!'); return; }
 
     const btn = document.getElementById('reg-btn');
     btn.disabled = true;
 
-    const email = `${colUsers.doc().id}@${EMAIL_DOMAIN}`;
-    auth.createUserWithEmailAndPassword(email, pw)
+    const authEmail = `${username}@${EMAIL_DOMAIN}`;
+    auth.createUserWithEmailAndPassword(authEmail, pw)
       .then(cred => colUsers.doc(cred.user.uid).set({
-        name,
+        username,
+        nickname,
         email,
+        authEmail,
         status: 'pending',
         isAdmin: false,
+        role: 'member',
+        teamCode: null,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       }))
       .then(() => showToast('✅ 등록 완료! 관리자 승인을 기다려주세요'))
       .catch(err => {
         alert(err.code === 'auth/email-already-in-use'
-          ? '등록 중 오류가 났어요. 다시 시도해주세요.'
+          ? '이미 등록된 아이디예요.'
           : '등록 실패. 인터넷 연결을 확인해주세요.');
       })
       .finally(() => { btn.disabled = false; });
@@ -856,10 +876,10 @@
     }
     list.innerHTML = pending.map(u => `
       <div class="approve-row">
-        <span class="approve-name">${escapeHtml(u.name)}</span>
+        <span class="approve-name">${escapeHtml(displayName(u))}</span>
         <div class="approve-actions">
           <button class="approve-btn" onclick="approveUser('${u.id}')">승인</button>
-          <button class="reject-btn" onclick="rejectUser('${u.id}', '${escapeHtml(u.name)}')">거절</button>
+          <button class="reject-btn" onclick="rejectUser('${u.id}', '${escapeHtml(displayName(u))}')">거절</button>
         </div>
       </div>
     `).join('');
@@ -874,11 +894,11 @@
     }
     list.innerHTML = approved.map(u => `
       <div class="approve-row">
-        <span class="approve-name">${u.isAdmin ? '⭐ ' : ''}${escapeHtml(u.name)}</span>
+        <span class="approve-name">${u.isAdmin ? '⭐ ' : ''}${escapeHtml(displayName(u))}</span>
         <div class="approve-actions">
           ${u.id === auth.currentUser.uid
             ? ''
-            : `<button class="reject-btn" onclick="deleteMember('${u.id}', '${escapeHtml(u.name)}')">삭제</button>`}
+            : `<button class="reject-btn" onclick="deleteMember('${u.id}', '${escapeHtml(displayName(u))}')">삭제</button>`}
         </div>
       </div>
     `).join('');
@@ -932,8 +952,9 @@
   }
 
   // ── 이름 목록 실시간 구독 (로그인 화면 + 승인 화면 공용) ──
-  colUsers.orderBy('name').onSnapshot(snap => {
-    users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  colUsers.onSnapshot(snap => {
+    users = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => displayName(a).localeCompare(displayName(b), 'ko'));
     if (document.getElementById('view-admin-approve').classList.contains('active')) {
       renderApproveList();
       renderMemberList();
@@ -962,7 +983,7 @@
       updateAdminEntry();
 
       if (myProfile.status !== 'approved') {
-        document.getElementById('pending-name').textContent = myProfile.name;
+        document.getElementById('pending-name').textContent = displayName(myProfile);
         syncView('view-pending');
         return;
       }
