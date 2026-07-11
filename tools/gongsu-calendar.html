@@ -50,11 +50,6 @@ html, body { margin:0; padding:0; height:100%; background:var(--gg-paper); }
   font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif;
 }
 .gc-brand { font-size: 14px; font-weight: 800; color:var(--gg-ink); text-decoration:none; }
-.gc-whoami {
-  font-size: 12px; color:var(--gg-ink-soft); background:var(--gg-card); border:1px solid var(--gg-line);
-  border-radius: 20px; padding: 5px 12px; cursor: pointer; font-family: inherit;
-}
-.gc-whoami:hover { border-color:var(--gg-accent); color:var(--gg-accent); }
 
 .gc-locked {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -253,6 +248,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 @keyframes gg-slideleft { from { transform:translateX(-100%); } }
 .gg-sidesheet-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding:0 4px; }
 .gg-sidesheet-title { font-size:17px; font-weight:800; }
+.gg-sidesheet-brand { font-size:17px; font-weight:800; color:var(--gg-accent); background:none; border:none; padding:0; cursor:pointer; font-family:inherit; }
 .gg-menuitem { display:flex; align-items:center; gap:12px; padding:14px 12px; border-radius:12px; font-size:15px; font-weight:700; color:var(--gg-ink); text-align:left; width:100%; }
 .gg-menuitem:hover, .gg-menuitem:active { background:var(--gg-paper); }
 .gg-menuitem-icon { font-size:17px; width:22px; text-align:center; flex-shrink:0; }
@@ -266,11 +262,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-teamrank-row { display:flex; flex-direction:column; gap:9px; padding:14px 0; border-bottom:1px solid var(--gg-line); }
 .gg-teamrank-row:last-child { border-bottom:none; }
 .gg-teamrank-row-me { margin:0 -14px; padding:14px; border-radius:12px; background:var(--gg-accent-soft); border-bottom-color:transparent; }
-.gg-teamrank-top { display:flex; align-items:center; gap:10px; }
-.gg-teamrank-rank { width:22px; flex-shrink:0; text-align:center; font-size:14px; font-weight:800; color:var(--gg-ink-faint); }
-.gg-teamrank-name { flex:1; font-size:14.5px; font-weight:700; color:var(--gg-ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:6px; }
+.gg-teamrank-top { display:flex; align-items:flex-start; gap:10px; }
+.gg-teamrank-rank { width:22px; flex-shrink:0; text-align:center; font-size:14px; font-weight:800; color:var(--gg-ink-faint); padding-top:1px; }
+.gg-teamrank-name { flex:1; font-size:14.5px; font-weight:700; color:var(--gg-ink); white-space:normal; word-break:break-word; display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
 .gg-teamrank-me-badge { font-size:10.5px; font-weight:800; color:#fff; background:var(--gg-accent); border-radius:999px; padding:1px 7px; flex-shrink:0; }
-.gg-teamrank-value { font-size:13px; font-weight:800; color:var(--gg-accent); flex-shrink:0; }
+.gg-teamrank-value { font-size:13px; font-weight:800; color:var(--gg-accent); flex-shrink:0; padding-top:1px; }
 .gg-teamrank-track { height:8px; border-radius:5px; background:var(--gg-paper); overflow:hidden; }
 .gg-teamrank-fill { height:100%; border-radius:5px; background:var(--gg-accent); }
 .gg-teamrank-empty { text-align:center; color:var(--gg-ink-faint); font-size:13px; padding:40px 0; }
@@ -285,7 +281,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 <body>
 <header class="gc-header">
   <a href="https://praiselab.net/tools/" class="gc-brand">Feeder</a>
-  <button class="gc-whoami" id="gc-whoami" onclick="gcLogout()" style="display:none;"></button>
 </header>
 <div class="gc-locked" id="gc-locked" style="display:none;">
   <span class="gc-locked-icon">🔒</span>
@@ -322,7 +317,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     if (gcProfileUnsub) { gcProfileUnsub(); gcProfileUnsub = null; }
 
     if (!user) {
-      document.getElementById('gc-whoami').style.display = 'none';
       document.getElementById('gc-locked').style.display = 'flex';
       document.getElementById('root').style.display = 'none';
       return;
@@ -330,14 +324,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
     gcProfileUnsub = colToolsUsers.doc(user.uid).onSnapshot(async doc => {
       if (!doc.exists || doc.data().status !== 'approved') {
-        document.getElementById('gc-whoami').style.display = 'none';
         document.getElementById('gc-locked').style.display = 'flex';
         document.getElementById('root').style.display = 'none';
         return;
       }
-      const whoami = document.getElementById('gc-whoami');
-      whoami.style.display = '';
-      whoami.textContent = doc.data().name;
       document.getElementById('gc-locked').style.display = 'none';
       document.getElementById('root').style.display = '';
 
@@ -1125,7 +1115,7 @@ function App() {
   }, "›")), React.createElement("button", {
     className: "gg-icon gg-icon-text",
     onClick: () => setShowSummary(true)
-  }, "요약")), React.createElement("div", {
+  }, "명세서")), React.createElement("div", {
     className: "gg-todaybar"
   }, React.createElement("button", {
     className: "gg-todaybtn",
@@ -1645,9 +1635,10 @@ function Sidebar({
     onClick: e => e.stopPropagation()
   }, React.createElement("div", {
     className: "gg-sidesheet-head"
-  }, React.createElement("div", {
-    className: "gg-sidesheet-title"
-  }, "메뉴"), React.createElement("button", {
+  }, React.createElement("button", {
+    className: "gg-sidesheet-brand",
+    onClick: () => { location.href = "https://praiselab.net/tools/"; }
+  }, "Feeder"), React.createElement("button", {
     className: "gg-x",
     onClick: onClose,
     "aria-label": "닫기"
@@ -1661,7 +1652,13 @@ function Sidebar({
     onClick: onTeam
   }, React.createElement("span", {
     className: "gg-menuitem-icon"
-  }, "👥"), React.createElement("span", null, "공수 랭킹"))));
+  }, "👥"), React.createElement("span", null, "공수 랭킹")), React.createElement("button", {
+    className: "gg-menuitem",
+    style: { marginTop: "auto" },
+    onClick: () => { onClose(); gcLogout(); }
+  }, React.createElement("span", {
+    className: "gg-menuitem-icon"
+  }, "🚪"), React.createElement("span", null, "로그아웃"))));
 }
 const RANK_MEDALS = ["🥇", "🥈", "🥉"];
 function teamRangePreset(kind) {
