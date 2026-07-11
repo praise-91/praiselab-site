@@ -264,6 +264,18 @@
   .tool-card--hero .tool-name { font-size: 17px; }
   .tool-card--hero .tool-arrow { color: var(--orange); }
 
+  .hero-chip {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #FF9A66;
+    background: rgba(255,107,43,0.12);
+    border: 1px solid rgba(255,107,43,0.25);
+    border-radius: 20px;
+    padding: 2px 10px;
+  }
+
   /* 팀 업무: 2단 그리드 */
   .tool-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
   .tool-duo .tool-card {
@@ -459,6 +471,7 @@
       <div class="tool-info">
         <div class="tool-name">공수달력</div>
         <div class="tool-desc">출력일수 · 예상 급여 계산</div>
+        <span class="hero-chip" id="hero-chip" style="display:none;"></span>
       </div>
       <span class="tool-arrow">›</span>
     </a>
@@ -559,11 +572,100 @@
   const auth = firebase.auth();
   const db = firebase.firestore();
   const colUsers = db.collection('tools_users');
+  const colGongsuCalendars = db.collection('gongsu_calendars');
   const EMAIL_DOMAIN = 'feeder.praiselab.internal';
 
   let users = [];
   let myProfile = null;
   let myProfileUnsub = null;
+  let gongsuSummaryLoaded = false;
+
+  // ── 홈 히어로 칩용 실수령액 계산 ──
+  // gongsu-calendar.html의 computeSummary와 같은 세율/로직을 축약 반영한 것.
+  // 2026년 기준 세율(gongsu-calendar.html 732~739줄과 동일)이라, 세율이 바뀌면
+  // 두 파일을 함께 갱신해야 함.
+  const GC_DAILY_TAX_DEDUCTION = 150000;
+  const GC_INCOME_TAX_EFFECTIVE = 0.027;
+  const GC_MIN_WITHHOLDING = 1000;
+  const GC_LOCAL_TAX_RATE = 0.10;
+  const GC_PENSION_RATE = 0.0475;
+  const GC_HEALTH_RATE = 0.03595;
+  const GC_LTC_RATE_OF_HEALTH = 0.1314;
+  const GC_EMPLOYMENT_RATE = 0.009;
+  const GC_PENSION_HEALTH_MIN_DAYS = 8;
+  const GC_FREELANCE_TAX_RATE = 0.03;
+
+  function gcDailyIncomeTax(grossPay) {
+    const taxable = grossPay - GC_DAILY_TAX_DEDUCTION;
+    if (taxable <= 0) return 0;
+    const tax = Math.floor(taxable * GC_INCOME_TAX_EFFECTIVE);
+    return tax < GC_MIN_WITHHOLDING ? 0 : tax;
+  }
+  function gcFreelanceIncomeTax(grossPay) {
+    const tax = Math.floor(grossPay * GC_FREELANCE_TAX_RATE);
+    return tax < GC_MIN_WITHHOLDING ? 0 : tax;
+  }
+  function gcWon(n) { return Math.round(n || 0).toLocaleString('ko-KR') + '원'; }
+  function gcFmtG(g) {
+    if (g === 0) return '0';
+    const r = Math.round(g * 100) / 100;
+    return Number.isInteger(r) ? r.toFixed(1) : String(r);
+  }
+
+  // 기간 내 실수령액 계산 (단일 월 범위 전제 — 4대보험은 월 단위 산정이라
+  // 여러 달에 걸치면 gongsu-calendar.html의 monthGroups 방식이 따로 필요함)
+  function computeHomeSummary(entries, start, end, defaultUnitPrice, taxMode) {
+    let totalGongsu = 0, totalGross = 0, totalIncomeTax = 0, totalAllowance = 0, workDays = 0;
+    Object.entries(entries || {}).forEach(([date, e]) => {
+      if (date < start || date > end) return;
+      const g = e.gongsu || 0;
+      if (g <= 0) return;
+      totalGongsu += g;
+      workDays += 1;
+      totalAllowance += e.allowance || 0;
+      const unitPrice = e.unitPrice != null ? e.unitPrice : defaultUnitPrice;
+      const grossDay = g * unitPrice;
+      totalGross += grossDay;
+      totalIncomeTax += taxMode === 'freelance33' ? gcFreelanceIncomeTax(grossDay) : gcDailyIncomeTax(grossDay);
+    });
+    const localIncomeTax = Math.floor(totalIncomeTax * GC_LOCAL_TAX_RATE);
+    let pension = 0, health = 0, ltc = 0, employment = 0;
+    if (taxMode !== 'freelance33' && workDays > 0) {
+      employment = totalGross * GC_EMPLOYMENT_RATE;
+      if (workDays >= GC_PENSION_HEALTH_MIN_DAYS) {
+        pension = totalGross * GC_PENSION_RATE;
+        health = totalGross * GC_HEALTH_RATE;
+        ltc = health * GC_LTC_RATE_OF_HEALTH;
+      }
+    }
+    const totalTax = totalIncomeTax + localIncomeTax;
+    const totalInsurance = Math.floor(pension) + Math.floor(health) + Math.floor(ltc) + Math.floor(employment);
+    const netPay = totalGross - totalTax - totalInsurance + totalAllowance;
+    return { totalGongsu, netPay };
+  }
+
+  function currentMonthRange() {
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth();
+    const pad = n => String(n).padStart(2, '0');
+    const lastDay = new Date(y, m + 1, 0).getDate();
+    return { start: `${y}-${pad(m + 1)}-01`, end: `${y}-${pad(m + 1)}-${pad(lastDay)}`, month: m + 1 };
+  }
+
+  function loadGongsuSummary(uid) {
+    if (gongsuSummaryLoaded) return;
+    gongsuSummaryLoaded = true;
+    colGongsuCalendars.doc(uid).get().then(doc => {
+      if (!doc.exists || doc.data().data == null) return;
+      const state = JSON.parse(doc.data().data);
+      const { start, end, month } = currentMonthRange();
+      const { totalGongsu, netPay } = computeHomeSummary(state.entries, start, end, state.defaultUnitPrice, state.taxMode);
+      if (totalGongsu <= 0) return;
+      const chip = document.getElementById('hero-chip');
+      chip.textContent = `${month}월 ${gcFmtG(totalGongsu)}공수 · 실수령 ${gcWon(netPay)}`;
+      chip.style.display = '';
+    }).catch(() => {}); // 홈 미리보기용 조회라 실패해도 조용히 무시(칩만 안 보임)
+  }
 
   function escapeHtml(s) {
     return String(s)
@@ -777,7 +879,9 @@
 
     if (!user) {
       myProfile = null;
+      gongsuSummaryLoaded = false;
       document.getElementById('whoami').style.display = 'none';
+      document.getElementById('hero-chip').style.display = 'none';
       syncView('view-login');
       return;
     }
@@ -796,6 +900,7 @@
       const whoami = document.getElementById('whoami');
       whoami.style.display = '';
       whoami.textContent = myProfile.name;
+      loadGongsuSummary(user.uid);
 
       if (!document.getElementById('view-admin-approve').classList.contains('active')) {
         syncView('view-app');
