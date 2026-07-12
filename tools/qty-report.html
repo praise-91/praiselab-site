@@ -919,9 +919,14 @@
     { category: '레이스웨이', name: 'Offset', unit: 'EA', spec1: { label: '각도', options: DEGREES }, spec2: { label: '폭', options: RW_WIDTHS }, order: 6 },
     { category: '레이스웨이', name: 'HFIX', unit: 'M', spec1: { label: '굵기', options: HFIX_SIZES }, spec2: { label: '색상', options: HFIX_COLORS }, order: 7 },
     boltType('레이스웨이', 8),
-    { category: '단말', name: '케이블', unit: 'M', spec1: { label: '굵기', options: SQ_SIZES }, order: 1 },
-    { category: '단말', name: '터미널', unit: 'EA', spec1: { label: '굵기', options: SQ_SIZES }, order: 2 },
-    { category: '단말', name: '터미널 (2홀)', unit: 'EA', spec1: { label: '굵기', options: ['120sq', '150sq', '240sq', '300sq'] }, order: 3 },
+    { category: '단말', name: 'HFIX', unit: 'M', group: '케이블', spec1: { label: 'SQ', options: HFIX_POSEOL_SIZES }, order: 1 },
+    { category: '단말', name: 'CV', unit: 'M', group: '케이블', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, spec2: { label: '코어', options: CABLE_CORES }, order: 2 },
+    { category: '단말', name: 'FCV', unit: 'M', group: '케이블', spec1: { label: 'SQ', options: CABLE_SQ_SIZES_CUSTOM }, spec2: { label: '코어', options: CABLE_CORES }, order: 3 },
+    { category: '단말', name: 'TFR-CV', unit: 'M', group: '케이블', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, spec2: { label: '코어', options: CABLE_CORES }, order: 4 },
+    { category: '단말', name: 'GV', unit: 'M', group: '케이블', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, spec2: { label: '코어', options: CABLE_CORES }, order: 5 },
+    { category: '단말', name: 'TFR-GV', unit: 'M', group: '케이블', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, spec2: { label: '코어', options: CABLE_CORES }, order: 6 },
+    { category: '단말', name: '터미널', unit: 'EA', spec1: { label: '굵기', options: SQ_SIZES }, order: 7 },
+    { category: '단말', name: '터미널 (2홀)', unit: 'EA', spec1: { label: '굵기', options: ['120sq', '150sq', '240sq', '300sq'] }, order: 8 },
     { category: '포설', name: 'HFIX', spec1: { label: 'SQ', options: HFIX_POSEOL_SIZES }, order: 1 },
     { category: '포설', name: 'CV', spec1: { label: 'SQ', options: CABLE_SQ_SIZES }, spec2: { label: '코어', options: CABLE_CORES }, order: 2 },
     { category: '포설', name: 'FCV', spec1: { label: 'SQ', options: CABLE_SQ_SIZES_CUSTOM }, spec2: { label: '코어', options: CABLE_CORES }, order: 3 },
@@ -1677,6 +1682,25 @@
     colItems.doc(hfix.id).update({ 'spec1.options': HFIX_POSEOL_SIZES }).catch(() => {});
   }
 
+  // ── 1회성 마이그레이션: 단말의 뭉뚱그린 "케이블"(SQ 바로 선택) 항목을
+  // 포설과 동일한 케이블 이름별 그룹(HFIX/CV/FCV/TFR-CV/GV/TFR-GV)으로 교체 ──
+  function maybeMigrateDanmalCable() {
+    if (!itemsLoaded) return;
+    const old = items.find(i => i.category === '단말' && i.name === '케이블' && !i.group);
+    if (!old) return;
+    const lockRef = colCategories.doc('_migrate_danmal_cable_lock');
+    db.runTransaction(tx => tx.get(lockRef).then(lockSnap => {
+      if (lockSnap.exists) return;
+      tx.set(lockRef, { migratedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      tx.delete(colItems.doc(old.id));
+      DEFAULT_TYPES.filter(t => t.category === '단말' && t.group === '케이블').forEach(t => tx.set(colItems.doc(), {
+        ...t,
+        isDefault: true,
+        ts: firebase.firestore.FieldValue.serverTimestamp(),
+      }));
+    })).catch(() => {});
+  }
+
   // ── 1회성 마이그레이션: 기존에 이미 심어진 "기구설치" 카테고리를 "포설"로
   // 전환하고 케이블 포설 자재를 추가한다 (seedIfEmpty는 완전히 빈 DB에만
   // 동작하므로, 이미 시딩된 실서비스 데이터는 이 마이그레이션으로 별도 처리) ──
@@ -1726,6 +1750,7 @@
       itemsLoaded = true;
       maybeMigratePoseol();
       maybeFixHfixPoseolSpec();
+      maybeMigrateDanmalCable();
     });
 
     colEntries.orderBy('ts', 'desc').onSnapshot(snap => {
