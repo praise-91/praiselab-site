@@ -905,6 +905,7 @@
   // ── 초기화 ──
   let isAdminFlag = false;
   let myAdminTeamCode = null;
+  let myOwnProfile = null;
   let gateProfileUnsub = null;
   let dataUnsubs = [];
 
@@ -915,9 +916,12 @@
 
     // teamCode로 스코프(내 팀 소속만) — orderBy를 같이 걸면 복합 인덱스가 필요해져서
     // 정렬은 받아온 뒤 클라이언트에서 처리
+    // 팀장 본인은 teamCode가 아니라 adminTeamCode를 갖고 있어서 이 쿼리엔 안 걸림 —
+    // 팀장도 자기 현장에 팀원으로 추가돼서 공수달력·팀휴무를 쓸 수 있어야 하니 직접 합쳐준다
     dataUnsubs.push(colToolsUsers.where('teamCode', '==', myAdminTeamCode).onSnapshot(snap => {
-      toolsUsersAll = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      const teamMembers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (myOwnProfile && !teamMembers.some(u => u.id === myOwnProfile.id)) teamMembers.push(myOwnProfile);
+      toolsUsersAll = teamMembers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       renderMemberPicker();
     }));
 
@@ -960,6 +964,7 @@
       }
       isAdminFlag = !!doc.data().isAdmin;
       myAdminTeamCode = doc.data().adminTeamCode || null;
+      myOwnProfile = { id: user.uid, ...doc.data() };
       if (!isAdminFlag) {
         document.getElementById('hamburger-btn').style.display = 'none';
         closeMenu();
