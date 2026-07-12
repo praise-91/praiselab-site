@@ -982,7 +982,7 @@ function App() {
   const [showMenu, setShowMenu] = useState(false);
   const [showTeam, setShowTeam] = useState(false);
   const [showBulkPrice, setShowBulkPrice] = useState(false);
-  const [showNetPay, setShowNetPay] = useState(false);
+  const [showNetPay, setShowNetPay] = useState(true);
   const closeOverlay = () => history.back();
   useEffect(() => {
     const onPop = () => {
@@ -1294,12 +1294,12 @@ function App() {
     className: "gg-taxswitch",
     onClick: e => e.stopPropagation()
   }, React.createElement("button", {
-    className: "gg-taxswitch-opt" + (showNetPay ? "" : " is-active"),
-    onClick: () => setShowNetPay(false)
-  }, "세전"), React.createElement("button", {
     className: "gg-taxswitch-opt" + (showNetPay ? " is-active" : ""),
     onClick: () => setShowNetPay(true)
-  }, "세후"))), React.createElement("strong", null, won(showNetPay ? monthStats.netPay : monthStats.pay))), React.createElement("div", {
+  }, "세후"), React.createElement("button", {
+    className: "gg-taxswitch-opt" + (showNetPay ? "" : " is-active"),
+    onClick: () => setShowNetPay(false)
+  }, "세전"))), React.createElement("strong", null, won(showNetPay ? monthStats.netPay : monthStats.pay))), React.createElement("div", {
     className: "gg-sumitem"
   }, React.createElement("span", null, "총 공수"), React.createElement("strong", null, fmtG(monthStats.gongsu)))), React.createElement("div", {
     className: "gg-typerow"
