@@ -496,7 +496,10 @@
   <div class="menu-sheet" onclick="event.stopPropagation()">
     <div class="menu-head">
       <span class="menu-title">메뉴</span>
-      <button class="menu-close" onclick="closeMenu()" aria-label="닫기">✕</button>
+      <div style="display:flex; align-items:center; gap:2px;">
+        <button class="menu-close" id="menu-theme-toggle" onclick="toggleThemeQuick()" aria-label="테마 변경">🌙</button>
+        <button class="menu-close" onclick="closeMenu()" aria-label="닫기">✕</button>
+      </div>
     </div>
     <button class="menu-profile" onclick="closeMenu(); go('view-my-profile');">
       <div class="menu-profile-avatar" id="menu-profile-avatar">-</div>
@@ -710,7 +713,7 @@
     </div>
 
     <div class="section-label tool-section">팀 재미</div>
-    <a href="team-ladder.html" class="tool-card">
+    <a href="team-ladder.html" class="tool-card" onclick="return checkTeamLadderAccess()">
       <div class="tool-icon tool-icon--amber">🪜</div>
       <div class="tool-info">
         <div class="tool-name">사다리타기</div>
@@ -814,6 +817,7 @@
   let gongsuSummaryLoaded = false;
   let consumedAdminParam = false;
   let consumedSettingsParam = false;
+  let consumedProfileParam = false;
 
   // ── 홈 히어로 칩용 실수령액 계산 ──
   // gongsu-calendar.html의 computeSummary와 같은 세율/로직을 축약 반영한 것.
@@ -992,6 +996,12 @@
   function renderSettings() {
     document.getElementById('theme-opt-dark').classList.toggle('is-on', currentTheme !== 'light');
     document.getElementById('theme-opt-light').classList.toggle('is-on', currentTheme === 'light');
+    document.getElementById('menu-theme-toggle').textContent = currentTheme === 'light' ? '☀️' : '🌙';
+  }
+  renderSettings();
+
+  function toggleThemeQuick() {
+    setTheme(currentTheme === 'light' ? 'dark' : 'light');
   }
 
   function escapeHtml(s) {
@@ -1301,6 +1311,12 @@
       .catch(() => alert(code));
   }
 
+  function checkTeamLadderAccess() {
+    if (myProfile && (myProfile.teamCode || myProfile.adminTeamCode)) return true;
+    alert('팀 코드가 있어야 팀원들과 같이 즐길 수 있어요');
+    return false;
+  }
+
   function openMenu() { document.getElementById('menu-overlay').classList.add('show'); }
   function closeMenu() { document.getElementById('menu-overlay').classList.remove('show'); }
 
@@ -1337,6 +1353,7 @@
       gongsuSummaryLoaded = false;
       consumedAdminParam = false;
       consumedSettingsParam = false;
+      consumedProfileParam = false;
       document.getElementById('hamburger-btn').style.display = 'none';
       document.getElementById('hero-chip').style.display = 'none';
       closeMenu();
@@ -1381,10 +1398,14 @@
           && new URLSearchParams(location.search).get('admin') === '1';
         const wantsSettings = !consumedSettingsParam
           && new URLSearchParams(location.search).get('settings') === '1';
+        const wantsProfile = !consumedProfileParam
+          && new URLSearchParams(location.search).get('profile') === '1';
         consumedAdminParam = true;
         consumedSettingsParam = true;
+        consumedProfileParam = true;
         if (wantsAdminHub) go('view-admin-hub');
         else if (wantsSettings) { go('view-settings'); renderSettings(); }
+        else if (wantsProfile) go('view-my-profile');
         else syncView('view-app');
       }
     });
