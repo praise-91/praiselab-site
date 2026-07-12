@@ -739,6 +739,7 @@
   const colPosts = db.collection('community_posts');
   const colSeekers = db.collection('community_seekers');
   const colComments = db.collection('community_comments');
+  const colViews = db.collection('community_views');
 
   const SIDO_LIST = [
     '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시',
@@ -1423,8 +1424,24 @@
 
   // ── 글 상세 + 댓글 ──
 
-  function incrementViews(colRef, id) {
-    colRef.doc(id).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(() => {});
+  function getViewIdentity() {
+    if (myUid) return myUid;
+    let gid = localStorage.getItem('feederGuestId');
+    if (!gid) {
+      gid = 'g_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem('feederGuestId', gid);
+    }
+    return gid;
+  }
+
+  function incrementViewsOnce(colRef, type, id) {
+    const identity = getViewIdentity();
+    const viewId = `${type}_${id}_${identity}`;
+    colViews.doc(viewId).set({ postId: id, identity })
+      .then(() => {
+        colRef.doc(id).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(() => {});
+      })
+      .catch(() => {}); // 이미 조회한 기록이 있으면(또는 실패하면) 카운트하지 않음
   }
 
   function openPostDetail(id) {
@@ -1434,7 +1451,7 @@
     currentDetailType = 'post';
     renderPostDetail(p);
     startCommentsFeed(id);
-    incrementViews(colPosts, id);
+    incrementViewsOnce(colPosts, 'post', id);
     go('view-post-detail');
   }
 
@@ -1445,7 +1462,7 @@
     currentDetailType = 'job';
     renderJobDetail(j);
     startCommentsFeed(id);
-    incrementViews(colJobs, id);
+    incrementViewsOnce(colJobs, 'job', id);
     go('view-post-detail');
   }
 
@@ -1456,7 +1473,7 @@
     currentDetailType = 'seeker';
     renderSeekerDetail(s);
     startCommentsFeed(id);
-    incrementViews(colSeekers, id);
+    incrementViewsOnce(colSeekers, 'seeker', id);
     go('view-post-detail');
   }
 
