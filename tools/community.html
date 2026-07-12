@@ -621,7 +621,8 @@
   let editingPostId = null;
   let postSearchQuery = '';
 
-  let currentPostId = null;
+  let currentDetailId = null;
+  let currentDetailType = null; // 'post' | 'job'
   let comments = [];
   let commentsUnsub = null;
 
@@ -728,6 +729,7 @@
   function editJob(id) {
     const j = jobs.find(x => x.id === id);
     if (!j) return;
+    if (currentDetailId) { closePostDetail(); }
     resetJobForm();
     document.getElementById('job-site').value = j.siteName;
     document.getElementById('job-sido').value = j.regionSido;
@@ -753,6 +755,8 @@
     document.getElementById('job-save-btn').textContent = '수정하기';
     document.getElementById('job-form').style.display = 'block';
     document.getElementById('job-new-btn').style.display = 'none';
+    go('view-app');
+    switchTab('jobs');
     window.scrollTo(0, 0);
   }
 
@@ -823,6 +827,7 @@
   function deleteJob(id) {
     if (!confirm('이 구인글을 삭제할까요?')) return;
     colJobs.doc(id).delete()
+      .then(() => { if (currentDetailId === id) closePostDetail(); })
       .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
   }
 
@@ -844,13 +849,13 @@
         : '';
       const contactLabel = j.contactMethod === 'kakao' ? '카톡' : '전화';
       const adminActions = myIsAdmin ? `
-        <div class="admin-actions">
+        <div class="admin-actions" onclick="event.stopPropagation()">
           <button class="mini-btn" onclick="editJob('${j.id}')">수정</button>
           <button class="mini-btn" onclick="toggleJobStatus('${j.id}','${j.status}')">${j.status === 'open' ? '마감 처리' : '모집 재개'}</button>
           <button class="mini-btn danger" onclick="deleteJob('${j.id}')">삭제</button>
         </div>` : '';
       return `
-        <div class="job-card ${j.status === 'closed' ? 'is-closed' : ''}">
+        <div class="job-card ${j.status === 'closed' ? 'is-closed' : ''}" style="cursor:pointer;" onclick="openJobDetail('${j.id}')">
           <div class="job-card-top">
             <div>
               <div class="job-site">${escapeHtml(j.siteName)}</div>
@@ -875,6 +880,10 @@
     jobsUnsub = colJobs.orderBy('createdAt', 'desc').onSnapshot(snap => {
       jobs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderJobs();
+      if (currentDetailType === 'job' && currentDetailId) {
+        const j = jobs.find(x => x.id === currentDetailId);
+        if (j) renderJobDetail(j);
+      }
     }, () => {
       document.getElementById('job-list').innerHTML = '<div class="card"><div class="empty-state">⚠️ 연결 오류. 새로고침 해주세요.</div></div>';
     });
@@ -1051,7 +1060,7 @@
   function editPost(id) {
     const p = posts.find(x => x.id === id);
     if (!p) return;
-    if (currentPostId) { closePostDetail(); }
+    if (currentDetailId) { closePostDetail(); }
 
     document.getElementById('post-title').value = p.title;
     document.getElementById('post-category').value = p.category;
@@ -1141,8 +1150,19 @@
   function openPostDetail(id) {
     const p = posts.find(x => x.id === id);
     if (!p) return;
-    currentPostId = id;
+    currentDetailId = id;
+    currentDetailType = 'post';
     renderPostDetail(p);
+    startCommentsFeed(id);
+    go('view-post-detail');
+  }
+
+  function openJobDetail(id) {
+    const j = jobs.find(x => x.id === id);
+    if (!j) return;
+    currentDetailId = id;
+    currentDetailType = 'job';
+    renderJobDetail(j);
     startCommentsFeed(id);
     go('view-post-detail');
   }
@@ -1150,7 +1170,8 @@
   function closePostDetail() {
     if (commentsUnsub) { commentsUnsub(); commentsUnsub = null; }
     comments = [];
-    currentPostId = null;
+    currentDetailId = null;
+    currentDetailType = null;
     go('view-app');
   }
 
@@ -1166,6 +1187,42 @@
       <div class="post-title" style="font-size:17px; margin-top:10px;">${escapeHtml(p.title)}</div>
       <div class="post-meta" style="margin-bottom:12px;">${escapeHtml(p.authorName)} · ${formatDate(p.createdAt)}</div>
       <div class="post-content">${escapeHtml(p.content)}</div>
+      ${manageActions}
+    `;
+  }
+
+  function renderJobDetail(j) {
+    const stayBadge = `<span class="badge stay-${j.stay}">${STAY_LABEL[j.stay] || ''}</span>`;
+    const closedBadge = j.status === 'closed' ? '<span class="badge closed">마감</span>' : '';
+    const period = j.periodType === 'negotiable'
+      ? '협의'
+      : `${j.periodStart || '미정'} ~ ${j.periodEnd || '미정'}`;
+    const wage = j.wageNegotiable ? '협의' : (j.wage ? `${j.wage.toLocaleString()}원` : '협의');
+    const stayDetail = j.stay === 'yes' && (j.stayType || j.mealCost)
+      ? `<div class="job-meta">${escapeHtml(j.stayType || '')}${j.stayType && j.mealCost ? ' · ' : ''}${MEAL_LABEL[j.mealCost] || ''}</div>`
+      : '';
+    const contactLabel = j.contactMethod === 'kakao' ? '카톡' : '전화';
+    const manageActions = myIsAdmin ? `
+      <div class="admin-actions">
+        <button class="mini-btn" onclick="editJob('${j.id}')">수정</button>
+        <button class="mini-btn" onclick="toggleJobStatus('${j.id}','${j.status}')">${j.status === 'open' ? '마감 처리' : '모집 재개'}</button>
+        <button class="mini-btn danger" onclick="deleteJob('${j.id}')">삭제</button>
+      </div>` : '';
+    document.getElementById('detail-post-card').innerHTML = `
+      <div class="job-card-top">
+        <div>
+          <div class="job-site" style="font-size:17px;">${escapeHtml(j.siteName)}</div>
+          <div class="job-region">${escapeHtml(j.regionSido)} ${escapeHtml(j.regionSigungu)} · ${escapeHtml(j.workType)}</div>
+        </div>
+        <div style="display:flex;gap:4px;">${closedBadge}${stayBadge}</div>
+      </div>
+      <div class="job-meta">모집 <b>${j.headcount}명</b> · 기간 <b>${escapeHtml(period)}</b></div>
+      ${stayDetail}
+      <div class="job-desc">${escapeHtml(j.description)}</div>
+      <div class="job-card-foot">
+        <span class="job-wage">${escapeHtml(wage)}</span>
+        <span class="job-contact">${contactLabel} · ${escapeHtml(j.contactValue)}</span>
+      </div>
       ${manageActions}
     `;
   }
@@ -1204,7 +1261,7 @@
 
   function addComment() {
     if (!myUid) { alert('로그인 후 댓글을 남길 수 있어요.'); return; }
-    if (!currentPostId) return;
+    if (!currentDetailId) return;
     const input = document.getElementById('comment-input');
     const content = input.value.trim();
     if (!content) { alert('댓글 내용을 입력해주세요!'); return; }
@@ -1212,7 +1269,7 @@
     const btn = document.getElementById('comment-save-btn');
     btn.disabled = true;
     colComments.add({
-      postId: currentPostId,
+      postId: currentDetailId,
       content,
       authorUid: myUid,
       authorName: myName,
