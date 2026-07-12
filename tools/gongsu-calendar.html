@@ -1082,7 +1082,8 @@ function App() {
     if (!state) return null;
     const daysInMonth = new Date(cursor.y, cursor.m + 1, 0).getDate();
     let gongsu = 0,
-      pay = 0;
+      pay = 0,
+      workDays = 0;
     const byType = {
       day: 0,
       extended: 0,
@@ -1098,6 +1099,7 @@ function App() {
         gongsu += g;
         pay += g * (e.unitPrice == null ? state.defaultUnitPrice : e.unitPrice);
         byType[typeOf(g)] += 1;
+        workDays += 1;
       } else {
         byType.off += 1;
       }
@@ -1109,7 +1111,8 @@ function App() {
       gongsu,
       pay,
       netPay,
-      byType
+      byType,
+      workDays
     };
   }, [state, cursor]);
   const saveEntry = (date, patch) => {
@@ -1329,7 +1332,9 @@ function App() {
     onClick: () => setShowNetPay(false)
   }, "세전"))), React.createElement("strong", null, won(showNetPay ? monthStats.netPay : monthStats.pay))), React.createElement("div", {
     className: "gg-sumitem"
-  }, React.createElement("span", null, "총 공수"), React.createElement("strong", null, fmtG(monthStats.gongsu)))), React.createElement("div", {
+  }, React.createElement("span", null, "총 공수"), React.createElement("strong", null, fmtG(monthStats.gongsu)), React.createElement("span", {
+    className: "gg-sumitem-sub"
+  }, "총 ", monthStats.workDays, "일"))), React.createElement("div", {
     className: "gg-typerow"
   }, Object.entries(TYPE_META).filter(([k]) => k !== "night").map(([k, meta]) => React.createElement("div", {
     key: k,
