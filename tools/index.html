@@ -790,8 +790,11 @@
       </div>
     </div>
     <div class="card" id="presence-card" style="display:none;">
-      <div class="section-label">실시간 접속자</div>
-      <div id="presence-count" style="font-size:22px; font-weight:900;">-</div>
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div class="section-label" style="margin-bottom:0;">실시간 접속자</div>
+        <button class="back-btn" style="width:32px;height:32px;font-size:15px;" onclick="refreshPresenceNow()" aria-label="새로고침">↻</button>
+      </div>
+      <div id="presence-count" style="font-size:22px; font-weight:900; margin-top:8px;">-</div>
       <div id="presence-list" style="margin-top:10px;"></div>
     </div>
     <div class="tool-list">
@@ -1043,7 +1046,7 @@
       return;
     }
     el.innerHTML = `
-      <button class="toggle-link" style="color:#ff8a8a;" onclick="deleteAccount()">회원 탈퇴</button>`;
+      <button class="toggle-link" style="display:block;width:auto;margin:0 auto;padding:8px 20px;font-size:14px;font-weight:700;color:#ff8a8a;border:1px solid rgba(255,138,138,0.35);border-radius:10px;background:rgba(255,138,138,0.08);" onclick="deleteAccount()">회원 탈퇴</button>`;
   }
 
   // 탈퇴: 본인 소유 데이터(공수달력·랭킹·계정)만 지움. 커뮤니티에 남긴 글은 그대로 두고
@@ -1493,6 +1496,15 @@
       renderPresence();
     }, () => {});
     if (!presenceTimer) presenceTimer = setInterval(renderPresence, 15000);
+  }
+
+  // onSnapshot이 실시간으로 갱신해주긴 하지만, 운영자가 "지금 바로" 다시 보고
+  // 싶을 때를 위한 수동 재조회(즉시 다시 fetch해서 다시 그림)
+  function refreshPresenceNow() {
+    colPresence.get().then(snap => {
+      presenceDocs = snap.docs.map(d => d.data());
+      renderPresence();
+    }).catch(() => {});
   }
 
   function stopPresenceWatch() {

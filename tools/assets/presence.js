@@ -60,16 +60,25 @@
       timer = setInterval(beat, 25000);
     }
 
-    loop();
-    // 탭이 백그라운드로 가면 하트비트를 멈춰서 불필요한 쓰기를 줄이고,
-    // 다시 보이면 바로 갱신
+    var started = false;
     document.addEventListener('visibilitychange', function () {
+      if (!started) return;
+      // 탭이 백그라운드로 가면 하트비트를 멈춰서 불필요한 쓰기를 줄이고, 다시 보이면 바로 갱신
       if (document.hidden) clearInterval(timer);
       else loop();
     });
-    // 최초 beat()는 Firebase Auth가 로그인 세션을 복원하기 전에 실행될 수 있어서
-    // 로그인 사용자가 잠깐 게스트로 잡힐 수 있음 — 로그인 상태가 확정되는 순간 한 번 더 갱신
-    firebase.auth().onAuthStateChanged(function () { beat(); });
+
+    // firebase.auth().currentUser는 로그인 세션 복원 여부와 무관하게 항상 null로
+    // 시작한다 — 여기서 바로 beat()를 치면 실제 로그인 사용자도 잠깐 게스트로 잘못
+    // 잡히고, 새로고침할 때마다 유령 게스트 하트비트가 남는 문제가 있었음(2026-07-13).
+    // 최초 상태가 확정될 때까지 기다렸다가 첫 하트비트를 친다
+    var unsubInit = firebase.auth().onAuthStateChanged(function () {
+      unsubInit();
+      started = true;
+      loop();
+      // 이후 실제 로그인/로그아웃 등 상태 변화에는 즉시 반영
+      firebase.auth().onAuthStateChanged(function () { beat(); });
+    });
   }
 
   if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) start();
