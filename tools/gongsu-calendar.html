@@ -133,9 +133,16 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 .gg-overlay { position:fixed; inset:0; background:rgba(30,25,18,.4); display:flex; align-items:flex-end; justify-content:center; z-index:20; animation:gg-fade .18s ease; }
 @keyframes gg-fade { from { opacity:0; } }
-.gg-sheet { width:100%; max-width:460px; background:var(--gg-card); border-radius:22px 22px 0 0; padding:10px 20px 26px; box-shadow:0 -8px 40px rgba(30,25,18,.2); animation:gg-slideup .24s cubic-bezier(.2,.9,.3,1); max-height:88vh; overflow-y:auto; }
+.gg-sheet { width:100%; max-width:460px; background:var(--gg-card); border-radius:22px 22px 0 0; padding:10px 20px 26px; box-shadow:0 -8px 40px rgba(30,25,18,.2); animation:gg-slideup .24s cubic-bezier(.2,.9,.3,1) forwards; max-height:88vh; overflow-y:auto; }
 .gg-sheet-tall { max-height:92vh; }
-@keyframes gg-slideup { from { transform:translateY(100%); } }
+.gg-sheet-full { max-width:none; height:100vh; max-height:100vh; border-radius:0; animation:gg-slideup-full .2s ease-out forwards; }
+.gg-sheet-full .gg-sheet-grip { display:none; }
+.gg-sheet-full .gg-sheet-head { position:sticky; top:0; background:var(--gg-card); padding-top:6px; margin:0 -20px 14px; padding-left:20px; padding-right:20px; z-index:1; }
+.gg-sheet-full .gg-sheet-actions { position:sticky; bottom:0; background:var(--gg-card); margin:20px -20px 0; padding:14px 20px calc(env(safe-area-inset-bottom, 0px) + 14px); box-shadow:0 -4px 12px rgba(0,0,0,.06); }
+/* translateY(100%)는 자기 높이 기준이라 height:100vh인 풀스크린 시트에 쓰면 화면 밖에 멈춰버림 —
+   풀스크린 전용으로 고정 픽셀 슬라이드 애니메이션을 따로 둔다 */
+@keyframes gg-slideup { from { transform:translateY(100%); } to { transform:translateY(0); } }
+@keyframes gg-slideup-full { from { transform:translateY(24px); opacity:0; } to { transform:translateY(0); opacity:1; } }
 .gg-sheet-grip { width:38px;height:4px;border-radius:2px;background:var(--gg-line);margin:4px auto 14px; }
 .gg-sheet-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
 .gg-sheet-date { font-size:18px; font-weight:800; letter-spacing:-.02em; }
@@ -1379,7 +1386,7 @@ function DayModal({
     className: "gg-overlay",
     onClick: onClose
   }, React.createElement("div", {
-    className: "gg-sheet",
+    className: "gg-sheet gg-sheet-full",
     onClick: e => e.stopPropagation()
   }, React.createElement("div", {
     className: "gg-sheet-grip"
