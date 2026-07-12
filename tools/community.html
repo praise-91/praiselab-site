@@ -146,7 +146,7 @@
   .tabs {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 20px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 16px;
     padding-top: 4px;
@@ -165,30 +165,28 @@
   }
   .tab.active { color: var(--text); border-bottom-color: var(--orange); }
 
-  .search-bar { display: flex; gap: 6px; align-items: center; margin-left: auto; padding-bottom: 10px; }
+  .search-bar { display: flex; gap: 8px; margin-bottom: 10px; }
   .search-input {
-    width: 72px;
-    min-width: 0;
-    padding: 7px 9px;
+    flex: 1; min-width: 0;
+    padding: 9px 12px;
     background: #FAFAF8;
     border: 1.5px solid var(--border);
     border-radius: 8px;
     color: var(--text);
     font-family: inherit;
-    font-size: 12.5px;
+    font-size: 13px;
     outline: none;
     -webkit-appearance: none;
-    transition: width 0.15s ease;
   }
-  .search-input:focus { border-color: var(--orange); width: 118px; }
+  .search-input:focus { border-color: var(--orange); }
   .filter-btn {
     flex-shrink: 0;
-    width: 32px; height: 32px;
+    width: 38px; height: 38px;
     display: flex; align-items: center; justify-content: center;
     background: #FAFAF8;
     border: 1.5px solid var(--border);
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
   }
   .filter-btn.active { border-color: var(--orange); background: rgba(255,107,43,0.08); }
@@ -438,10 +436,11 @@
       <button class="tab active" id="tab-jobs" onclick="switchTab('jobs')">구인</button>
       <button class="tab" id="tab-seekers" onclick="switchTab('seekers')">구직</button>
       <button class="tab" id="tab-free" onclick="switchTab('free')">자유게시판</button>
-      <div class="search-bar">
-        <input type="text" id="search-input" class="search-input" placeholder="검색" oninput="onSearchInput()" />
-        <button class="filter-btn" id="filter-toggle-btn" onclick="toggleFilterPanel()" aria-label="필터">🎚️</button>
-      </div>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="search-input" class="search-input" placeholder="검색" oninput="onSearchInput()" />
+      <button class="filter-btn" id="filter-toggle-btn" onclick="toggleFilterPanel()" aria-label="필터">🎚️</button>
     </div>
 
     <div class="filter-panel" id="filter-panel" style="display:none;">
@@ -471,8 +470,6 @@
         </select>
         <div class="filter-range">
           <input type="number" id="filter-job-wage-min" placeholder="최소 단가" oninput="onJobFilterChange()" />
-          <span>~</span>
-          <input type="number" id="filter-job-wage-max" placeholder="최대 단가" oninput="onJobFilterChange()" />
         </div>
       </div>
       <div class="filter-group" id="filter-seekers" style="display:none;">
@@ -773,7 +770,7 @@
 
   let currentTab = 'jobs';
   let searchQuery = '';
-  let jobFilter = { workType: '', sido: '', stay: '', status: '', wageMin: null, wageMax: null };
+  let jobFilter = { workType: '', sido: '', stay: '', status: '', wageMin: null };
   let seekerFilter = { workType: '', region: '', stay: '', status: '' };
   let postFilter = { category: '' };
 
@@ -831,14 +828,12 @@
 
   function onJobFilterChange() {
     const wageMinRaw = document.getElementById('filter-job-wage-min').value;
-    const wageMaxRaw = document.getElementById('filter-job-wage-max').value;
     jobFilter = {
       workType: document.getElementById('filter-job-worktype').value,
       sido: document.getElementById('filter-job-sido').value,
       stay: document.getElementById('filter-job-stay').value,
       status: document.getElementById('filter-job-status').value,
       wageMin: wageMinRaw === '' ? null : parseInt(wageMinRaw, 10),
-      wageMax: wageMaxRaw === '' ? null : parseInt(wageMaxRaw, 10),
     };
     renderJobs();
   }
@@ -860,7 +855,7 @@
 
   function resetFilters() {
     if (currentTab === 'jobs') {
-      jobFilter = { workType: '', sido: '', stay: '', status: '', wageMin: null, wageMax: null };
+      jobFilter = { workType: '', sido: '', stay: '', status: '', wageMin: null };
       document.querySelectorAll('#filter-jobs select').forEach(s => s.value = '');
       document.querySelectorAll('#filter-jobs input').forEach(i => i.value = '');
       renderJobs();
@@ -880,10 +875,9 @@
     if (jobFilter.sido && j.regionSido !== jobFilter.sido) return false;
     if (jobFilter.stay && j.stay !== jobFilter.stay) return false;
     if (jobFilter.status && j.status !== jobFilter.status) return false;
-    if (jobFilter.wageMin != null || jobFilter.wageMax != null) {
+    if (jobFilter.wageMin != null) {
       if (j.wageNegotiable || j.wage == null) return false;
-      if (jobFilter.wageMin != null && j.wage < jobFilter.wageMin) return false;
-      if (jobFilter.wageMax != null && j.wage > jobFilter.wageMax) return false;
+      if (j.wage < jobFilter.wageMin) return false;
     }
     return true;
   }
