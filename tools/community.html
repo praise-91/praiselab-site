@@ -164,11 +164,44 @@
   }
   .tab.active { color: var(--text); border-bottom-color: var(--orange); }
 
-  .tab-search {
-    margin-left: auto;
-    margin-bottom: 10px;
-    width: 120px;
-    padding: 7px 10px;
+  .search-bar { display: flex; gap: 8px; margin-bottom: 10px; }
+  .search-input {
+    flex: 1; min-width: 0;
+    padding: 9px 12px;
+    background: #FAFAF8;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  .search-input:focus { border-color: var(--orange); }
+  .filter-btn {
+    flex-shrink: 0;
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    background: #FAFAF8;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .filter-btn.active { border-color: var(--orange); background: rgba(255,107,43,0.08); }
+
+  .filter-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+  .filter-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .filter-group select {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 100px;
+    padding: 8px 10px;
     background: #FAFAF8;
     border: 1.5px solid var(--border);
     border-radius: 8px;
@@ -178,7 +211,20 @@
     outline: none;
     -webkit-appearance: none;
   }
-  .tab-search:focus { border-color: var(--orange); width: 150px; }
+  .filter-group select:focus { border-color: var(--orange); }
+  .filter-reset-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 12.5px; font-weight: 700;
+    cursor: pointer;
+  }
+  .filter-reset-btn:hover { border-color: var(--orange); color: var(--orange); }
 
   .board-panel { display: none; }
   .board-panel.active { display: block; }
@@ -298,6 +344,7 @@
   }
   .job-wage { font-size: 14px; font-weight: 700; color: var(--orange); }
   .job-contact { font-size: 12px; color: var(--text-dim); }
+  .card-counts { font-size: 11.5px; color: var(--text-dim); }
 
   .admin-actions { display: flex; gap: 6px; margin-top: 10px; }
   .mini-btn {
@@ -367,7 +414,74 @@
       <button class="tab active" id="tab-jobs" onclick="switchTab('jobs')">구인</button>
       <button class="tab" id="tab-seekers" onclick="switchTab('seekers')">구직</button>
       <button class="tab" id="tab-free" onclick="switchTab('free')">자유게시판</button>
-      <input type="text" id="post-search" class="tab-search" style="display:none;" placeholder="🔍 검색" oninput="onPostSearchInput()" />
+    </div>
+
+    <div class="search-bar">
+      <input type="text" id="search-input" class="search-input" placeholder="🔍 검색" oninput="onSearchInput()" />
+      <button class="filter-btn" id="filter-toggle-btn" onclick="toggleFilterPanel()" aria-label="필터">🔽</button>
+    </div>
+
+    <div class="filter-panel" id="filter-panel" style="display:none;">
+      <div class="filter-group" id="filter-jobs">
+        <select id="filter-job-worktype" onchange="onJobFilterChange()">
+          <option value="">공종 전체</option>
+          <option value="전기(내선)">전기(내선)</option>
+          <option value="전기(플랜트·고압)">전기(플랜트·고압)</option>
+          <option value="통신">통신</option>
+          <option value="소방">소방</option>
+          <option value="설비">설비</option>
+          <option value="기타">기타</option>
+        </select>
+        <select id="filter-job-sido" onchange="onJobFilterChange()">
+          <option value="">지역 전체</option>
+        </select>
+        <select id="filter-job-stay" onchange="onJobFilterChange()">
+          <option value="">숙소 전체</option>
+          <option value="yes">숙소제공</option>
+          <option value="no">숙소미제공</option>
+          <option value="negotiable">숙소협의</option>
+        </select>
+        <select id="filter-job-status" onchange="onJobFilterChange()">
+          <option value="">상태 전체</option>
+          <option value="open">모집중</option>
+          <option value="closed">마감</option>
+        </select>
+      </div>
+      <div class="filter-group" id="filter-seekers" style="display:none;">
+        <select id="filter-seeker-worktype" onchange="onSeekerFilterChange()">
+          <option value="">공종 전체</option>
+          <option value="전기(내선)">전기(내선)</option>
+          <option value="전기(플랜트·고압)">전기(플랜트·고압)</option>
+          <option value="통신">통신</option>
+          <option value="소방">소방</option>
+          <option value="설비">설비</option>
+          <option value="기타">기타</option>
+        </select>
+        <select id="filter-seeker-region" onchange="onSeekerFilterChange()">
+          <option value="">지역 전체</option>
+        </select>
+        <select id="filter-seeker-stay" onchange="onSeekerFilterChange()">
+          <option value="">숙소 전체</option>
+          <option value="needed">숙소필요</option>
+          <option value="not_needed">숙소불필요</option>
+          <option value="negotiable">숙소협의</option>
+        </select>
+        <select id="filter-seeker-status" onchange="onSeekerFilterChange()">
+          <option value="">상태 전체</option>
+          <option value="available">구직중</option>
+          <option value="matched">완료</option>
+        </select>
+      </div>
+      <div class="filter-group" id="filter-free" style="display:none;">
+        <select id="filter-post-category" onchange="onPostFilterChange()">
+          <option value="">카테고리 전체</option>
+          <option value="현장후기">현장후기</option>
+          <option value="정보·꿀팁">정보·꿀팁</option>
+          <option value="질문">질문</option>
+          <option value="자유">자유</option>
+        </select>
+      </div>
+      <button class="filter-reset-btn" onclick="resetFilters()">필터 초기화</button>
     </div>
 
     <!-- 구인 게시판 -->
@@ -375,6 +489,10 @@
       <button class="new-btn" id="job-new-btn" style="display:none;" onclick="openJobForm()">+ 구인 등록</button>
 
       <div class="card form-card" id="job-form" style="display:none;">
+        <div class="field">
+          <label>제목</label>
+          <input type="text" id="job-title" placeholder="예: 전기 기능공 급구" />
+        </div>
         <div class="field">
           <label>현장명</label>
           <input type="text" id="job-site" placeholder="예: 김포 물류센터 신축" />
@@ -469,6 +587,10 @@
       <button class="new-btn" id="seeker-new-btn" style="display:none;" onclick="openSeekerForm()">+ 구직 등록</button>
 
       <div class="card form-card" id="seeker-form" style="display:none;">
+        <div class="field">
+          <label>제목</label>
+          <input type="text" id="seeker-title" placeholder="예: 전기 기능공 자리 구합니다" />
+        </div>
         <div class="field">
           <label>희망 공종</label>
           <select id="seeker-worktype">
@@ -619,10 +741,18 @@
   let posts = [];
   let postsUnsub = null;
   let editingPostId = null;
-  let postSearchQuery = '';
+
+  let currentTab = 'jobs';
+  let searchQuery = '';
+  let jobFilter = { workType: '', sido: '', stay: '', status: '' };
+  let seekerFilter = { workType: '', region: '', stay: '', status: '' };
+  let postFilter = { category: '' };
+
+  let allCommentsUnsub = null;
+  let commentCounts = {};
 
   let currentDetailId = null;
-  let currentDetailType = null; // 'post' | 'job'
+  let currentDetailType = null; // 'post' | 'job' | 'seeker'
   let comments = [];
   let commentsUnsub = null;
 
@@ -642,6 +772,7 @@
   }
 
   function switchTab(name) {
+    currentTab = name;
     document.getElementById('tab-jobs').classList.toggle('active', name === 'jobs');
     document.getElementById('tab-seekers').classList.toggle('active', name === 'seekers');
     document.getElementById('tab-free').classList.toggle('active', name === 'free');
@@ -649,13 +780,86 @@
     document.getElementById('panel-seekers').classList.toggle('active', name === 'seekers');
     document.getElementById('panel-free').classList.toggle('active', name === 'free');
 
-    const searchInput = document.getElementById('post-search');
-    searchInput.style.display = name === 'free' ? 'block' : 'none';
-    if (name !== 'free' && searchInput.value) {
-      searchInput.value = '';
-      postSearchQuery = '';
+    document.getElementById('filter-jobs').style.display = name === 'jobs' ? 'flex' : 'none';
+    document.getElementById('filter-seekers').style.display = name === 'seekers' ? 'flex' : 'none';
+    document.getElementById('filter-free').style.display = name === 'free' ? 'flex' : 'none';
+  }
+
+  function toggleFilterPanel() {
+    const panel = document.getElementById('filter-panel');
+    const btn = document.getElementById('filter-toggle-btn');
+    const show = panel.style.display === 'none';
+    panel.style.display = show ? 'block' : 'none';
+    btn.classList.toggle('active', show);
+  }
+
+  function onSearchInput() {
+    searchQuery = document.getElementById('search-input').value.trim().toLowerCase();
+    renderJobs();
+    renderSeekers();
+    renderPosts();
+  }
+
+  function onJobFilterChange() {
+    jobFilter = {
+      workType: document.getElementById('filter-job-worktype').value,
+      sido: document.getElementById('filter-job-sido').value,
+      stay: document.getElementById('filter-job-stay').value,
+      status: document.getElementById('filter-job-status').value,
+    };
+    renderJobs();
+  }
+
+  function onSeekerFilterChange() {
+    seekerFilter = {
+      workType: document.getElementById('filter-seeker-worktype').value,
+      region: document.getElementById('filter-seeker-region').value,
+      stay: document.getElementById('filter-seeker-stay').value,
+      status: document.getElementById('filter-seeker-status').value,
+    };
+    renderSeekers();
+  }
+
+  function onPostFilterChange() {
+    postFilter = { category: document.getElementById('filter-post-category').value };
+    renderPosts();
+  }
+
+  function resetFilters() {
+    if (currentTab === 'jobs') {
+      jobFilter = { workType: '', sido: '', stay: '', status: '' };
+      document.querySelectorAll('#filter-jobs select').forEach(s => s.value = '');
+      renderJobs();
+    } else if (currentTab === 'seekers') {
+      seekerFilter = { workType: '', region: '', stay: '', status: '' };
+      document.querySelectorAll('#filter-seekers select').forEach(s => s.value = '');
+      renderSeekers();
+    } else {
+      postFilter = { category: '' };
+      document.querySelectorAll('#filter-free select').forEach(s => s.value = '');
       renderPosts();
     }
+  }
+
+  function matchesJobFilter(j) {
+    if (jobFilter.workType && j.workType !== jobFilter.workType) return false;
+    if (jobFilter.sido && j.regionSido !== jobFilter.sido) return false;
+    if (jobFilter.stay && j.stay !== jobFilter.stay) return false;
+    if (jobFilter.status && j.status !== jobFilter.status) return false;
+    return true;
+  }
+
+  function matchesSeekerFilter(s) {
+    if (seekerFilter.workType && s.workType !== seekerFilter.workType) return false;
+    if (seekerFilter.region && s.region !== seekerFilter.region) return false;
+    if (seekerFilter.stay && s.stay !== seekerFilter.stay) return false;
+    if (seekerFilter.status && s.status !== seekerFilter.status) return false;
+    return true;
+  }
+
+  function matchesPostFilter(p) {
+    if (postFilter.category && p.category !== postFilter.category) return false;
+    return true;
   }
 
   function logout() {
@@ -669,7 +873,14 @@
     const d = ts.toDate();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
-    return `${mm}/${dd}`;
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${mm}/${dd} ${hh}:${mi}`;
+  }
+
+  function matchesSearch(item, fields) {
+    if (!searchQuery) return true;
+    return fields.some(f => (item[f] || '').toString().toLowerCase().includes(searchQuery));
   }
 
   // ══════════════ 구인 게시판 ══════════════
@@ -677,6 +888,8 @@
   function initSidoSelect() {
     const sel = document.getElementById('job-sido');
     sel.innerHTML = SIDO_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
+    const filterSel = document.getElementById('filter-job-sido');
+    filterSel.innerHTML = '<option value="">지역 전체</option>' + SIDO_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
   }
 
   function togglePeriodInputs() {
@@ -695,6 +908,7 @@
   }
 
   function resetJobForm() {
+    document.getElementById('job-title').value = '';
     document.getElementById('job-site').value = '';
     document.getElementById('job-sigungu').value = '';
     document.getElementById('job-headcount').value = '';
@@ -731,6 +945,7 @@
     if (!j) return;
     if (currentDetailId) { closePostDetail(); }
     resetJobForm();
+    document.getElementById('job-title').value = j.title || '';
     document.getElementById('job-site').value = j.siteName;
     document.getElementById('job-sido').value = j.regionSido;
     document.getElementById('job-sigungu').value = j.regionSigungu;
@@ -761,12 +976,14 @@
   }
 
   function saveJob() {
+    const title = document.getElementById('job-title').value.trim();
     const siteName = document.getElementById('job-site').value.trim();
     const sigungu = document.getElementById('job-sigungu').value.trim();
     const headcount = parseInt(document.getElementById('job-headcount').value, 10);
     const description = document.getElementById('job-desc').value.trim();
     const contactValue = document.getElementById('job-contact-value').value.trim();
 
+    if (!title) { alert('제목을 입력해주세요!'); return; }
     if (!siteName) { alert('현장명을 입력해주세요!'); return; }
     if (!sigungu) { alert('시/군/구를 입력해주세요!'); return; }
     if (!headcount || headcount < 1) { alert('모집인원을 입력해주세요!'); return; }
@@ -778,6 +995,7 @@
     const stay = document.getElementById('job-stay').value;
 
     const fields = {
+      title,
       siteName,
       regionSido: document.getElementById('job-sido').value,
       regionSigungu: sigungu,
@@ -808,6 +1026,7 @@
       colJobs.add({
         ...fields,
         status: 'open',
+        views: 0,
         authorUid: myUid,
         authorName: myName,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -837,17 +1056,21 @@
       list.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">🧑‍🔧</span>아직 등록된 구인 글이 없어요</div></div>';
       return;
     }
-    list.innerHTML = jobs.map(j => {
+    const filtered = jobs.filter(j =>
+      matchesSearch(j, ['siteName', 'regionSido', 'regionSigungu', 'workType', 'title', 'description']) &&
+      matchesJobFilter(j));
+    if (!filtered.length) {
+      list.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">🔍</span>검색 결과가 없어요</div></div>';
+      return;
+    }
+    list.innerHTML = filtered.map(j => {
       const stayBadge = `<span class="badge stay-${j.stay}">${STAY_LABEL[j.stay] || ''}</span>`;
       const closedBadge = j.status === 'closed' ? '<span class="badge closed">마감</span>' : '';
       const period = j.periodType === 'negotiable'
         ? '협의'
         : `${j.periodStart || '미정'} ~ ${j.periodEnd || '미정'}`;
       const wage = j.wageNegotiable ? '협의' : (j.wage ? `${j.wage.toLocaleString()}원` : '협의');
-      const stayDetail = j.stay === 'yes' && (j.stayType || j.mealCost)
-        ? `<div class="job-meta">${escapeHtml(j.stayType || '')}${j.stayType && j.mealCost ? ' · ' : ''}${MEAL_LABEL[j.mealCost] || ''}</div>`
-        : '';
-      const contactLabel = j.contactMethod === 'kakao' ? '카톡' : '전화';
+      const commentCount = commentCounts[j.id] || 0;
       const adminActions = myIsAdmin ? `
         <div class="admin-actions" onclick="event.stopPropagation()">
           <button class="mini-btn" onclick="editJob('${j.id}')">수정</button>
@@ -858,17 +1081,15 @@
         <div class="job-card ${j.status === 'closed' ? 'is-closed' : ''}" style="cursor:pointer;" onclick="openJobDetail('${j.id}')">
           <div class="job-card-top">
             <div>
-              <div class="job-site">${escapeHtml(j.siteName)}</div>
+              <div class="job-site">${escapeHtml(j.title || j.siteName)}</div>
               <div class="job-region">${escapeHtml(j.regionSido)} ${escapeHtml(j.regionSigungu)} · ${escapeHtml(j.workType)}</div>
             </div>
             <div style="display:flex;gap:4px;">${closedBadge}${stayBadge}</div>
           </div>
-          <div class="job-meta">모집 <b>${j.headcount}명</b> · 기간 <b>${escapeHtml(period)}</b></div>
-          ${stayDetail}
-          <div class="job-desc">${escapeHtml(j.description)}</div>
+          <div class="job-meta">모집 <b>${j.headcount}명</b> · 기간 <b>${escapeHtml(period)}</b> · ${formatDate(j.createdAt)}</div>
           <div class="job-card-foot">
             <span class="job-wage">${escapeHtml(wage)}</span>
-            <span class="job-contact">${contactLabel} · ${escapeHtml(j.contactValue)}</span>
+            <span class="card-counts">💬 ${commentCount} · 👁 ${j.views || 0}</span>
           </div>
           ${adminActions}
         </div>`;
@@ -894,9 +1115,12 @@
   function initSeekerRegionSelect() {
     const sel = document.getElementById('seeker-region');
     sel.innerHTML = ['전국 가능', ...SIDO_LIST].map(s => `<option value="${s}">${s}</option>`).join('');
+    const filterSel = document.getElementById('filter-seeker-region');
+    filterSel.innerHTML = '<option value="">지역 전체</option>' + ['전국 가능', ...SIDO_LIST].map(s => `<option value="${s}">${s}</option>`).join('');
   }
 
   function resetSeekerForm() {
+    document.getElementById('seeker-title').value = '';
     document.getElementById('seeker-career').value = '';
     document.getElementById('seeker-stay').value = 'needed';
     document.getElementById('seeker-intro').value = '';
@@ -920,6 +1144,9 @@
   function editSeeker(id) {
     const s = seekers.find(x => x.id === id);
     if (!s) return;
+    if (currentDetailId) { closePostDetail(); }
+    resetSeekerForm();
+    document.getElementById('seeker-title').value = s.title || '';
     document.getElementById('seeker-worktype').value = s.workType;
     document.getElementById('seeker-career').value = s.career;
     document.getElementById('seeker-region').value = s.region;
@@ -932,19 +1159,24 @@
     document.getElementById('seeker-save-btn').textContent = '수정하기';
     document.getElementById('seeker-form').style.display = 'block';
     document.getElementById('seeker-new-btn').style.display = 'none';
+    go('view-app');
+    switchTab('seekers');
     window.scrollTo(0, 0);
   }
 
   function saveSeeker() {
+    const title = document.getElementById('seeker-title').value.trim();
     const career = document.getElementById('seeker-career').value.trim();
     const intro = document.getElementById('seeker-intro').value.trim();
     const contactValue = document.getElementById('seeker-contact-value').value.trim();
 
+    if (!title) { alert('제목을 입력해주세요!'); return; }
     if (!career) { alert('경력을 입력해주세요!'); return; }
     if (!intro) { alert('자기소개를 입력해주세요!'); return; }
     if (!contactValue) { alert('연락처를 입력해주세요!'); return; }
 
     const fields = {
+      title,
       workType: document.getElementById('seeker-worktype').value,
       career,
       region: document.getElementById('seeker-region').value,
@@ -966,6 +1198,7 @@
       colSeekers.add({
         ...fields,
         status: 'available',
+        views: 0,
         authorUid: myUid,
         authorName: myName,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -985,6 +1218,7 @@
   function deleteSeeker(id) {
     if (!confirm('이 구직 글을 삭제할까요?')) return;
     colSeekers.doc(id).delete()
+      .then(() => { if (currentDetailId === id) closePostDetail(); })
       .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
   }
 
@@ -994,31 +1228,38 @@
       list.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">🙋</span>아직 등록된 구직 글이 없어요</div></div>';
       return;
     }
-    list.innerHTML = seekers.map(s => {
+    const filtered = seekers.filter(s =>
+      matchesSearch(s, ['workType', 'region', 'intro', 'title']) &&
+      matchesSeekerFilter(s));
+    if (!filtered.length) {
+      list.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">🔍</span>검색 결과가 없어요</div></div>';
+      return;
+    }
+    list.innerHTML = filtered.map(s => {
       const stayKey = s.stay === 'needed' ? 'yes' : (s.stay === 'not_needed' ? 'no' : 'negotiable');
       const stayBadge = `<span class="badge stay-${stayKey}">${STAY_NEED_LABEL[s.stay] || ''}</span>`;
       const matchedBadge = s.status === 'matched' ? '<span class="badge closed">구직완료</span>' : '';
-      const contactLabel = s.contactMethod === 'kakao' ? '카톡' : '전화';
+      const commentCount = commentCounts[s.id] || 0;
       const canManage = myIsAdmin || s.authorUid === myUid;
       const actions = canManage ? `
-        <div class="admin-actions">
+        <div class="admin-actions" onclick="event.stopPropagation()">
           <button class="mini-btn" onclick="editSeeker('${s.id}')">수정</button>
           <button class="mini-btn" onclick="toggleSeekerStatus('${s.id}','${s.status}')">${s.status === 'available' ? '구직완료 처리' : '구직중으로 전환'}</button>
           <button class="mini-btn danger" onclick="deleteSeeker('${s.id}')">삭제</button>
         </div>` : '';
       return `
-        <div class="job-card ${s.status === 'matched' ? 'is-closed' : ''}">
+        <div class="job-card ${s.status === 'matched' ? 'is-closed' : ''}" style="cursor:pointer;" onclick="openSeekerDetail('${s.id}')">
           <div class="job-card-top">
             <div>
-              <div class="job-site">${escapeHtml(s.authorName)}</div>
+              <div class="job-site">${escapeHtml(s.title || s.authorName)}</div>
               <div class="job-region">${escapeHtml(s.region)} · ${escapeHtml(s.workType)}</div>
             </div>
             <div style="display:flex;gap:4px;">${matchedBadge}${stayBadge}</div>
           </div>
-          <div class="job-meta">경력 <b>${escapeHtml(s.career)}</b></div>
-          <div class="job-desc">${escapeHtml(s.intro)}</div>
+          <div class="job-meta">경력 <b>${escapeHtml(s.career)}</b> · ${formatDate(s.createdAt)}</div>
           <div class="job-card-foot">
-            <span class="job-contact">${contactLabel} · ${escapeHtml(s.contactValue)}</span>
+            <span class="job-contact">${escapeHtml(s.authorName)}</span>
+            <span class="card-counts">💬 ${commentCount} · 👁 ${s.views || 0}</span>
           </div>
           ${actions}
         </div>`;
@@ -1030,6 +1271,10 @@
     seekersUnsub = colSeekers.orderBy('createdAt', 'desc').onSnapshot(snap => {
       seekers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderSeekers();
+      if (currentDetailType === 'seeker' && currentDetailId) {
+        const s = seekers.find(x => x.id === currentDetailId);
+        if (s) renderSeekerDetail(s);
+      }
     }, () => {
       document.getElementById('seeker-list').innerHTML = '<div class="card"><div class="empty-state">⚠️ 연결 오류. 새로고침 해주세요.</div></div>';
     });
@@ -1098,6 +1343,7 @@
         title,
         category: document.getElementById('post-category').value,
         content,
+        views: 0,
         authorUid: myUid,
         authorName: myName,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1115,37 +1361,38 @@
       .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
   }
 
-  function onPostSearchInput() {
-    postSearchQuery = document.getElementById('post-search').value.trim().toLowerCase();
-    renderPosts();
-  }
-
   function renderPosts() {
     const list = document.getElementById('post-list');
     if (!posts.length) {
       list.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">💬</span>아직 게시물이 없어요</div></div>';
       return;
     }
-    const filtered = postSearchQuery
-      ? posts.filter(p =>
-          p.title.toLowerCase().includes(postSearchQuery) ||
-          p.content.toLowerCase().includes(postSearchQuery))
-      : posts;
+    const filtered = posts.filter(p =>
+      matchesSearch(p, ['title', 'content']) &&
+      matchesPostFilter(p));
     if (!filtered.length) {
       list.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">🔍</span>검색 결과가 없어요</div></div>';
       return;
     }
-    list.innerHTML = filtered.map(p => `
+    list.innerHTML = filtered.map(p => {
+      const commentCount = commentCounts[p.id] || 0;
+      return `
         <div class="post-card" style="cursor:pointer;" onclick="openPostDetail('${p.id}')">
           <div class="post-card-top">
             <span class="post-cat">${escapeHtml(p.category)}</span>
+            <span class="card-counts">💬 ${commentCount} · 👁 ${p.views || 0}</span>
           </div>
           <div class="post-title">${escapeHtml(p.title)}</div>
           <div class="post-meta">${escapeHtml(p.authorName)} · ${formatDate(p.createdAt)}</div>
-        </div>`).join('');
+        </div>`;
+    }).join('');
   }
 
   // ── 글 상세 + 댓글 ──
+
+  function incrementViews(colRef, id) {
+    colRef.doc(id).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(() => {});
+  }
 
   function openPostDetail(id) {
     const p = posts.find(x => x.id === id);
@@ -1154,6 +1401,7 @@
     currentDetailType = 'post';
     renderPostDetail(p);
     startCommentsFeed(id);
+    incrementViews(colPosts, id);
     go('view-post-detail');
   }
 
@@ -1164,6 +1412,18 @@
     currentDetailType = 'job';
     renderJobDetail(j);
     startCommentsFeed(id);
+    incrementViews(colJobs, id);
+    go('view-post-detail');
+  }
+
+  function openSeekerDetail(id) {
+    const s = seekers.find(x => x.id === id);
+    if (!s) return;
+    currentDetailId = id;
+    currentDetailType = 'seeker';
+    renderSeekerDetail(s);
+    startCommentsFeed(id);
+    incrementViews(colSeekers, id);
     go('view-post-detail');
   }
 
@@ -1185,7 +1445,7 @@
     document.getElementById('detail-post-card').innerHTML = `
       <span class="post-cat">${escapeHtml(p.category)}</span>
       <div class="post-title" style="font-size:17px; margin-top:10px;">${escapeHtml(p.title)}</div>
-      <div class="post-meta" style="margin-bottom:12px;">${escapeHtml(p.authorName)} · ${formatDate(p.createdAt)}</div>
+      <div class="post-meta" style="margin-bottom:12px;">${escapeHtml(p.authorName)} · ${formatDate(p.createdAt)} · 👁 ${p.views || 0}</div>
       <div class="post-content">${escapeHtml(p.content)}</div>
       ${manageActions}
     `;
@@ -1211,17 +1471,46 @@
     document.getElementById('detail-post-card').innerHTML = `
       <div class="job-card-top">
         <div>
-          <div class="job-site" style="font-size:17px;">${escapeHtml(j.siteName)}</div>
-          <div class="job-region">${escapeHtml(j.regionSido)} ${escapeHtml(j.regionSigungu)} · ${escapeHtml(j.workType)}</div>
+          <div class="job-site" style="font-size:17px;">${escapeHtml(j.title || j.siteName)}</div>
+          <div class="job-region">${escapeHtml(j.siteName)} · ${escapeHtml(j.regionSido)} ${escapeHtml(j.regionSigungu)} · ${escapeHtml(j.workType)}</div>
         </div>
         <div style="display:flex;gap:4px;">${closedBadge}${stayBadge}</div>
       </div>
-      <div class="job-meta">모집 <b>${j.headcount}명</b> · 기간 <b>${escapeHtml(period)}</b></div>
+      <div class="job-meta">모집 <b>${j.headcount}명</b> · 기간 <b>${escapeHtml(period)}</b> · ${formatDate(j.createdAt)} · 👁 ${j.views || 0}</div>
       ${stayDetail}
       <div class="job-desc">${escapeHtml(j.description)}</div>
       <div class="job-card-foot">
         <span class="job-wage">${escapeHtml(wage)}</span>
         <span class="job-contact">${contactLabel} · ${escapeHtml(j.contactValue)}</span>
+      </div>
+      ${manageActions}
+    `;
+  }
+
+  function renderSeekerDetail(s) {
+    const stayKey = s.stay === 'needed' ? 'yes' : (s.stay === 'not_needed' ? 'no' : 'negotiable');
+    const stayBadge = `<span class="badge stay-${stayKey}">${STAY_NEED_LABEL[s.stay] || ''}</span>`;
+    const matchedBadge = s.status === 'matched' ? '<span class="badge closed">구직완료</span>' : '';
+    const contactLabel = s.contactMethod === 'kakao' ? '카톡' : '전화';
+    const canManage = myIsAdmin || s.authorUid === myUid;
+    const manageActions = canManage ? `
+      <div class="admin-actions">
+        <button class="mini-btn" onclick="editSeeker('${s.id}')">수정</button>
+        <button class="mini-btn" onclick="toggleSeekerStatus('${s.id}','${s.status}')">${s.status === 'available' ? '구직완료 처리' : '구직중으로 전환'}</button>
+        <button class="mini-btn danger" onclick="deleteSeeker('${s.id}')">삭제</button>
+      </div>` : '';
+    document.getElementById('detail-post-card').innerHTML = `
+      <div class="job-card-top">
+        <div>
+          <div class="job-site" style="font-size:17px;">${escapeHtml(s.title || s.authorName)}</div>
+          <div class="job-region">${escapeHtml(s.authorName)} · ${escapeHtml(s.region)} · ${escapeHtml(s.workType)}</div>
+        </div>
+        <div style="display:flex;gap:4px;">${matchedBadge}${stayBadge}</div>
+      </div>
+      <div class="job-meta">경력 <b>${escapeHtml(s.career)}</b> · ${formatDate(s.createdAt)} · 👁 ${s.views || 0}</div>
+      <div class="job-desc">${escapeHtml(s.intro)}</div>
+      <div class="job-card-foot">
+        <span class="job-contact">${contactLabel} · ${escapeHtml(s.contactValue)}</span>
       </div>
       ${manageActions}
     `;
@@ -1286,6 +1575,20 @@
       .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
   }
 
+  function startAllCommentsFeed() {
+    if (allCommentsUnsub) return;
+    allCommentsUnsub = colComments.onSnapshot(snap => {
+      commentCounts = {};
+      snap.docs.forEach(d => {
+        const postId = d.data().postId;
+        commentCounts[postId] = (commentCounts[postId] || 0) + 1;
+      });
+      renderJobs();
+      renderSeekers();
+      renderPosts();
+    });
+  }
+
   function startPostsFeed() {
     if (postsUnsub) return;
     postsUnsub = colPosts.orderBy('createdAt', 'desc').onSnapshot(snap => {
@@ -1330,6 +1633,7 @@
     startJobsFeed();
     startSeekersFeed();
     startPostsFeed();
+    startAllCommentsFeed();
     go('view-app');
   }
 
@@ -1355,6 +1659,7 @@
       startJobsFeed();
       startSeekersFeed();
       startPostsFeed();
+      startAllCommentsFeed();
       go('view-app');
     });
   });
