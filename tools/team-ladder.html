@@ -526,7 +526,9 @@
       participants.push({ uid: myUid, name: myName });
       tx.update(ref, { participants });
     })).catch(err => {
-      if (err && err.message === 'full') alert('정원이 다 찼어요!');
+      if (err && err.message === 'full') { alert('정원이 다 찼어요!'); return; }
+      console.error('joinRoom failed:', err);
+      alert('참가 실패 (' + (err.code || err.message) + ')');
     });
   }
 
@@ -542,7 +544,9 @@
       const rungs = generateRungs(n);
       tx.update(ref, { status: 'playing', rungs, startedAt: firebase.firestore.FieldValue.serverTimestamp() });
     })).catch(err => {
-      if (err && err.message === 'not-full') alert('정원이 다 차야 시작할 수 있어요!');
+      if (err && err.message === 'not-full') { alert('정원이 다 차야 시작할 수 있어요!'); return; }
+      console.error('startRoom failed:', err);
+      alert('시작 실패 (' + (err.code || err.message) + ')');
     });
   }
 
@@ -554,29 +558,34 @@
 
   // ══════════════ 사다리 생성 · 경로 계산 ══════════════
 
+  // rungs는 행(row)별 비트마스크 숫자 배열로 저장한다 — Firestore는 배열 안에 배열을
+  // 중첩해서 담을 수 없어서(예: [[true,false],[false,true]]는 저장 시 에러), 각 행의
+  // gap별 true/false를 정수 하나의 비트로 표현한다 (bit `gap` = gap과 gap+1 사이 가로줄 여부).
+  function hasRung(rungs, r, gap) {
+    return ((rungs[r] >> gap) & 1) === 1;
+  }
+
   function generateRungs(n) {
     const rows = 10 + Math.floor(Math.random() * 4);
     const rungs = [];
     for (let r = 0; r < rows; r++) {
-      const row = new Array(n - 1).fill(false);
+      let mask = 0;
       let gap = 0;
       while (gap < n - 1) {
-        if (Math.random() < 0.35) { row[gap] = true; gap += 2; }
+        if (Math.random() < 0.35) { mask |= (1 << gap); gap += 2; }
         else { gap += 1; }
       }
-      rungs.push(row);
+      rungs.push(mask);
     }
     return rungs;
   }
 
   function traceColumn(startCol, rungs, n) {
     let col = startCol;
-    const rowH = 28, topPad = 24;
     const pts = [{ x: startCol, y: 0 }];
     for (let r = 0; r < rungs.length; r++) {
-      const row = rungs[r];
-      if (col < n - 1 && row[col]) { pts.push({ x: col, y: r + 1 }); col += 1; pts.push({ x: col, y: r + 1 }); }
-      else if (col > 0 && row[col - 1]) { pts.push({ x: col, y: r + 1 }); col -= 1; pts.push({ x: col, y: r + 1 }); }
+      if (col < n - 1 && hasRung(rungs, r, col)) { pts.push({ x: col, y: r + 1 }); col += 1; pts.push({ x: col, y: r + 1 }); }
+      else if (col > 0 && hasRung(rungs, r, col - 1)) { pts.push({ x: col, y: r + 1 }); col -= 1; pts.push({ x: col, y: r + 1 }); }
       else { pts.push({ x: col, y: r + 1 }); }
     }
     pts.push({ x: col, y: rungs.length + 1 });
@@ -652,7 +661,7 @@
     }
     for (let r = 0; r < rungs.length; r++) {
       for (let g = 0; g < n - 1; g++) {
-        if (rungs[r][g]) {
+        if (hasRung(rungs, r, g)) {
           linesSvg += `<line class="ladder-rung" x1="${px(g)}" y1="${py(r + 1)}" x2="${px(g + 1)}" y2="${py(r + 1)}" />`;
         }
       }
