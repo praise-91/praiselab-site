@@ -221,8 +221,8 @@
 
   .draft-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .draft-chip {
-    display: flex; align-items: center; gap: 6px;
-    padding: 8px 8px 8px 14px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px;
     background: rgba(255,107,43,0.12);
     border: 1px solid rgba(255,107,43,0.3);
     border-radius: 20px;
@@ -230,16 +230,34 @@
     color: var(--text);
   }
   .draft-chip button {
-    width: 18px; height: 18px;
+    width: 20px; height: 20px;
     border-radius: 50%;
     border: none;
-    background: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.14);
     color: var(--text);
-    font-size: 11px;
+    font-size: 13px; font-weight: 900;
     line-height: 1;
     cursor: pointer;
   }
-  .draft-chip button:hover { background: rgba(255,68,68,0.4); }
+  .draft-chip button:hover { background: rgba(255,255,255,0.28); }
+
+  /* ── 사이드 메뉴 프로필 카드 (정보 표시용, 클릭 불가) ── */
+  .menu-profile {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 10px; margin-bottom: 10px;
+    border-radius: 12px;
+    background: var(--steel-light);
+  }
+  .menu-profile-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--orange); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 900; flex-shrink: 0;
+  }
+  .menu-profile-info { flex: 1; min-width: 0; }
+  .menu-profile-name { font-size: 15px; font-weight: 900; color: var(--text); }
+  .menu-profile-role { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .menu-profile-code { font-size: 11px; font-weight: 700; color: var(--orange); margin-top: 3px; }
 
   /* ── 대기실 참가자 목록 ── */
   .capacity-badge {
@@ -309,6 +327,14 @@
     <div class="menu-head">
       <span class="menu-title">메뉴</span>
       <button class="menu-close" onclick="closeMenu()" aria-label="닫기">✕</button>
+    </div>
+    <div class="menu-profile">
+      <div class="menu-profile-avatar" id="menu-profile-avatar">-</div>
+      <div class="menu-profile-info">
+        <div class="menu-profile-name" id="menu-profile-name">-</div>
+        <div class="menu-profile-role" id="menu-profile-role">-</div>
+        <div class="menu-profile-code" id="menu-profile-code" style="display:none;"></div>
+      </div>
     </div>
     <button class="menu-item" onclick="closeMenu(); location.href='index.html';">
       <span class="menu-item-icon">🏠</span><span>피더 홈</span>
@@ -443,7 +469,9 @@
   }
 
   function addDraftItem(item) {
-    draftItems.push(item);
+    const existing = draftItems.find(d => d.name === item);
+    if (existing) existing.count++;
+    else draftItems.push({ name: item, count: 1 });
     renderDraftList();
   }
 
@@ -451,14 +479,23 @@
     const input = document.getElementById('custom-item-input');
     const val = input.value.trim();
     if (!val) return;
-    draftItems.push(val);
     input.value = '';
+    addDraftItem(val);
+  }
+
+  function incDraftItem(idx) {
+    draftItems[idx].count++;
     renderDraftList();
   }
 
-  function removeDraftItem(idx) {
-    draftItems.splice(idx, 1);
+  function decDraftItem(idx) {
+    draftItems[idx].count--;
+    if (draftItems[idx].count <= 0) draftItems.splice(idx, 1);
     renderDraftList();
+  }
+
+  function draftTotal() {
+    return draftItems.reduce((sum, d) => sum + d.count, 0);
   }
 
   function renderDraftList() {
@@ -469,11 +506,14 @@
       list.innerHTML = '';
     } else {
       field.style.display = 'block';
-      list.innerHTML = draftItems.map((item, i) =>
-        `<span class="draft-chip">${escapeHtml(item)}<button onclick="removeDraftItem(${i})">✕</button></span>`
-      ).join('');
+      list.innerHTML = draftItems.map((d, i) => `
+        <span class="draft-chip">
+          <button onclick="decDraftItem(${i})" aria-label="빼기">−</button>
+          <span>${escapeHtml(d.name)} ×${d.count}</span>
+          <button onclick="incDraftItem(${i})" aria-label="더하기">+</button>
+        </span>`).join('');
     }
-    document.getElementById('create-submit-btn').disabled = draftItems.length < 2;
+    document.getElementById('create-submit-btn').disabled = draftTotal() < 2;
   }
 
   function openCreateForm() {
@@ -491,13 +531,14 @@
   }
 
   function createRoom() {
-    if (draftItems.length < 2) { alert('벌칙 항목을 2개 이상 추가해주세요!'); return; }
+    const items = draftItems.flatMap(d => Array(d.count).fill(d.name));
+    if (items.length < 2) { alert('벌칙 항목을 2개 이상 추가해주세요!'); return; }
     const btn = document.getElementById('create-submit-btn');
     btn.disabled = true;
     colTeamLadders.add({
       teamCode: myTeamCode,
       status: 'waiting',
-      items: draftItems.slice(),
+      items,
       participants: [{ uid: myUid, name: myName }],
       createdBy: myUid,
       createdByName: myName,
@@ -783,6 +824,16 @@
       myUid = user.uid;
       myName = profile.name;
       myTeamCode = teamCode;
+
+      const dn = profile.nickname || profile.name || profile.username || '이름없음';
+      const roleText = profile.isOperator ? '운영자' : (profile.isAdmin ? '관리자' : '일반회원');
+      const code = profile.isAdmin ? profile.adminTeamCode : profile.teamCode;
+      document.getElementById('menu-profile-name').textContent = dn;
+      document.getElementById('menu-profile-role').textContent = roleText;
+      document.getElementById('menu-profile-avatar').textContent = dn.charAt(0);
+      const codeEl = document.getElementById('menu-profile-code');
+      codeEl.textContent = code ? `코드 ${code}` : '';
+      codeEl.style.display = code ? '' : 'none';
 
       document.getElementById('hamburger-btn').style.display = '';
       startRoomFeed();

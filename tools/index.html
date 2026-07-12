@@ -131,6 +131,7 @@
   .menu-profile-info { flex: 1; min-width: 0; }
   .menu-profile-name { font-size: 15px; font-weight: 900; color: var(--text); }
   .menu-profile-role { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .menu-profile-code { font-size: 11px; font-weight: 700; color: var(--orange); margin-top: 3px; }
 
   header.page-head { text-align: center; padding: 28px 0 24px; }
   .header-icon { font-size: 40px; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 12px rgba(255,107,43,0.5)); }
@@ -455,6 +456,7 @@
       <div class="menu-profile-info">
         <div class="menu-profile-name" id="menu-profile-name">-</div>
         <div class="menu-profile-role" id="menu-profile-role">-</div>
+        <div class="menu-profile-code" id="menu-profile-code" style="display:none;"></div>
       </div>
       <span class="tool-arrow">›</span>
     </button>
@@ -1361,11 +1363,15 @@
       const nameEl = document.getElementById('menu-profile-name');
       const roleEl = document.getElementById('menu-profile-role');
       const avatarEl = document.getElementById('menu-profile-avatar');
+      const codeEl = document.getElementById('menu-profile-code');
       if (nameEl) {
         const dn = displayName(myProfile);
         nameEl.textContent = dn;
         roleEl.textContent = roleLabel(myProfile);
         avatarEl.textContent = dn.charAt(0);
+        const code = myProfile.isAdmin ? myProfile.adminTeamCode : myProfile.teamCode;
+        codeEl.textContent = code ? `코드 ${code}` : '';
+        codeEl.style.display = code ? '' : 'none';
       }
 
       if (myProfile.status !== 'approved') {
