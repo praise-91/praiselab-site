@@ -510,6 +510,7 @@
       <button class="filter-reset-btn" onclick="resetFilters()">필터 초기화</button>
     </div>
 
+    <div id="list-area">
     <!-- 구인 게시판 -->
     <div class="board-panel active" id="panel-jobs">
       <button class="new-btn" id="job-new-btn" style="display:none;" onclick="openJobForm()">+ 구인 등록</button>
@@ -695,27 +696,31 @@
 
       <div class="list" id="post-list"></div>
     </div>
-  </div>
-
-  <!-- 자유게시판 글 상세 -->
-  <div class="view" id="view-post-detail">
-    <div style="padding:16px 0 12px;">
-      <button class="cancel-btn" onclick="closePostDetail()">← 목록으로</button>
     </div>
 
-    <div class="card">
-      <div id="detail-post-card"></div>
-      <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
-        <div style="font-size:13px; font-weight:700; color:var(--text-dim); margin-bottom:12px;">댓글</div>
-        <div class="list" id="comment-list" style="margin-bottom:14px;"></div>
-        <div id="comment-form-member" style="display:none;">
-          <div class="field" style="margin-bottom:8px;">
-            <textarea id="comment-input" placeholder="댓글을 입력해주세요" style="min-height:60px;"></textarea>
+    <!-- 게시글 상세 -->
+    <div id="detail-area" style="display:none;">
+      <div style="padding:0 0 12px;">
+        <button class="cancel-btn" onclick="closePostDetail()">← 목록으로</button>
+      </div>
+
+      <div class="card">
+        <div id="detail-post-card"></div>
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+          <div style="font-size:13px; font-weight:700; color:var(--text-dim); margin-bottom:12px;">댓글</div>
+          <div class="list" id="comment-list" style="margin-bottom:14px;"></div>
+          <div id="comment-form-member" style="display:none;">
+            <div class="field" style="margin-bottom:8px;">
+              <textarea id="comment-input" placeholder="댓글을 입력해주세요" style="min-height:60px;"></textarea>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button class="submit-btn" id="comment-save-btn" onclick="addComment()" style="flex:1;">댓글 등록</button>
+              <button class="post-del" id="comment-cancel-edit-btn" onclick="cancelCommentEdit()" style="display:none;">취소</button>
+            </div>
           </div>
-          <button class="submit-btn" id="comment-save-btn" onclick="addComment()">댓글 등록</button>
-        </div>
-        <div id="comment-form-guest" style="display:none;">
-          <button class="new-btn" onclick="location.href='index.html';">로그인하고 댓글 남기기</button>
+          <div id="comment-form-guest" style="display:none;">
+            <button class="new-btn" onclick="location.href='index.html';">로그인하고 댓글 남기기</button>
+          </div>
         </div>
       </div>
     </div>
@@ -783,6 +788,7 @@
   let currentDetailType = null; // 'post' | 'job' | 'seeker'
   let comments = [];
   let commentsUnsub = null;
+  let editingCommentId = null;
 
   function escapeHtml(s) {
     return String(s)
@@ -810,7 +816,20 @@
     window.scrollTo(0, 0);
   }
 
+  function showDetailArea() {
+    document.getElementById('list-area').style.display = 'none';
+    document.getElementById('detail-area').style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+
+  function hideDetailArea() {
+    document.getElementById('detail-area').style.display = 'none';
+    document.getElementById('list-area').style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+
   function switchTab(name) {
+    if (currentDetailId) closePostDetail();
     currentTab = name;
     document.getElementById('tab-jobs').classList.toggle('active', name === 'jobs');
     document.getElementById('tab-seekers').classList.toggle('active', name === 'seekers');
@@ -833,6 +852,7 @@
   }
 
   function onSearchInput() {
+    if (currentDetailId) closePostDetail();
     searchQuery = document.getElementById('search-input').value.trim().toLowerCase();
     renderJobs();
     renderSeekers();
@@ -1465,7 +1485,7 @@
     startCommentsFeed(id);
     incrementViewsOnce(colPosts, 'post', id);
     history.pushState({ feederDetail: true }, '', location.href);
-    go('view-post-detail');
+    showDetailArea();
   }
 
   function openJobDetail(id) {
@@ -1477,7 +1497,7 @@
     startCommentsFeed(id);
     incrementViewsOnce(colJobs, 'job', id);
     history.pushState({ feederDetail: true }, '', location.href);
-    go('view-post-detail');
+    showDetailArea();
   }
 
   function openSeekerDetail(id) {
@@ -1489,7 +1509,7 @@
     startCommentsFeed(id);
     incrementViewsOnce(colSeekers, 'seeker', id);
     history.pushState({ feederDetail: true }, '', location.href);
-    go('view-post-detail');
+    showDetailArea();
   }
 
   // fromPopstate: true면 뒤로가기로 이미 브라우저 히스토리가 넘어간 상태라
@@ -1500,7 +1520,7 @@
     comments = [];
     currentDetailId = null;
     currentDetailType = null;
-    go('view-app');
+    hideDetailArea();
     if (!fromPopstate && history.state && history.state.feederDetail) {
       history.back();
     }
@@ -1600,12 +1620,15 @@
       return;
     }
     list.innerHTML = comments.map(c => {
-      const canDelete = myIsAdmin || c.authorUid === myUid;
+      const canManage = myIsAdmin || c.authorUid === myUid;
       return `
         <div class="post-card" style="padding:10px 12px;">
           <div class="post-card-top" style="margin-bottom:2px;">
             <span style="font-size:12.5px; font-weight:700;">${escapeHtml(c.authorName)}</span>
-            ${canDelete ? `<button class="post-del" onclick="deleteComment('${c.id}')">삭제</button>` : ''}
+            ${canManage ? `<span style="display:flex; gap:8px;">
+              <button class="post-del" onclick="editComment('${c.id}')">수정</button>
+              <button class="post-del" onclick="deleteComment('${c.id}')">삭제</button>
+            </span>` : ''}
           </div>
           <div class="post-content" style="font-size:13px;">${linkify(escapeHtml(c.content))}</div>
           <div class="post-meta">${formatDate(c.createdAt)}</div>
@@ -1616,6 +1639,7 @@
   function startCommentsFeed(postId) {
     if (commentsUnsub) { commentsUnsub(); commentsUnsub = null; }
     comments = [];
+    cancelCommentEdit();
     renderComments();
     commentsUnsub = colComments.where('postId', '==', postId).orderBy('createdAt', 'asc').onSnapshot(snap => {
       comments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1634,6 +1658,15 @@
 
     const btn = document.getElementById('comment-save-btn');
     btn.disabled = true;
+
+    if (editingCommentId) {
+      colComments.doc(editingCommentId).update({ content })
+        .then(() => { cancelCommentEdit(); })
+        .catch(() => alert('댓글 수정 실패. 인터넷 연결을 확인해주세요.'))
+        .finally(() => { btn.disabled = false; });
+      return;
+    }
+
     colComments.add({
       postId: currentDetailId,
       content,
@@ -1646,9 +1679,27 @@
       .finally(() => { btn.disabled = false; });
   }
 
+  function editComment(id) {
+    const c = comments.find(x => x.id === id);
+    if (!c) return;
+    editingCommentId = id;
+    document.getElementById('comment-input').value = c.content;
+    document.getElementById('comment-save-btn').textContent = '댓글 수정';
+    document.getElementById('comment-cancel-edit-btn').style.display = 'block';
+    document.getElementById('comment-input').focus();
+  }
+
+  function cancelCommentEdit() {
+    editingCommentId = null;
+    document.getElementById('comment-input').value = '';
+    document.getElementById('comment-save-btn').textContent = '댓글 등록';
+    document.getElementById('comment-cancel-edit-btn').style.display = 'none';
+  }
+
   function deleteComment(id) {
     if (!confirm('이 댓글을 삭제할까요?')) return;
     colComments.doc(id).delete()
+      .then(() => { if (editingCommentId === id) cancelCommentEdit(); })
       .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
   }
 
