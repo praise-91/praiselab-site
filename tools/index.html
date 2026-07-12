@@ -781,6 +781,11 @@
         팀원에게 이 코드를 알려주면 메뉴의 "팀 참가"에서 입력해 신청할 수 있어요.
       </div>
     </div>
+    <div class="card" id="presence-card" style="display:none;">
+      <div class="section-label">실시간 접속자</div>
+      <div id="presence-count" style="font-size:22px; font-weight:900;">-</div>
+      <div id="presence-list" style="margin-top:10px;"></div>
+    </div>
     <div class="tool-list">
       <a href="javascript:void(0)" class="tool-card tool-card--admin" onclick="openAdminApprove()">
         <div class="tool-icon">🔑</div>
@@ -1400,6 +1405,11 @@
     // 일반 팀장은 그대로 둬서 반장으로 다시 내려가고 싶을 때 메뉴에서 갈 수 있게 유지
     if (menuAdminRequest) menuAdminRequest.style.display = (!isGuest && myProfile && !myProfile.isOperator) ? '' : 'none';
 
+    const presenceCard = document.getElementById('presence-card');
+    const isOperatorNow = !isGuest && myProfile && myProfile.isOperator;
+    if (presenceCard) presenceCard.style.display = isOperatorNow ? '' : 'none';
+    if (isOperatorNow) startPresenceWatch(); else stopPresenceWatch();
+
     if (isGuest || !myProfile || (!myProfile.isAdmin && !myProfile.isOperator)) {
       menuAdmin.style.display = 'none';
       return;
@@ -1407,6 +1417,52 @@
     menuAdmin.style.display = '';
     const teamCodeEl = document.getElementById('admin-team-code');
     if (teamCodeEl) teamCodeEl.textContent = myProfile.adminTeamCode || '아직 발급 전이에요';
+  }
+
+  // ── 운영자 전용: 실시간 접속자(하트비트 staleness 기준, assets/presence.js가 남기는 문서) ──
+  let presenceUnsub = null;
+  let presenceTimer = null;
+  let presenceDocs = [];
+  const colPresence = db.collection('tools_presence');
+
+  function startPresenceWatch() {
+    if (presenceUnsub) return;
+    presenceUnsub = colPresence.onSnapshot(snap => {
+      presenceDocs = snap.docs.map(d => d.data());
+      renderPresence();
+    }, () => {});
+    if (!presenceTimer) presenceTimer = setInterval(renderPresence, 15000);
+  }
+
+  function stopPresenceWatch() {
+    if (presenceUnsub) { presenceUnsub(); presenceUnsub = null; }
+    if (presenceTimer) { clearInterval(presenceTimer); presenceTimer = null; }
+    presenceDocs = [];
+  }
+
+  function renderPresence() {
+    const countEl = document.getElementById('presence-count');
+    const listEl = document.getElementById('presence-list');
+    if (!countEl || !listEl) return;
+    const cutoff = Date.now() - 90000;
+    const online = presenceDocs.filter(p => p.lastSeen && p.lastSeen.toMillis() > cutoff);
+    const names = [];
+    let guestCount = 0;
+    online.forEach(p => {
+      if (!p.uid) { guestCount += 1; return; }
+      const u = users.find(x => x.id === p.uid);
+      names.push(u ? displayName(u) : '알 수 없음');
+    });
+    countEl.textContent = `${online.length}명 접속 중`;
+    const rows = names.sort((a, b) => a.localeCompare(b, 'ko')).map(n => `
+      <div class="approve-row">
+        <span class="approve-name">${escapeHtml(n)}</span>
+      </div>`).join('');
+    const guestRow = guestCount > 0 ? `
+      <div class="approve-row">
+        <span class="approve-name" style="color:var(--text-dim);">게스트 ${guestCount}명</span>
+      </div>` : '';
+    listEl.innerHTML = (rows + guestRow) || '<div class="empty-state"><span class="empty-icon">👀</span>접속 중인 사람이 없어요</div>';
   }
 
   // ── 이름 목록 실시간 구독 (로그인 화면 + 승인 화면 공용) ──
@@ -1492,5 +1548,6 @@
     });
   });
 </script>
+<script src="/tools/assets/presence.js"></script>
 </body>
 </html>
