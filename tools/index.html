@@ -517,7 +517,7 @@
       <span class="menu-item-icon">🔗</span><span>팀 참가</span>
     </button>
     <button class="menu-item" id="menu-admin-request" onclick="closeMenu(); go('view-admin-request');">
-      <span class="menu-item-icon">📋</span><span>팀장 변경</span>
+      <span class="menu-item-icon">📋</span><span>직위 변경</span>
     </button>
     <button class="menu-item" onclick="closeMenu(); go('view-settings'); renderSettings();">
       <span class="menu-item-icon">⚙️</span><span>설정</span>
@@ -630,11 +630,11 @@
     <div class="card" id="team-join-body"></div>
   </div>
 
-  <!-- 팀장 변경 -->
+  <!-- 직위 변경 -->
   <div class="view" id="view-admin-request">
     <div class="view-head">
       <button class="back-btn" onclick="history.back()">‹</button>
-      <h2>팀장 변경</h2>
+      <h2>직위 변경</h2>
     </div>
     <div class="card" id="admin-request-body"></div>
   </div>
@@ -1224,6 +1224,19 @@
     const el = document.getElementById('admin-request-body');
     if (!el || !myProfile) return;
     const isAdmin = !!myProfile.isAdmin;
+    // 이미 다른 팀 소속(teamCode)인 반장은 팀장으로 바로 전환할 수 없게 막는다 —
+    // 소속팀은 그대로 둔 채 별도 팀 코드를 새로 발급받아버리면 한 사람이 두 팀에
+    // 걸쳐있는 것처럼 꼬이기 때문. 먼저 탈퇴해야 순서가 맞는다.
+    if (!isAdmin && myProfile.teamCode) {
+      el.innerHTML = `
+        <div style="font-size:13px;color:var(--text-dim);line-height:1.6;text-align:center;">
+          <b style="color:var(--text)">${escapeHtml(myProfile.teamCode)}</b> 팀 소속으로 활동 중이에요.<br>
+          팀장으로 전환하려면 먼저 그 팀에서 탈퇴해주세요.
+        </div>
+        <button class="submit-btn" style="margin-top:16px;" onclick="go('view-my-profile'); renderMyProfile();">내 정보로 이동 →</button>
+      `;
+      return;
+    }
     el.innerHTML = `
       <div style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
         팀장이 되면 팀 코드를 발급받아 물량작성·공수달력 팀원을 직접 관리할 수 있어요.
@@ -1239,6 +1252,10 @@
   function setAdminMode(next) {
     if (!myProfile || !!myProfile.isAdmin === next) return;
     if (next) {
+      if (myProfile.teamCode) {
+        alert('이미 다른 팀에 소속돼 있어요. 팀장으로 전환하려면 먼저 그 팀에서 탈퇴해주세요.');
+        return;
+      }
       if (myProfile.adminTeamCode) {
         colUsers.doc(auth.currentUser.uid).update({ isAdmin: true, role: 'admin' })
           .then(() => showToast('✅ 팀장으로 전환했어요'))
