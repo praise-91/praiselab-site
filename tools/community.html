@@ -1452,6 +1452,7 @@
     renderPostDetail(p);
     startCommentsFeed(id);
     incrementViewsOnce(colPosts, 'post', id);
+    history.pushState({ feederDetail: true }, '', location.href);
     go('view-post-detail');
   }
 
@@ -1463,6 +1464,7 @@
     renderJobDetail(j);
     startCommentsFeed(id);
     incrementViewsOnce(colJobs, 'job', id);
+    history.pushState({ feederDetail: true }, '', location.href);
     go('view-post-detail');
   }
 
@@ -1474,16 +1476,29 @@
     renderSeekerDetail(s);
     startCommentsFeed(id);
     incrementViewsOnce(colSeekers, 'seeker', id);
+    history.pushState({ feederDetail: true }, '', location.href);
     go('view-post-detail');
   }
 
-  function closePostDetail() {
+  // fromPopstate: true면 뒤로가기로 이미 브라우저 히스토리가 넘어간 상태라
+  // history.back()을 또 부르면 안 됨(무한루프 방지). "목록으로" 버튼처럼
+  // 앱 안에서 닫을 때만 뒤로가기를 대신 호출해 pushState로 쌓인 기록을 정리함
+  function closePostDetail(fromPopstate) {
     if (commentsUnsub) { commentsUnsub(); commentsUnsub = null; }
     comments = [];
     currentDetailId = null;
     currentDetailType = null;
     go('view-app');
+    if (!fromPopstate && history.state && history.state.feederDetail) {
+      history.back();
+    }
   }
+
+  window.addEventListener('popstate', function() {
+    if (currentDetailId) {
+      closePostDetail(true);
+    }
+  });
 
   function renderPostDetail(p) {
     const canManage = myIsAdmin || p.authorUid === myUid;
