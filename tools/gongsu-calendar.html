@@ -324,17 +324,21 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
       window.gcMyUid = user.uid;
       window.gcMyName = doc.data().name;
+      // 팀원은 teamCode, 관리자는 adminTeamCode가 "내 팀" — 랭킹을 이 팀으로만 스코프한다
+      window.gcMyTeamCode = doc.data().teamCode || doc.data().adminTeamCode || null;
       window.colGongsuLeaderboard = colGongsuLeaderboard;
 
       // 관리자가 ?as=uid로 들어오면 자기 uid 대신 그 팀원의 달력을 보고 수정한다
       const asUid = new URLSearchParams(location.search).get('as');
       let targetUid = user.uid;
       let targetName = window.gcMyName;
+      let targetTeamCode = window.gcMyTeamCode;
       if (asUid && asUid !== user.uid && doc.data().isAdmin) {
         const targetDoc = await colToolsUsers.doc(asUid).get();
         if (targetDoc.exists) {
           targetUid = asUid;
           targetName = targetDoc.data().name;
+          targetTeamCode = targetDoc.data().teamCode || targetDoc.data().adminTeamCode || window.gcMyTeamCode;
           document.getElementById('gc-admin-target-name').textContent = targetName;
           document.getElementById('gc-admin-banner').style.display = 'flex';
         }
@@ -347,6 +351,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
         });
         await colGongsuLeaderboard.doc(targetUid).set({
           name: targetName,
+          teamCode: targetTeamCode,
           gongsuByDate,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
@@ -1863,7 +1868,8 @@ function TeamModal({
   const [end, setEnd] = useState(() => teamRangePreset("month")[1]);
   const [members, setMembers] = useState(null);
   useEffect(() => {
-    const unsub = window.colGongsuLeaderboard.onSnapshot(snap => {
+    if (!window.gcMyTeamCode) { setMembers([]); return; }
+    const unsub = window.colGongsuLeaderboard.where('teamCode', '==', window.gcMyTeamCode).onSnapshot(snap => {
       setMembers(snap.docs.map(d => ({
         id: d.id,
         ...d.data()
