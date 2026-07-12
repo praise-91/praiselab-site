@@ -363,11 +363,11 @@
   <div class="view" id="view-app">
     <header class="page-head">
       <h1>피더 커뮤니티</h1>
-      <div class="page-sub">현장 소식 · 정보를 나누는 공간</div>
     </header>
 
     <div class="tabs">
       <button class="tab active" id="tab-jobs" onclick="switchTab('jobs')">구인</button>
+      <button class="tab" id="tab-seekers" onclick="switchTab('seekers')">구직</button>
       <button class="tab" id="tab-free" onclick="switchTab('free')">자유게시판</button>
     </div>
 
@@ -465,6 +465,59 @@
       <div class="list" id="job-list"></div>
     </div>
 
+    <!-- 구직 게시판 -->
+    <div class="board-panel" id="panel-seekers">
+      <button class="new-btn" id="seeker-new-btn" onclick="openSeekerForm()">+ 구직 등록</button>
+
+      <div class="card form-card" id="seeker-form" style="display:none;">
+        <div class="field">
+          <label>희망 공종</label>
+          <select id="seeker-worktype">
+            <option value="전기(내선)">전기(내선)</option>
+            <option value="전기(플랜트·고압)">전기(플랜트·고압)</option>
+            <option value="통신">통신</option>
+            <option value="소방">소방</option>
+            <option value="설비">설비</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>경력</label>
+          <input type="text" id="seeker-career" placeholder="예: 3년, 신입 가능 등" />
+        </div>
+        <div class="field">
+          <label>이동 가능 지역</label>
+          <select id="seeker-region"></select>
+        </div>
+        <div class="field">
+          <label>숙소 필요 여부</label>
+          <select id="seeker-stay">
+            <option value="needed">필요</option>
+            <option value="not_needed">불필요</option>
+            <option value="negotiable">협의</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>자기소개</label>
+          <textarea id="seeker-intro" placeholder="경력, 보유 자격증, 원하는 조건 등을 자유롭게 적어주세요"></textarea>
+        </div>
+        <div class="field">
+          <label>연락방법</label>
+          <select id="seeker-contact-method" style="margin-bottom:8px;">
+            <option value="phone">전화번호</option>
+            <option value="kakao">카톡 오픈채팅 링크</option>
+          </select>
+          <input type="text" id="seeker-contact-value" placeholder="연락처를 입력해주세요" />
+        </div>
+        <div class="form-actions">
+          <button class="cancel-btn" onclick="closeSeekerForm()">취소</button>
+          <button class="submit-btn" id="seeker-save-btn" onclick="saveSeeker()">등록하기</button>
+        </div>
+      </div>
+
+      <div class="list" id="seeker-list"></div>
+    </div>
+
     <!-- 자유게시판 -->
     <div class="board-panel" id="panel-free">
       <button class="new-btn" id="post-new-btn" onclick="openPostForm()">+ 글쓰기</button>
@@ -497,6 +550,24 @@
     </div>
   </div>
 
+  <!-- 자유게시판 글 상세 -->
+  <div class="view" id="view-post-detail">
+    <div style="padding:16px 0 12px;">
+      <button class="cancel-btn" onclick="closePostDetail()">← 목록으로</button>
+    </div>
+
+    <div class="card" id="detail-post-card" style="margin-bottom:16px;"></div>
+
+    <div class="card">
+      <div style="font-size:13px; font-weight:700; color:var(--text-dim); margin-bottom:12px;">댓글</div>
+      <div class="list" id="comment-list" style="margin-bottom:14px;"></div>
+      <div class="field" style="margin-bottom:8px;">
+        <textarea id="comment-input" placeholder="댓글을 입력해주세요" style="min-height:60px;"></textarea>
+      </div>
+      <button class="submit-btn" id="comment-save-btn" onclick="addComment()">댓글 등록</button>
+    </div>
+  </div>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -514,6 +585,8 @@
   const colToolsUsers = db.collection('tools_users');
   const colJobs = db.collection('community_jobs');
   const colPosts = db.collection('community_posts');
+  const colSeekers = db.collection('community_seekers');
+  const colComments = db.collection('community_comments');
 
   const SIDO_LIST = [
     '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시',
@@ -524,6 +597,7 @@
 
   const STAY_LABEL = { yes: '숙소제공', no: '숙소미제공', negotiable: '숙소협의' };
   const MEAL_LABEL = { free: '숙식비 무료', partial: '숙식비 일부 부담', cash: '숙식비 현금 지급' };
+  const STAY_NEED_LABEL = { needed: '숙소필요', not_needed: '숙소불필요', negotiable: '숙소협의' };
 
   let gateProfileUnsub = null;
   let myUid = null;
@@ -532,8 +606,19 @@
 
   let jobs = [];
   let jobsUnsub = null;
+  let editingJobId = null;
+
+  let seekers = [];
+  let seekersUnsub = null;
+  let editingSeekerId = null;
+
   let posts = [];
   let postsUnsub = null;
+  let editingPostId = null;
+
+  let currentPostId = null;
+  let comments = [];
+  let commentsUnsub = null;
 
   function escapeHtml(s) {
     return String(s)
@@ -552,8 +637,10 @@
 
   function switchTab(name) {
     document.getElementById('tab-jobs').classList.toggle('active', name === 'jobs');
+    document.getElementById('tab-seekers').classList.toggle('active', name === 'seekers');
     document.getElementById('tab-free').classList.toggle('active', name === 'free');
     document.getElementById('panel-jobs').classList.toggle('active', name === 'jobs');
+    document.getElementById('panel-seekers').classList.toggle('active', name === 'seekers');
     document.getElementById('panel-free').classList.toggle('active', name === 'free');
   }
 
@@ -613,6 +700,8 @@
 
   function openJobForm() {
     resetJobForm();
+    editingJobId = null;
+    document.getElementById('job-save-btn').textContent = '등록하기';
     document.getElementById('job-form').style.display = 'block';
     document.getElementById('job-new-btn').style.display = 'none';
   }
@@ -620,6 +709,38 @@
   function closeJobForm() {
     document.getElementById('job-form').style.display = 'none';
     document.getElementById('job-new-btn').style.display = myIsAdmin ? 'block' : 'none';
+    editingJobId = null;
+  }
+
+  function editJob(id) {
+    const j = jobs.find(x => x.id === id);
+    if (!j) return;
+    resetJobForm();
+    document.getElementById('job-site').value = j.siteName;
+    document.getElementById('job-sido').value = j.regionSido;
+    document.getElementById('job-sigungu').value = j.regionSigungu;
+    document.getElementById('job-worktype').value = j.workType;
+    document.getElementById('job-headcount').value = j.headcount;
+    document.getElementById('job-period-negotiable').checked = j.periodType === 'negotiable';
+    document.getElementById('job-period-start').value = j.periodStart || '';
+    document.getElementById('job-period-end').value = j.periodEnd || '';
+    document.getElementById('job-stay').value = j.stay;
+    document.getElementById('job-stay-type').value = j.stayType || '';
+    document.getElementById('job-meal-cost').value = j.mealCost || 'free';
+    document.getElementById('job-wage-negotiable').checked = j.wageNegotiable;
+    document.getElementById('job-wage').value = j.wage || '';
+    document.getElementById('job-desc').value = j.description;
+    document.getElementById('job-contact-method').value = j.contactMethod;
+    document.getElementById('job-contact-value').value = j.contactValue;
+    togglePeriodInputs();
+    toggleStayDetail();
+    toggleWageInput();
+
+    editingJobId = id;
+    document.getElementById('job-save-btn').textContent = '수정하기';
+    document.getElementById('job-form').style.display = 'block';
+    document.getElementById('job-new-btn').style.display = 'none';
+    window.scrollTo(0, 0);
   }
 
   function saveJob() {
@@ -639,7 +760,7 @@
     const wageNegotiable = document.getElementById('job-wage-negotiable').checked;
     const stay = document.getElementById('job-stay').value;
 
-    const doc = {
+    const fields = {
       siteName,
       regionSido: document.getElementById('job-sido').value,
       regionSigungu: sigungu,
@@ -656,18 +777,28 @@
       description,
       contactMethod: document.getElementById('job-contact-method').value,
       contactValue,
-      status: 'open',
-      authorUid: myUid,
-      authorName: myName,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     };
 
     const btn = document.getElementById('job-save-btn');
     btn.disabled = true;
-    colJobs.add(doc)
-      .then(() => { closeJobForm(); })
-      .catch(() => alert('등록 실패. 인터넷 연결을 확인해주세요.'))
-      .finally(() => { btn.disabled = false; });
+
+    if (editingJobId) {
+      colJobs.doc(editingJobId).update(fields)
+        .then(() => { closeJobForm(); })
+        .catch(() => alert('수정 실패. 인터넷 연결을 확인해주세요.'))
+        .finally(() => { btn.disabled = false; });
+    } else {
+      colJobs.add({
+        ...fields,
+        status: 'open',
+        authorUid: myUid,
+        authorName: myName,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      })
+        .then(() => { closeJobForm(); })
+        .catch(() => alert('등록 실패. 인터넷 연결을 확인해주세요.'))
+        .finally(() => { btn.disabled = false; });
+    }
   }
 
   function toggleJobStatus(id, current) {
@@ -701,6 +832,7 @@
       const contactLabel = j.contactMethod === 'kakao' ? '카톡' : '전화';
       const adminActions = myIsAdmin ? `
         <div class="admin-actions">
+          <button class="mini-btn" onclick="editJob('${j.id}')">수정</button>
           <button class="mini-btn" onclick="toggleJobStatus('${j.id}','${j.status}')">${j.status === 'open' ? '마감 처리' : '모집 재개'}</button>
           <button class="mini-btn danger" onclick="deleteJob('${j.id}')">삭제</button>
         </div>` : '';
@@ -735,6 +867,152 @@
     });
   }
 
+  // ══════════════ 구직 게시판 ══════════════
+
+  function initSeekerRegionSelect() {
+    const sel = document.getElementById('seeker-region');
+    sel.innerHTML = ['전국 가능', ...SIDO_LIST].map(s => `<option value="${s}">${s}</option>`).join('');
+  }
+
+  function resetSeekerForm() {
+    document.getElementById('seeker-career').value = '';
+    document.getElementById('seeker-stay').value = 'needed';
+    document.getElementById('seeker-intro').value = '';
+    document.getElementById('seeker-contact-value').value = '';
+  }
+
+  function openSeekerForm() {
+    resetSeekerForm();
+    editingSeekerId = null;
+    document.getElementById('seeker-save-btn').textContent = '등록하기';
+    document.getElementById('seeker-form').style.display = 'block';
+    document.getElementById('seeker-new-btn').style.display = 'none';
+  }
+
+  function closeSeekerForm() {
+    document.getElementById('seeker-form').style.display = 'none';
+    document.getElementById('seeker-new-btn').style.display = 'block';
+    editingSeekerId = null;
+  }
+
+  function editSeeker(id) {
+    const s = seekers.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('seeker-worktype').value = s.workType;
+    document.getElementById('seeker-career').value = s.career;
+    document.getElementById('seeker-region').value = s.region;
+    document.getElementById('seeker-stay').value = s.stay;
+    document.getElementById('seeker-intro').value = s.intro;
+    document.getElementById('seeker-contact-method').value = s.contactMethod;
+    document.getElementById('seeker-contact-value').value = s.contactValue;
+
+    editingSeekerId = id;
+    document.getElementById('seeker-save-btn').textContent = '수정하기';
+    document.getElementById('seeker-form').style.display = 'block';
+    document.getElementById('seeker-new-btn').style.display = 'none';
+    window.scrollTo(0, 0);
+  }
+
+  function saveSeeker() {
+    const career = document.getElementById('seeker-career').value.trim();
+    const intro = document.getElementById('seeker-intro').value.trim();
+    const contactValue = document.getElementById('seeker-contact-value').value.trim();
+
+    if (!career) { alert('경력을 입력해주세요!'); return; }
+    if (!intro) { alert('자기소개를 입력해주세요!'); return; }
+    if (!contactValue) { alert('연락처를 입력해주세요!'); return; }
+
+    const fields = {
+      workType: document.getElementById('seeker-worktype').value,
+      career,
+      region: document.getElementById('seeker-region').value,
+      stay: document.getElementById('seeker-stay').value,
+      intro,
+      contactMethod: document.getElementById('seeker-contact-method').value,
+      contactValue,
+    };
+
+    const btn = document.getElementById('seeker-save-btn');
+    btn.disabled = true;
+
+    if (editingSeekerId) {
+      colSeekers.doc(editingSeekerId).update(fields)
+        .then(() => { closeSeekerForm(); })
+        .catch(() => alert('수정 실패. 인터넷 연결을 확인해주세요.'))
+        .finally(() => { btn.disabled = false; });
+    } else {
+      colSeekers.add({
+        ...fields,
+        status: 'available',
+        authorUid: myUid,
+        authorName: myName,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      })
+        .then(() => { closeSeekerForm(); })
+        .catch(() => alert('등록 실패. 인터넷 연결을 확인해주세요.'))
+        .finally(() => { btn.disabled = false; });
+    }
+  }
+
+  function toggleSeekerStatus(id, current) {
+    const next = current === 'available' ? 'matched' : 'available';
+    colSeekers.doc(id).update({ status: next })
+      .catch(() => alert('처리 실패. 다시 시도해주세요.'));
+  }
+
+  function deleteSeeker(id) {
+    if (!confirm('이 구직 글을 삭제할까요?')) return;
+    colSeekers.doc(id).delete()
+      .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
+  }
+
+  function renderSeekers() {
+    const list = document.getElementById('seeker-list');
+    if (!seekers.length) {
+      list.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">🙋</span>아직 등록된 구직 글이 없어요</div></div>';
+      return;
+    }
+    list.innerHTML = seekers.map(s => {
+      const stayKey = s.stay === 'needed' ? 'yes' : (s.stay === 'not_needed' ? 'no' : 'negotiable');
+      const stayBadge = `<span class="badge stay-${stayKey}">${STAY_NEED_LABEL[s.stay] || ''}</span>`;
+      const matchedBadge = s.status === 'matched' ? '<span class="badge closed">구직완료</span>' : '';
+      const contactLabel = s.contactMethod === 'kakao' ? '카톡' : '전화';
+      const canManage = myIsAdmin || s.authorUid === myUid;
+      const actions = canManage ? `
+        <div class="admin-actions">
+          <button class="mini-btn" onclick="editSeeker('${s.id}')">수정</button>
+          <button class="mini-btn" onclick="toggleSeekerStatus('${s.id}','${s.status}')">${s.status === 'available' ? '구직완료 처리' : '구직중으로 전환'}</button>
+          <button class="mini-btn danger" onclick="deleteSeeker('${s.id}')">삭제</button>
+        </div>` : '';
+      return `
+        <div class="job-card ${s.status === 'matched' ? 'is-closed' : ''}">
+          <div class="job-card-top">
+            <div>
+              <div class="job-site">${escapeHtml(s.authorName)}</div>
+              <div class="job-region">${escapeHtml(s.region)} · ${escapeHtml(s.workType)}</div>
+            </div>
+            <div style="display:flex;gap:4px;">${matchedBadge}${stayBadge}</div>
+          </div>
+          <div class="job-meta">경력 <b>${escapeHtml(s.career)}</b></div>
+          <div class="job-desc">${escapeHtml(s.intro)}</div>
+          <div class="job-card-foot">
+            <span class="job-contact">${contactLabel} · ${escapeHtml(s.contactValue)}</span>
+          </div>
+          ${actions}
+        </div>`;
+    }).join('');
+  }
+
+  function startSeekersFeed() {
+    if (seekersUnsub) return;
+    seekersUnsub = colSeekers.orderBy('createdAt', 'desc').onSnapshot(snap => {
+      seekers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderSeekers();
+    }, () => {
+      document.getElementById('seeker-list').innerHTML = '<div class="card"><div class="empty-state">⚠️ 연결 오류. 새로고침 해주세요.</div></div>';
+    });
+  }
+
   // ══════════════ 자유게시판 ══════════════
 
   function resetPostForm() {
@@ -745,6 +1023,8 @@
 
   function openPostForm() {
     resetPostForm();
+    editingPostId = null;
+    document.getElementById('post-save-btn').textContent = '등록하기';
     document.getElementById('post-form').style.display = 'block';
     document.getElementById('post-new-btn').style.display = 'none';
   }
@@ -752,6 +1032,25 @@
   function closePostForm() {
     document.getElementById('post-form').style.display = 'none';
     document.getElementById('post-new-btn').style.display = 'block';
+    editingPostId = null;
+  }
+
+  function editPost(id) {
+    const p = posts.find(x => x.id === id);
+    if (!p) return;
+    if (currentPostId) { closePostDetail(); }
+
+    document.getElementById('post-title').value = p.title;
+    document.getElementById('post-category').value = p.category;
+    document.getElementById('post-content').value = p.content;
+
+    editingPostId = id;
+    document.getElementById('post-save-btn').textContent = '수정하기';
+    document.getElementById('post-form').style.display = 'block';
+    document.getElementById('post-new-btn').style.display = 'none';
+    go('view-app');
+    switchTab('free');
+    window.scrollTo(0, 0);
   }
 
   function savePost() {
@@ -760,26 +1059,37 @@
     if (!title) { alert('제목을 입력해주세요!'); return; }
     if (!content) { alert('내용을 입력해주세요!'); return; }
 
-    const doc = {
-      title,
-      category: document.getElementById('post-category').value,
-      content,
-      authorUid: myUid,
-      authorName: myName,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    };
-
     const btn = document.getElementById('post-save-btn');
     btn.disabled = true;
-    colPosts.add(doc)
-      .then(() => { closePostForm(); })
-      .catch(() => alert('등록 실패. 인터넷 연결을 확인해주세요.'))
-      .finally(() => { btn.disabled = false; });
+
+    if (editingPostId) {
+      colPosts.doc(editingPostId).update({
+        title,
+        category: document.getElementById('post-category').value,
+        content,
+      })
+        .then(() => { closePostForm(); })
+        .catch(() => alert('수정 실패. 인터넷 연결을 확인해주세요.'))
+        .finally(() => { btn.disabled = false; });
+    } else {
+      colPosts.add({
+        title,
+        category: document.getElementById('post-category').value,
+        content,
+        authorUid: myUid,
+        authorName: myName,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      })
+        .then(() => { closePostForm(); })
+        .catch(() => alert('등록 실패. 인터넷 연결을 확인해주세요.'))
+        .finally(() => { btn.disabled = false; });
+    }
   }
 
   function deletePost(id) {
     if (!confirm('이 글을 삭제할까요?')) return;
     colPosts.doc(id).delete()
+      .then(() => { closePostDetail(); })
       .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
   }
 
@@ -789,19 +1099,107 @@
       list.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">💬</span>아직 게시물이 없어요</div></div>';
       return;
     }
-    list.innerHTML = posts.map(p => {
-      const canDelete = myIsAdmin || p.authorUid === myUid;
-      return `
-        <div class="post-card">
+    list.innerHTML = posts.map(p => `
+        <div class="post-card" style="cursor:pointer;" onclick="openPostDetail('${p.id}')">
           <div class="post-card-top">
             <span class="post-cat">${escapeHtml(p.category)}</span>
-            ${canDelete ? `<button class="post-del" onclick="deletePost('${p.id}')">삭제</button>` : ''}
           </div>
           <div class="post-title">${escapeHtml(p.title)}</div>
-          <div class="post-content">${escapeHtml(p.content)}</div>
           <div class="post-meta">${escapeHtml(p.authorName)} · ${formatDate(p.createdAt)}</div>
+        </div>`).join('');
+  }
+
+  // ── 글 상세 + 댓글 ──
+
+  function openPostDetail(id) {
+    const p = posts.find(x => x.id === id);
+    if (!p) return;
+    currentPostId = id;
+    renderPostDetail(p);
+    startCommentsFeed(id);
+    go('view-post-detail');
+  }
+
+  function closePostDetail() {
+    if (commentsUnsub) { commentsUnsub(); commentsUnsub = null; }
+    comments = [];
+    currentPostId = null;
+    go('view-app');
+  }
+
+  function renderPostDetail(p) {
+    const canManage = myIsAdmin || p.authorUid === myUid;
+    const manageActions = canManage ? `
+      <div class="admin-actions">
+        <button class="mini-btn" onclick="editPost('${p.id}')">수정</button>
+        <button class="mini-btn danger" onclick="deletePost('${p.id}')">삭제</button>
+      </div>` : '';
+    document.getElementById('detail-post-card').innerHTML = `
+      <span class="post-cat">${escapeHtml(p.category)}</span>
+      <div class="post-title" style="font-size:17px; margin-top:10px;">${escapeHtml(p.title)}</div>
+      <div class="post-meta" style="margin-bottom:12px;">${escapeHtml(p.authorName)} · ${formatDate(p.createdAt)}</div>
+      <div class="post-content">${escapeHtml(p.content)}</div>
+      ${manageActions}
+    `;
+  }
+
+  function renderComments() {
+    const list = document.getElementById('comment-list');
+    if (!comments.length) {
+      list.innerHTML = '<div class="empty-state" style="padding:16px 0;">아직 댓글이 없어요</div>';
+      return;
+    }
+    list.innerHTML = comments.map(c => {
+      const canDelete = myIsAdmin || c.authorUid === myUid;
+      return `
+        <div class="post-card" style="padding:10px 12px;">
+          <div class="post-card-top" style="margin-bottom:2px;">
+            <span style="font-size:12.5px; font-weight:700;">${escapeHtml(c.authorName)}</span>
+            ${canDelete ? `<button class="post-del" onclick="deleteComment('${c.id}')">삭제</button>` : ''}
+          </div>
+          <div class="post-content" style="font-size:13px;">${escapeHtml(c.content)}</div>
+          <div class="post-meta">${formatDate(c.createdAt)}</div>
         </div>`;
     }).join('');
+  }
+
+  function startCommentsFeed(postId) {
+    if (commentsUnsub) { commentsUnsub(); commentsUnsub = null; }
+    comments = [];
+    renderComments();
+    commentsUnsub = colComments.where('postId', '==', postId).orderBy('createdAt', 'asc').onSnapshot(snap => {
+      comments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderComments();
+    }, () => {
+      document.getElementById('comment-list').innerHTML = '<div class="empty-state">⚠️ 연결 오류. 새로고침 해주세요.</div>';
+    });
+  }
+
+  function addComment() {
+    if (!myUid) { alert('로그인 후 댓글을 남길 수 있어요.'); return; }
+    if (!currentPostId) return;
+    const input = document.getElementById('comment-input');
+    const content = input.value.trim();
+    if (!content) { alert('댓글 내용을 입력해주세요!'); return; }
+
+    const btn = document.getElementById('comment-save-btn');
+    btn.disabled = true;
+    colComments.add({
+      postId: currentPostId,
+      content,
+      authorUid: myUid,
+      authorName: myName,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    })
+      .then(() => { input.value = ''; })
+      .catch(() => alert('댓글 등록 실패. 인터넷 연결을 확인해주세요.'))
+      .finally(() => { btn.disabled = false; });
+  }
+
+  function deleteComment(id) {
+    if (!confirm('이 댓글을 삭제할까요?')) return;
+    colComments.doc(id).delete()
+      .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
   }
 
   function startPostsFeed() {
@@ -817,6 +1215,7 @@
   // ══════════════ 로그인 게이트 ══════════════
 
   initSidoSelect();
+  initSeekerRegionSelect();
   togglePeriodInputs();
   toggleStayDetail();
   toggleWageInput();
@@ -851,6 +1250,7 @@
       document.getElementById('job-new-btn').style.display = myIsAdmin ? 'block' : 'none';
 
       startJobsFeed();
+      startSeekersFeed();
       startPostsFeed();
       go('view-app');
     });
