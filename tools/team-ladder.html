@@ -8,7 +8,7 @@
   // 메인화면(index.html)에서 고른 테마를 그대로 따라간다 — 그리기 전에 먼저 적용해서 번쩍임 방지
   (function () {
     var t = localStorage.getItem('feederTheme');
-    if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    if (t !== 'dark') document.documentElement.setAttribute('data-theme', 'light');
   })();
 </script>
 <style>
@@ -475,6 +475,13 @@
   let draftItems = [];
   let creatingFormOpen = false;
   let renderedPlayingRoomId = null;
+  // "닫기"를 눌러도 방 문서 자체는 지우지 않고(다른 참가자가 아직 결과를 못 봤을 수 있어서)
+  // 이 세션에서만 안 보이게 로컬로 숨기는 용도 — 새로고침하면 초기화돼서 다시 리플레이가 보인다
+  let dismissedRoomId = null;
+
+  function hasActiveRoom() {
+    return !!currentRoom && currentRoom.id !== dismissedRoomId;
+  }
 
   function escapeHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -548,7 +555,7 @@
   }
 
   function openCreateForm() {
-    if (currentRoom) return;
+    if (hasActiveRoom()) return;
     draftItems = [];
     renderPresetChips();
     renderDraftList();
@@ -566,6 +573,7 @@
     if (items.length < 2) { alert('벌칙 항목을 2개 이상 추가해주세요!'); return; }
     const btn = document.getElementById('create-submit-btn');
     btn.disabled = true;
+    const oldRoomId = currentRoom ? currentRoom.id : null;
     colTeamLadders.add({
       teamCode: myTeamCode,
       status: 'waiting',
@@ -576,6 +584,9 @@
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     }).then(() => {
       creatingFormOpen = false;
+      dismissedRoomId = null;
+      // 이전 판(리플레이용으로 남겨뒀던 done 방)은 새 판이 생겼으니 정리
+      if (oldRoomId) colTeamLadders.doc(oldRoomId).delete().catch(() => {});
     }).catch(err => {
       console.error('createRoom failed:', err);
       alert('만들기 실패 (' + (err.code || err.message) + ')');
@@ -628,6 +639,13 @@
     colTeamLadders.doc(currentRoom.id).delete().catch(() => alert('처리 실패. 다시 시도해주세요.'));
   }
 
+  // 결과를 본 뒤 "닫기" — 방 문서는 지우지 않고 내 화면에서만 안 보이게 한다.
+  // (다른 참가자가 아직 결과를 못 봤을 수 있어서 문서를 지워버리면 그 사람은 영영 결과를 못 봄)
+  function dismissRoom() {
+    if (currentRoom) dismissedRoomId = currentRoom.id;
+    renderApp();
+  }
+
   // ══════════════ 사다리 생성 · 경로 계산 ══════════════
 
   // rungs는 행(row)별 비트마스크 숫자 배열로 저장한다 — Firestore는 배열 안에 배열을
@@ -667,7 +685,7 @@
   // ══════════════ 렌더링 ══════════════
 
   function renderApp() {
-    const hasRoom = !!currentRoom;
+    const hasRoom = hasActiveRoom();
     document.getElementById('no-room-block').style.display = (!hasRoom && !creatingFormOpen) ? 'block' : 'none';
     document.getElementById('create-form').style.display = (!hasRoom && creatingFormOpen) ? 'block' : 'none';
     document.getElementById('room-block').style.display = hasRoom ? 'block' : 'none';
@@ -705,8 +723,8 @@
       return;
     }
 
-    if (room.status === 'playing') {
-      if (renderedPlayingRoomId === room.id) return; // 이미 렌더링·애니메이션 중이면 건드리지 않음
+    if (room.status === 'playing' || room.status === 'done') {
+      if (renderedPlayingRoomId === room.id) return; // 이미 렌더링·애니메이션(또는 리플레이) 중이면 건드리지 않음
       renderedPlayingRoomId = room.id;
       renderLadder(room);
       return;
@@ -805,7 +823,11 @@
     }).join('');
     area.innerHTML = `
       <div class="result-list" style="margin-top:16px;">${rows}</div>
-      <button class="submit-btn" onclick="closeRoom()">닫기</button>`;
+      <button class="submit-btn" onclick="dismissRoom()">닫기</button>`;
+    // 결과가 나왔다는 걸 문서에 남겨서, 도중에 나갔다 돌아온 다른 참가자도 재입장 시 리플레이를 볼 수 있게 한다
+    if (room.status !== 'done') {
+      colTeamLadders.doc(room.id).update({ status: 'done' }).catch(() => {});
+    }
   }
 
   // ══════════════ 팀 사다리 실시간 구독 ══════════════
@@ -857,7 +879,7 @@
       myTeamCode = teamCode;
 
       const dn = profile.nickname || profile.name || profile.username || '이름없음';
-      const roleText = profile.isOperator ? '운영자' : (profile.isAdmin ? '관리자' : '일반회원');
+      const roleText = profile.isOperator ? '운영자' : (profile.isAdmin ? '팀장' : '반장');
       const code = profile.isAdmin ? profile.adminTeamCode : profile.teamCode;
       document.getElementById('menu-profile-name').textContent = dn;
       document.getElementById('menu-profile-role').textContent = roleText;

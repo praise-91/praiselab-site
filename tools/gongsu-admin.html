@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>공수달력 : 관리자</title>
+<title>공수달력 : 팀장</title>
 <script>
   // 메인화면(index.html)에서 고른 테마를 그대로 따라간다 — 그리기 전에 먼저 적용해서 번쩍임 방지
   (function () {
@@ -282,7 +282,7 @@
 
 <header class="site-header">
   <a href="https://praiselab.net/tools/" class="brand">Feeder</a>
-  <span class="site-header-title">공수달력 관리자</span>
+  <span class="site-header-title">공수달력 팀장</span>
   <button class="hamburger-btn" id="hamburger-btn" onclick="openMenu()" style="display:none;" aria-label="메뉴">☰</button>
 </header>
 
@@ -322,8 +322,8 @@
   <div class="view" id="view-forbidden">
     <div class="locked-wrap">
       <span class="header-icon">⛔</span>
-      <h1>관리자만 볼 수 있어요</h1>
-      <p>이 화면은 관리자 계정으로만 접근 가능해요</p>
+      <h1>팀장만 볼 수 있어요</h1>
+      <p>이 화면은 팀장 계정으로만 접근 가능해요</p>
       <a href="gongsu-calendar.html">공수달력으로 →</a>
     </div>
   </div>
@@ -626,12 +626,16 @@
   function toggleRestDay(ds) {
     if (!currentSiteId || !currentSite) return;
     const isRest = !!(currentSite.restDays && currentSite.restDays[ds]);
+    const value = isRest ? firebase.firestore.FieldValue.delete() : true;
     const patch = {};
-    patch[`restDays.${ds}`] = isRest ? firebase.firestore.FieldValue.delete() : true;
+    patch[`restDays.${ds}`] = value;
     colSites.doc(currentSiteId).update(patch)
       .catch(() => alert('저장 실패. 인터넷 연결을 확인해주세요.'));
     // 팀원 전체가 볼 수 있는 휴무일 미러(회사단가 등 민감정보는 빼고 날짜만)
-    colSiteRestDays.doc(currentSiteId).set({ teamCode: myAdminTeamCode, ...patch }, { merge: true })
+    // 주의: set(merge)에 점(dot) 표기 키를 그대로 넣으면 중첩 안 되고 "restDays.2026-07-21"
+    // 라는 글자 그대로의 필드명으로 저장돼버린다(update()와 다르게 동작) — 반드시 실제
+    // 중첩 객체({restDays:{[ds]:value}})로 넘겨야 gongsu-calendar.html이 읽는 restDays 맵이 된다.
+    colSiteRestDays.doc(currentSiteId).set({ teamCode: myAdminTeamCode, restDays: { [ds]: value } }, { merge: true })
       .catch(() => {});
   }
 

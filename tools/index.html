@@ -511,13 +511,13 @@
       <span class="tool-arrow">›</span>
     </button>
     <button class="menu-item" id="menu-admin" onclick="closeMenu(); go('view-admin-hub');" style="display:none;">
-      <span class="menu-item-icon">🔑</span><span>관리자 기능</span>
+      <span class="menu-item-icon">🔑</span><span>팀장 기능</span>
     </button>
     <button class="menu-item" onclick="closeMenu(); go('view-team-join');">
       <span class="menu-item-icon">🔗</span><span>팀 참가</span>
     </button>
     <button class="menu-item" id="menu-admin-request" onclick="closeMenu(); go('view-admin-request');">
-      <span class="menu-item-icon">📋</span><span>관리자 변경</span>
+      <span class="menu-item-icon">📋</span><span>팀장 변경</span>
     </button>
     <button class="menu-item" onclick="closeMenu(); go('view-settings'); renderSettings();">
       <span class="menu-item-icon">⚙️</span><span>설정</span>
@@ -630,11 +630,11 @@
     <div class="card" id="team-join-body"></div>
   </div>
 
-  <!-- 관리자 변경 -->
+  <!-- 팀장 변경 -->
   <div class="view" id="view-admin-request">
     <div class="view-head">
       <button class="back-btn" onclick="history.back()">‹</button>
-      <h2>관리자 변경</h2>
+      <h2>팀장 변경</h2>
     </div>
     <div class="card" id="admin-request-body"></div>
   </div>
@@ -675,7 +675,7 @@
     </header>
     <div class="card">
       <div style="font-size:14px;color:var(--text-dim);line-height:1.7;text-align:center;">
-        관리자 승인을 기다리고 있어요.<br>
+        팀장 승인을 기다리고 있어요.<br>
         승인되면 이 화면이 자동으로 넘어가요.
       </div>
     </div>
@@ -733,11 +733,11 @@
     </a>
   </div>
 
-  <!-- 관리자 기능 허브 -->
+  <!-- 팀장 기능 허브 -->
   <div class="view" id="view-admin-hub">
     <div class="view-head">
       <button class="back-btn" onclick="history.back()">‹</button>
-      <h2>관리자 기능</h2>
+      <h2>팀장 기능</h2>
     </div>
     <div class="card">
       <div class="section-label">내 팀 코드</div>
@@ -762,7 +762,7 @@
       <a href="gongsu-admin.html" class="tool-card tool-card--admin">
         <div class="tool-icon">📊</div>
         <div class="tool-info">
-          <div class="tool-name">공수달력 관리자</div>
+          <div class="tool-name">공수달력 팀장</div>
           <div class="tool-desc">현장별 팀단가 · 숙식비 · 차익금 관리</div>
         </div>
         <span class="tool-arrow">›</span>
@@ -913,8 +913,8 @@
 
   function roleLabel(u) {
     if (u.isOperator) return '운영자';
-    if (u.isAdmin) return '관리자';
-    return '일반회원';
+    if (u.isAdmin) return '팀장';
+    return '반장';
   }
 
   function renderMyProfile() {
@@ -1156,7 +1156,7 @@
       el.innerHTML = `
         <div class="field">
           <label>팀 코드</label>
-          <input type="text" id="team-code-input" placeholder="관리자에게 받은 코드"
+          <input type="text" id="team-code-input" placeholder="팀장에게 받은 코드"
             onkeydown="if(event.key==='Enter')joinTeam();" />
         </div>
         <button class="submit-btn" id="team-join-btn" onclick="joinTeam()">참가 신청</button>
@@ -1226,11 +1226,11 @@
     const isAdmin = !!myProfile.isAdmin;
     el.innerHTML = `
       <div style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
-        관리자가 되면 팀 코드를 발급받아 물량작성·공수달력 팀원을 직접 관리할 수 있어요.
+        팀장이 되면 팀 코드를 발급받아 물량작성·공수달력 팀원을 직접 관리할 수 있어요.
       </div>
       <div class="theme-toggle">
-        <button class="theme-toggle-opt${isAdmin ? '' : ' is-on'}" onclick="setAdminMode(false)">일반회원</button>
-        <button class="theme-toggle-opt${isAdmin ? ' is-on' : ''}" onclick="setAdminMode(true)">관리자</button>
+        <button class="theme-toggle-opt${isAdmin ? '' : ' is-on'}" onclick="setAdminMode(false)">반장</button>
+        <button class="theme-toggle-opt${isAdmin ? ' is-on' : ''}" onclick="setAdminMode(true)">팀장</button>
       </div>
       ${isAdmin ? `<div style="font-size:12px;color:var(--text-dim);margin-top:14px;text-align:center;">내 팀 코드: <b style="color:var(--text)">${escapeHtml(myProfile.adminTeamCode || '-')}</b></div>` : ''}
     `;
@@ -1241,19 +1241,19 @@
     if (next) {
       if (myProfile.adminTeamCode) {
         colUsers.doc(auth.currentUser.uid).update({ isAdmin: true, role: 'admin' })
-          .then(() => showToast('✅ 관리자로 전환했어요'))
+          .then(() => showToast('✅ 팀장으로 전환했어요'))
           .catch(() => alert('처리 실패. 다시 시도해주세요.'));
         return;
       }
       const code = generateTeamCode();
       colTeams.doc(code).set({ adminUid: auth.currentUser.uid, active: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() })
         .then(() => colUsers.doc(auth.currentUser.uid).update({ isAdmin: true, role: 'admin', adminTeamCode: code }))
-        .then(() => showToast(`✅ 관리자로 전환! 팀 코드: ${code}`))
+        .then(() => showToast(`✅ 팀장으로 전환! 팀 코드: ${code}`))
         .catch(() => alert('처리 실패. 다시 시도해주세요.'));
     } else {
-      if (!confirm('관리자에서 일반회원으로 전환할까요? (팀 코드는 유지돼요)')) return;
+      if (!confirm('팀장에서 반장으로 전환할까요? (팀 코드는 유지돼요)')) return;
       colUsers.doc(auth.currentUser.uid).update({ isAdmin: false, role: 'member' })
-        .then(() => showToast('일반회원으로 전환했어요'))
+        .then(() => showToast('반장으로 전환했어요'))
         .catch(() => alert('처리 실패. 다시 시도해주세요.'));
     }
   }
