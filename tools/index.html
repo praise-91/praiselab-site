@@ -513,7 +513,7 @@
     <button class="menu-item" id="menu-admin" onclick="closeMenu(); go('view-admin-hub');" style="display:none;">
       <span class="menu-item-icon">🔑</span><span>팀장 기능</span>
     </button>
-    <button class="menu-item" onclick="closeMenu(); go('view-team-join');">
+    <button class="menu-item" id="menu-team-join" onclick="closeMenu(); go('view-team-join');">
       <span class="menu-item-icon">🔗</span><span>팀 참가</span>
     </button>
     <button class="menu-item" id="menu-admin-request" onclick="closeMenu(); go('view-admin-request');">
@@ -1342,7 +1342,12 @@
   function updateAdminEntry() {
     const menuAdmin = document.getElementById('menu-admin');
     const menuAdminRequest = document.getElementById('menu-admin-request');
-    if (menuAdminRequest) menuAdminRequest.style.display = myProfile ? '' : 'none';
+    const menuTeamJoin = document.getElementById('menu-team-join');
+    // 팀장(관리자)은 이미 자기 팀을 운영 중이라 다른 팀에 일반회원으로 들어갈 이유가 없어서 숨김
+    if (menuTeamJoin) menuTeamJoin.style.display = (myProfile && myProfile.isAdmin) ? 'none' : '';
+    // "직위 변경"(팀장↔반장 토글)은 운영자만 숨김 — 운영자는 등급을 건드릴 일이 거의 없고,
+    // 일반 팀장은 그대로 둬서 반장으로 다시 내려가고 싶을 때 메뉴에서 갈 수 있게 유지
+    if (menuAdminRequest) menuAdminRequest.style.display = (myProfile && !myProfile.isOperator) ? '' : 'none';
 
     if (!myProfile || (!myProfile.isAdmin && !myProfile.isOperator)) {
       menuAdmin.style.display = 'none';
