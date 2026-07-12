@@ -321,24 +321,52 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   let gcProfileUnsub = null;
   let gcAppStarted = false;
 
+  // 게스트(비로그인) 저장소 — 이 기기의 브라우저에만 저장되고 서버로는 전송되지 않는다.
+  // 팀 랭킹처럼 팀 스코프가 필요한 기능만 로그인을 요구한다.
+  const gcGuestStorage = {
+    async get(key) {
+      const raw = localStorage.getItem('gc_guest_' + key);
+      if (raw == null) throw new Error('not found');
+      return { key, value: raw };
+    },
+    async set(key, value) {
+      localStorage.setItem('gc_guest_' + key, value);
+      return { key, value };
+    }
+  };
+
+  function gcStartGuest() {
+    document.getElementById('gc-locked').style.display = 'none';
+    document.getElementById('root').style.display = '';
+    window.gcMyUid = null;
+    window.gcMyTeamCode = null;
+    window.gcIsAdmin = false;
+    window.gcIsGuest = true;
+    window.gcTeamRestDays = {};
+    if (!gcAppStarted) {
+      gcAppStarted = true;
+      window.storage = gcGuestStorage;
+      window.gcStartApp();
+    }
+  }
+
   gcAuth.onAuthStateChanged(user => {
     if (gcProfileUnsub) { gcProfileUnsub(); gcProfileUnsub = null; }
 
     if (!user) {
-      document.getElementById('gc-locked').style.display = 'flex';
-      document.getElementById('root').style.display = 'none';
+      gcStartGuest();
       return;
     }
 
     gcProfileUnsub = colToolsUsers.doc(user.uid).onSnapshot(async doc => {
       if (!doc.exists || doc.data().status !== 'approved') {
-        document.getElementById('gc-locked').style.display = 'flex';
-        document.getElementById('root').style.display = 'none';
+        gcStartGuest();
         return;
       }
       document.getElementById('gc-locked').style.display = 'none';
       document.getElementById('root').style.display = '';
 
+      window.gcIsGuest = false;
       window.gcMyUid = user.uid;
       window.gcMyName = doc.data().name;
       // 팀원은 teamCode, 관리자는 adminTeamCode가 "내 팀" — 랭킹을 이 팀으로만 스코프한다
@@ -1929,10 +1957,10 @@ function Sidebar({
   }, "💰"), React.createElement("span", null, "단가 일괄변경")), React.createElement("button", {
     className: "gg-menuitem",
     style: { marginTop: "auto" },
-    onClick: () => { onClose(); gcLogout(); }
+    onClick: () => { onClose(); if (window.gcIsGuest) { location.href = "index.html?login=1"; } else { gcLogout(); } }
   }, React.createElement("span", {
     className: "gg-menuitem-icon"
-  }, "🚪"), React.createElement("span", null, "로그아웃"))));
+  }, window.gcIsGuest ? "🔑" : "🚪"), React.createElement("span", null, window.gcIsGuest ? "로그인 / 회원가입" : "로그아웃"))));
 }
 function BulkPriceModal({
   entries,
@@ -2077,7 +2105,9 @@ function TeamModal({
       groups.push({ rank: m.rank, total: m.total, items: [m] });
     }
   });
-  const rows = members === null ? React.createElement("div", {
+  const rows = window.gcIsGuest ? React.createElement("div", {
+    className: "gg-teamrank-empty"
+  }, "로그인하면 팀원과 공수 랭킹을 비교할 수 있어요") : members === null ? React.createElement("div", {
     className: "gg-teamrank-empty"
   }, "불러오는 중…") : ranked.length === 0 ? React.createElement("div", {
     className: "gg-teamrank-empty"

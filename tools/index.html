@@ -465,6 +465,24 @@
   }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
+  .app-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .app-footer a {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+  .app-footer a:hover { color: var(--orange); }
+  .app-footer-sep { font-size: 11px; color: var(--border); }
+
   .toast {
     position: fixed;
     top: 24px; left: 50%;
@@ -489,7 +507,7 @@
   <a href="https://praiselab.net/" class="brand">
     Feeder
   </a>
-  <button class="hamburger-btn" id="hamburger-btn" onclick="openMenu()" style="display:none;" aria-label="메뉴">☰</button>
+  <button class="hamburger-btn" id="hamburger-btn" onclick="openMenu()" aria-label="메뉴">☰</button>
 </header>
 
 <div class="menu-overlay" id="menu-overlay" onclick="closeMenu()">
@@ -501,7 +519,7 @@
         <button class="menu-close" onclick="closeMenu()" aria-label="닫기">✕</button>
       </div>
     </div>
-    <button class="menu-profile" onclick="closeMenu(); go('view-my-profile');">
+    <button class="menu-profile" id="menu-profile-btn" onclick="closeMenu(); go('view-my-profile');">
       <div class="menu-profile-avatar" id="menu-profile-avatar">-</div>
       <div class="menu-profile-info">
         <div class="menu-profile-name" id="menu-profile-name">-</div>
@@ -509,6 +527,9 @@
         <div class="menu-profile-code" id="menu-profile-code" style="display:none;"></div>
       </div>
       <span class="tool-arrow">›</span>
+    </button>
+    <button class="menu-item" id="menu-guest" onclick="closeMenu(); go('view-login');" style="display:none;">
+      <span class="menu-item-icon">🔑</span><span>로그인 / 회원가입</span>
     </button>
     <button class="menu-item" id="menu-admin" onclick="closeMenu(); go('view-admin-hub');" style="display:none;">
       <span class="menu-item-icon">🔑</span><span>팀장 기능</span>
@@ -522,7 +543,7 @@
     <button class="menu-item" onclick="closeMenu(); go('view-settings'); renderSettings();">
       <span class="menu-item-icon">⚙️</span><span>설정</span>
     </button>
-    <button class="menu-item menu-item--logout" onclick="closeMenu(); logout();">
+    <button class="menu-item menu-item--logout" id="menu-logout-btn" onclick="closeMenu(); logout();">
       <span class="menu-item-icon">🚪</span><span>로그아웃</span>
     </button>
   </div>
@@ -544,6 +565,9 @@
 
   <!-- 로그인 -->
   <div class="view" id="view-login">
+    <div class="view-head" style="margin-bottom:-8px;">
+      <button class="back-btn" onclick="history.back()">‹</button>
+    </div>
     <header class="page-head">
       <span class="header-icon">🧰</span>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
@@ -695,7 +719,7 @@
 
     <div class="section-label tool-section">팀 업무</div>
     <div class="tool-duo">
-      <a href="qty-report.html" class="tool-card">
+      <a href="qty-report.html" class="tool-card" onclick="return requireLogin()">
         <div class="tool-icon tool-icon--blue">🧾</div>
         <div class="tool-info">
           <div class="tool-name">물량작성</div>
@@ -703,7 +727,7 @@
         </div>
       </a>
 
-      <a href="tool-rental.html" class="tool-card">
+      <a href="tool-rental.html" class="tool-card" onclick="return requireLogin()">
         <div class="tool-icon tool-icon--purple">🔧</div>
         <div class="tool-info">
           <div class="tool-name">자재대여</div>
@@ -712,7 +736,7 @@
       </a>
     </div>
 
-    <div class="section-label tool-section">팀 재미</div>
+    <div class="section-label tool-section">팀 게임</div>
     <a href="team-ladder.html" class="tool-card" onclick="return checkTeamLadderAccess()">
       <div class="tool-icon tool-icon--amber">🪜</div>
       <div class="tool-info">
@@ -731,6 +755,14 @@
       </div>
       <span class="tool-arrow">›</span>
     </a>
+
+    <div class="app-footer">
+      <a href="mailto:diget910@gmail.com">고객지원</a>
+      <span class="app-footer-sep">·</span>
+      <a href="terms.html">이용약관</a>
+      <span class="app-footer-sep">·</span>
+      <a href="privacy.html">개인정보처리방침</a>
+    </div>
   </div>
 
   <!-- 팀장 기능 허브 -->
@@ -1330,7 +1362,17 @@
       .catch(() => alert(code));
   }
 
+  // 공수달력은 비로그인으로도 쓸 수 있지만, 팀업무/팀게임/직접 데이터 저장이 필요한
+  // 기능은 계정이 있어야 함 — 게스트가 누르면 화면 이동 대신 로그인 화면으로 유도
+  function requireLogin() {
+    if (auth.currentUser) return true;
+    alert('로그인 후 이용할 수 있어요');
+    go('view-login');
+    return false;
+  }
+
   function checkTeamLadderAccess() {
+    if (!requireLogin()) return false;
     if (myProfile && (myProfile.teamCode || myProfile.adminTeamCode)) return true;
     alert('팀 코드가 있어야 팀원들과 같이 즐길 수 있어요');
     return false;
@@ -1343,13 +1385,22 @@
     const menuAdmin = document.getElementById('menu-admin');
     const menuAdminRequest = document.getElementById('menu-admin-request');
     const menuTeamJoin = document.getElementById('menu-team-join');
+    const menuProfileBtn = document.getElementById('menu-profile-btn');
+    const menuGuest = document.getElementById('menu-guest');
+    const menuLogoutBtn = document.getElementById('menu-logout-btn');
+    const isGuest = !auth.currentUser;
+
+    menuProfileBtn.style.display = isGuest ? 'none' : '';
+    menuGuest.style.display = isGuest ? '' : 'none';
+    menuLogoutBtn.style.display = isGuest ? 'none' : '';
+
     // 팀장(관리자)은 이미 자기 팀을 운영 중이라 다른 팀에 일반회원으로 들어갈 이유가 없어서 숨김
-    if (menuTeamJoin) menuTeamJoin.style.display = (myProfile && myProfile.isAdmin) ? 'none' : '';
+    if (menuTeamJoin) menuTeamJoin.style.display = (!isGuest && myProfile && !myProfile.isAdmin) ? '' : 'none';
     // "직위 변경"(팀장↔반장 토글)은 운영자만 숨김 — 운영자는 등급을 건드릴 일이 거의 없고,
     // 일반 팀장은 그대로 둬서 반장으로 다시 내려가고 싶을 때 메뉴에서 갈 수 있게 유지
-    if (menuAdminRequest) menuAdminRequest.style.display = (myProfile && !myProfile.isOperator) ? '' : 'none';
+    if (menuAdminRequest) menuAdminRequest.style.display = (!isGuest && myProfile && !myProfile.isOperator) ? '' : 'none';
 
-    if (!myProfile || (!myProfile.isAdmin && !myProfile.isOperator)) {
+    if (isGuest || !myProfile || (!myProfile.isAdmin && !myProfile.isOperator)) {
       menuAdmin.style.display = 'none';
       return;
     }
@@ -1378,10 +1429,17 @@
       consumedAdminParam = false;
       consumedSettingsParam = false;
       consumedProfileParam = false;
-      document.getElementById('hamburger-btn').style.display = 'none';
       document.getElementById('hero-chip').style.display = 'none';
       closeMenu();
-      syncView('view-login');
+      updateAdminEntry();
+      // syncView가 history.replaceState(location.pathname)으로 쿼리스트링을 지워버리므로
+      // ?login=1 여부는 그 전에 미리 읽어둬야 한다
+      const wantsLogin = new URLSearchParams(location.search).get('login') === '1';
+      // 게스트도 도구 목록 화면(공수달력 등)을 바로 볼 수 있게 — 로그인은 팀업무/팀게임 등을
+      // 누를 때만 요구한다(requireLogin/checkTeamLadderAccess 참고)
+      syncView('view-app');
+      // 공수달력 등 다른 도구에서 "로그인" 메뉴를 눌러 넘어온 경우 바로 로그인 화면으로
+      if (wantsLogin) go('view-login');
       return;
     }
 
@@ -1412,7 +1470,6 @@
         return;
       }
 
-      document.getElementById('hamburger-btn').style.display = '';
       loadGongsuSummary(user.uid);
 
       const onAdminScreen = document.getElementById('view-admin-approve').classList.contains('active')
