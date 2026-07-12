@@ -761,6 +761,7 @@ const STATS = [
   { id: 'mnd', name: '정신력', icon: '🧘', color: '#5adcd0', hint: '명상·일기', neglect: '마음이 흔들리고 있어요',  monster: '🌀' },
   { id: 'chr', name: '매력',   icon: '✨', color: '#e87fb8', hint: '모임',     neglect: '매력이 시들해지고 있어요', monster: '🕸️' },
   { id: 'wil', name: '의지력', icon: '🛡️', color: '#e8935a', hint: '습관·절제', neglect: '의지가 느슨해지고 있어요', monster: '😈' },
+  { id: 'crf', name: '솜씨',   icon: '🧵', color: '#c98a3e', hint: '손재주·공예', neglect: '손이 굼떠지고 있어요',   monster: '🐛' },
 ];
 
 /* 칭호 정의 — 조건(lv)은 { str, vit, int, wis, mnd, chr, total } 레벨 객체를 받아 true/false 반환 */
@@ -787,6 +788,9 @@ const TITLES = [
 
   { id: 'wil5',  name: '철의 의지',   icon: '🛡️', desc: '의지력 Lv.5 달성', check: lv => lv.wil >= 5 },
   { id: 'wil10', name: '불굴의 의지', icon: '🛡️', desc: '의지력 Lv.10 달성', check: lv => lv.wil >= 10 },
+
+  { id: 'crf5',  name: '손재주꾼', icon: '🧵', desc: '솜씨 Lv.5 달성', check: lv => lv.crf >= 5 },
+  { id: 'crf10', name: '명장',     icon: '🧵', desc: '솜씨 Lv.10 달성', check: lv => lv.crf >= 10 },
 
   { id: 'balanced', name: '균형 잡힌 자', icon: '⚖️', desc: '모든 능력치 Lv.5 이상',
     check: lv => STATS.every(s => lv[s.id] >= 5) },
