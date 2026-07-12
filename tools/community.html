@@ -153,9 +153,11 @@
 
   .tabs {
     display: flex;
+    align-items: center;
     gap: 20px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 16px;
+    padding-top: 4px;
   }
   .tab {
     font-size: 14px;
@@ -169,6 +171,22 @@
     cursor: pointer;
   }
   .tab.active { color: var(--text); border-bottom-color: var(--orange); }
+
+  .tab-search {
+    margin-left: auto;
+    margin-bottom: 10px;
+    width: 120px;
+    padding: 7px 10px;
+    background: #FAFAF8;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12.5px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  .tab-search:focus { border-color: var(--orange); width: 150px; }
 
   .board-panel { display: none; }
   .board-panel.active { display: block; }
@@ -361,14 +379,11 @@
 
   <!-- 커뮤니티 -->
   <div class="view" id="view-app">
-    <header class="page-head">
-      <h1>피더 커뮤니티</h1>
-    </header>
-
     <div class="tabs">
       <button class="tab active" id="tab-jobs" onclick="switchTab('jobs')">구인</button>
       <button class="tab" id="tab-seekers" onclick="switchTab('seekers')">구직</button>
       <button class="tab" id="tab-free" onclick="switchTab('free')">자유게시판</button>
+      <input type="text" id="post-search" class="tab-search" style="display:none;" placeholder="🔍 검색" oninput="onPostSearchInput()" />
     </div>
 
     <!-- 구인 게시판 -->
@@ -615,6 +630,7 @@
   let posts = [];
   let postsUnsub = null;
   let editingPostId = null;
+  let postSearchQuery = '';
 
   let currentPostId = null;
   let comments = [];
@@ -642,6 +658,14 @@
     document.getElementById('panel-jobs').classList.toggle('active', name === 'jobs');
     document.getElementById('panel-seekers').classList.toggle('active', name === 'seekers');
     document.getElementById('panel-free').classList.toggle('active', name === 'free');
+
+    const searchInput = document.getElementById('post-search');
+    searchInput.style.display = name === 'free' ? 'block' : 'none';
+    if (name !== 'free' && searchInput.value) {
+      searchInput.value = '';
+      postSearchQuery = '';
+      renderPosts();
+    }
   }
 
   function logout() {
@@ -1093,13 +1117,27 @@
       .catch(() => alert('삭제 실패. 다시 시도해주세요.'));
   }
 
+  function onPostSearchInput() {
+    postSearchQuery = document.getElementById('post-search').value.trim().toLowerCase();
+    renderPosts();
+  }
+
   function renderPosts() {
     const list = document.getElementById('post-list');
     if (!posts.length) {
       list.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">💬</span>아직 게시물이 없어요</div></div>';
       return;
     }
-    list.innerHTML = posts.map(p => `
+    const filtered = postSearchQuery
+      ? posts.filter(p =>
+          p.title.toLowerCase().includes(postSearchQuery) ||
+          p.content.toLowerCase().includes(postSearchQuery))
+      : posts;
+    if (!filtered.length) {
+      list.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">🔍</span>검색 결과가 없어요</div></div>';
+      return;
+    }
+    list.innerHTML = filtered.map(p => `
         <div class="post-card" style="cursor:pointer;" onclick="openPostDetail('${p.id}')">
           <div class="post-card-top">
             <span class="post-cat">${escapeHtml(p.category)}</span>
