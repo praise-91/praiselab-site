@@ -387,6 +387,7 @@
   .post-cat { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: var(--muted-bg); color: var(--muted-text); }
   .post-title { font-size: 14px; font-weight: 700; margin: 6px 0 4px; }
   .post-content { font-size: 13px; color: var(--text); line-height: 1.6; white-space: pre-wrap; }
+  .post-content a, .job-desc a { color: var(--orange); text-decoration: underline; word-break: break-all; }
   .post-meta { font-size: 11.5px; color: var(--text-dim); margin-top: 8px; }
   .post-del { font-size: 11.5px; color: var(--text-dim); background: none; border: none; font-family: inherit; cursor: pointer; padding: 0; }
   .post-del:hover { color: #E24B4A; }
@@ -790,6 +791,17 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  // escapeHtml로 이스케이프된 텍스트를 받아 http(s):// 링크만 <a>로 감싼다.
+  // (javascript: 같은 위험한 스킴은 애초에 매칭 안 됨)
+  function linkify(escapedText) {
+    return escapedText.replace(/(https?:\/\/[^\s<]+)/g, url => {
+      let trail = '';
+      const m = url.match(/[.,!?)\]]+$/);
+      if (m) { trail = m[0]; url = url.slice(0, url.length - trail.length); }
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>${trail}`;
+    });
   }
 
   function go(viewId) {
@@ -1511,7 +1523,7 @@
       <span class="post-cat">${escapeHtml(p.category)}</span>
       <div class="post-title" style="font-size:17px; margin-top:10px;">${escapeHtml(p.title)}</div>
       <div class="post-meta" style="margin-bottom:12px;">${escapeHtml(p.authorName)} · ${formatDate(p.createdAt)} · 👁 ${p.views || 0}</div>
-      <div class="post-content">${escapeHtml(p.content)}</div>
+      <div class="post-content">${linkify(escapeHtml(p.content))}</div>
       ${manageActions}
     `;
   }
@@ -1543,7 +1555,7 @@
       </div>
       <div class="job-meta">모집 <b>${j.headcount}명</b> · 기간 <b>${escapeHtml(period)}</b> · ${formatDate(j.createdAt)} · 👁 ${j.views || 0}</div>
       ${stayDetail}
-      <div class="job-desc">${escapeHtml(j.description)}</div>
+      <div class="job-desc">${linkify(escapeHtml(j.description))}</div>
       <div class="job-card-foot">
         <span class="job-wage">${escapeHtml(wage)}</span>
         <span class="job-contact">${contactLabel} · ${escapeHtml(j.contactValue)}</span>
@@ -1573,7 +1585,7 @@
         <div style="display:flex;gap:4px;">${matchedBadge}${stayBadge}</div>
       </div>
       <div class="job-meta">경력 <b>${escapeHtml(s.career)}</b> · ${formatDate(s.createdAt)} · 👁 ${s.views || 0}</div>
-      <div class="job-desc">${escapeHtml(s.intro)}</div>
+      <div class="job-desc">${linkify(escapeHtml(s.intro))}</div>
       <div class="job-card-foot">
         <span class="job-contact">${contactLabel} · ${escapeHtml(s.contactValue)}</span>
       </div>
@@ -1595,7 +1607,7 @@
             <span style="font-size:12.5px; font-weight:700;">${escapeHtml(c.authorName)}</span>
             ${canDelete ? `<button class="post-del" onclick="deleteComment('${c.id}')">삭제</button>` : ''}
           </div>
-          <div class="post-content" style="font-size:13px;">${escapeHtml(c.content)}</div>
+          <div class="post-content" style="font-size:13px;">${linkify(escapeHtml(c.content))}</div>
           <div class="post-meta">${formatDate(c.createdAt)}</div>
         </div>`;
     }).join('');
