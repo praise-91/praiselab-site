@@ -509,13 +509,12 @@
     </button>
     <button class="menu-item" id="menu-admin" onclick="closeMenu(); go('view-admin-hub');" style="display:none;">
       <span class="menu-item-icon">🔑</span><span>관리자 기능</span>
-      <span class="tool-badge" id="menu-admin-badge" style="display:none;"></span>
     </button>
     <button class="menu-item" onclick="closeMenu(); go('view-team-join');">
       <span class="menu-item-icon">🔗</span><span>팀 참가</span>
     </button>
     <button class="menu-item" id="menu-admin-request" onclick="closeMenu(); go('view-admin-request');">
-      <span class="menu-item-icon">📋</span><span>관리자 신청</span>
+      <span class="menu-item-icon">📋</span><span>관리자 변경</span>
     </button>
     <button class="menu-item" onclick="closeMenu(); go('view-settings'); renderSettings();">
       <span class="menu-item-icon">⚙️</span><span>설정</span>
@@ -628,11 +627,11 @@
     <div class="card" id="team-join-body"></div>
   </div>
 
-  <!-- 관리자 신청 -->
+  <!-- 관리자 변경 -->
   <div class="view" id="view-admin-request">
     <div class="view-head">
       <button class="back-btn" onclick="history.back()">‹</button>
-      <h2>관리자 신청</h2>
+      <h2>관리자 변경</h2>
     </div>
     <div class="card" id="admin-request-body"></div>
   </div>
@@ -751,8 +750,8 @@
       <a href="javascript:void(0)" class="tool-card tool-card--admin" onclick="openAdminApprove()">
         <div class="tool-icon">🔑</div>
         <div class="tool-info">
-          <div class="tool-name">팀원 승인 관리<span class="tool-badge" id="pending-count-badge" style="display:none;"></span></div>
-          <div class="tool-desc">팀 참가 신청 승인 · 거절</div>
+          <div class="tool-name">팀원 관리</div>
+          <div class="tool-desc">소속 팀원 목록 · 내보내기</div>
         </div>
         <span class="tool-arrow">›</span>
       </a>
@@ -765,43 +764,18 @@
         </div>
         <span class="tool-arrow">›</span>
       </a>
-
-      <a href="javascript:void(0)" class="tool-card tool-card--admin" id="operator-requests-entry" style="display:none;" onclick="openOperatorRequests()">
-        <div class="tool-icon">📋</div>
-        <div class="tool-info">
-          <div class="tool-name">관리자 신청 대기<span class="tool-badge" id="admin-request-count-badge" style="display:none;"></span></div>
-          <div class="tool-desc">일반회원의 관리자 전환 신청 승인 · 거절</div>
-        </div>
-        <span class="tool-arrow">›</span>
-      </a>
     </div>
   </div>
 
-  <!-- 관리자: 팀원 승인 -->
+  <!-- 관리자: 팀원 관리 -->
   <div class="view" id="view-admin-approve">
     <div class="view-head">
       <button class="back-btn" onclick="history.back()">‹</button>
-      <h2>팀원 승인 관리</h2>
+      <h2>팀원 관리</h2>
     </div>
-    <div class="card">
-      <div class="section-label">참가 승인 대기</div>
-      <div id="approve-list"></div>
-    </div>
-
     <div class="card">
       <div class="section-label">소속 팀원</div>
       <div id="member-list"></div>
-    </div>
-  </div>
-
-  <!-- 운영자: 관리자 신청 승인 -->
-  <div class="view" id="view-operator-requests">
-    <div class="view-head">
-      <button class="back-btn" onclick="history.back()">‹</button>
-      <h2>관리자 신청 대기</h2>
-    </div>
-    <div class="card">
-      <div id="admin-request-list"></div>
     </div>
   </div>
 
@@ -1207,9 +1181,9 @@
           alert('존재하지 않거나 비활성화된 팀 코드예요.');
           return;
         }
-        return colUsers.doc(auth.currentUser.uid).update({ teamCode: code, memberStatus: 'pending' });
+        return colUsers.doc(auth.currentUser.uid).update({ teamCode: code, memberStatus: 'approved' });
       })
-      .then(() => showToast('✅ 참가 신청 완료! 관리자 승인을 기다려주세요'))
+      .then(() => showToast('✅ 팀에 참가했어요!'))
       .catch(() => alert('처리 실패. 다시 시도해주세요.'))
       .finally(() => { btn.disabled = false; });
   }
@@ -1228,44 +1202,7 @@
       .catch(() => alert('처리 실패. 다시 시도해주세요.'));
   }
 
-  // ── 관리자 신청(일반회원 → 관리자 전환 요청) ──
-  function renderAdminRequest() {
-    const el = document.getElementById('admin-request-body');
-    if (!el || !myProfile) return;
-    if (myProfile.isAdmin) {
-      el.innerHTML = `
-        <div style="font-size:14px;color:var(--text-dim);line-height:1.7;text-align:center;">
-          이미 관리자예요.
-        </div>`;
-    } else if (myProfile.adminRequestStatus === 'pending') {
-      el.innerHTML = `
-        <div style="font-size:14px;color:var(--text-dim);line-height:1.7;text-align:center;">
-          운영자 승인을 기다리고 있어요.
-        </div>
-        <button class="submit-btn" style="background:transparent;border:1.5px solid var(--border);color:var(--text-dim);margin-top:16px;" onclick="cancelAdminRequest()">신청 취소</button>`;
-    } else {
-      el.innerHTML = `
-        <div style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
-          관리자가 되면 팀 코드를 발급받아 물량작성·공수달력 팀원을 직접 관리할 수 있어요.
-        </div>
-        <button class="submit-btn" onclick="requestAdmin()">관리자 신청</button>`;
-    }
-  }
-
-  function requestAdmin() {
-    colUsers.doc(auth.currentUser.uid).update({ adminRequestStatus: 'pending' })
-      .then(() => showToast('✅ 신청 완료! 운영자 승인을 기다려주세요'))
-      .catch(() => alert('처리 실패. 다시 시도해주세요.'));
-  }
-
-  function cancelAdminRequest() {
-    if (!confirm('관리자 신청을 취소할까요?')) return;
-    colUsers.doc(auth.currentUser.uid).update({ adminRequestStatus: null })
-      .then(() => showToast('취소했어요'))
-      .catch(() => alert('처리 실패. 다시 시도해주세요.'));
-  }
-
-  // ── 운영자: 관리자 신청 승인 ──
+  // ── 관리자 변경(일반회원 ↔ 관리자, 승인 절차 없이 본인이 바로 전환) ──
   function generateTeamCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
@@ -1273,47 +1210,42 @@
     return code;
   }
 
-  function openOperatorRequests() {
-    renderAdminRequestList();
-    go('view-operator-requests');
-  }
-
-  function renderAdminRequestList() {
-    const list = document.getElementById('admin-request-list');
-    const pending = users.filter(u => u.adminRequestStatus === 'pending');
-    if (!pending.length) {
-      list.innerHTML = '<div class="empty-state"><span class="empty-icon">✅</span>대기 중인 신청이 없어요</div>';
-      return;
-    }
-    list.innerHTML = pending.map(u => `
-      <div class="approve-row">
-        <span class="approve-name">${escapeHtml(displayName(u))}</span>
-        <div class="approve-actions">
-          <button class="approve-btn" onclick="approveAdminRequest('${u.id}')">승인</button>
-          <button class="reject-btn" onclick="rejectAdminRequest('${u.id}', '${escapeHtml(displayName(u))}')">거절</button>
-        </div>
+  function renderAdminRequest() {
+    const el = document.getElementById('admin-request-body');
+    if (!el || !myProfile) return;
+    const isAdmin = !!myProfile.isAdmin;
+    el.innerHTML = `
+      <div style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+        관리자가 되면 팀 코드를 발급받아 물량작성·공수달력 팀원을 직접 관리할 수 있어요.
       </div>
-    `).join('');
+      <div class="theme-toggle">
+        <button class="theme-toggle-opt${isAdmin ? '' : ' is-on'}" onclick="setAdminMode(false)">일반회원</button>
+        <button class="theme-toggle-opt${isAdmin ? ' is-on' : ''}" onclick="setAdminMode(true)">관리자</button>
+      </div>
+      ${isAdmin ? `<div style="font-size:12px;color:var(--text-dim);margin-top:14px;text-align:center;">내 팀 코드: <b style="color:var(--text)">${escapeHtml(myProfile.adminTeamCode || '-')}</b></div>` : ''}
+    `;
   }
 
-  function approveAdminRequest(id) {
-    const code = generateTeamCode();
-    colTeams.doc(code).set({ adminUid: id, active: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() })
-      .then(() => colUsers.doc(id).update({
-        isAdmin: true,
-        role: 'admin',
-        adminTeamCode: code,
-        adminRequestStatus: null,
-      }))
-      .then(() => showToast(`✅ 승인 완료! 팀 코드: ${code}`))
-      .catch(() => alert('승인 실패. 다시 시도해주세요.'));
-  }
-
-  function rejectAdminRequest(id, name) {
-    if (!confirm(`'${name}' 님의 관리자 신청을 거절할까요?`)) return;
-    colUsers.doc(id).update({ adminRequestStatus: null })
-      .then(() => showToast('거절했어요'))
-      .catch(() => alert('처리 실패. 다시 시도해주세요.'));
+  function setAdminMode(next) {
+    if (!myProfile || !!myProfile.isAdmin === next) return;
+    if (next) {
+      if (myProfile.adminTeamCode) {
+        colUsers.doc(auth.currentUser.uid).update({ isAdmin: true, role: 'admin' })
+          .then(() => showToast('✅ 관리자로 전환했어요'))
+          .catch(() => alert('처리 실패. 다시 시도해주세요.'));
+        return;
+      }
+      const code = generateTeamCode();
+      colTeams.doc(code).set({ adminUid: auth.currentUser.uid, active: true, createdAt: firebase.firestore.FieldValue.serverTimestamp() })
+        .then(() => colUsers.doc(auth.currentUser.uid).update({ isAdmin: true, role: 'admin', adminTeamCode: code }))
+        .then(() => showToast(`✅ 관리자로 전환! 팀 코드: ${code}`))
+        .catch(() => alert('처리 실패. 다시 시도해주세요.'));
+    } else {
+      if (!confirm('관리자에서 일반회원으로 전환할까요? (팀 코드는 유지돼요)')) return;
+      colUsers.doc(auth.currentUser.uid).update({ isAdmin: false, role: 'member' })
+        .then(() => showToast('일반회원으로 전환했어요'))
+        .catch(() => alert('처리 실패. 다시 시도해주세요.'));
+    }
   }
 
   // ── 로그아웃 ──
@@ -1321,9 +1253,8 @@
     auth.signOut();
   }
 
-  // ── 관리자: 팀원 승인 ──
+  // ── 관리자: 팀원 관리 ──
   function openAdminApprove() {
-    renderApproveList();
     renderMemberList();
     go('view-admin-approve');
   }
@@ -1333,25 +1264,6 @@
     if (myProfile && myProfile.isOperator) return !!u.teamCode;
     const myCode = myProfile && myProfile.adminTeamCode;
     return myCode && u.teamCode === myCode;
-  }
-
-  function renderApproveList() {
-    const list = document.getElementById('approve-list');
-    const isOp = myProfile && myProfile.isOperator;
-    const pending = users.filter(u => inScope(u) && u.memberStatus === 'pending');
-    if (!pending.length) {
-      list.innerHTML = '<div class="empty-state"><span class="empty-icon">✅</span>승인 대기 중인 신청이 없어요</div>';
-      return;
-    }
-    list.innerHTML = pending.map(u => `
-      <div class="approve-row">
-        <span class="approve-name">${escapeHtml(displayName(u))}${isOp ? ` <span class="tool-badge">${escapeHtml(u.teamCode)}</span>` : ''}</span>
-        <div class="approve-actions">
-          <button class="approve-btn" onclick="approveUser('${u.id}')">승인</button>
-          <button class="reject-btn" onclick="rejectUser('${u.id}', '${escapeHtml(displayName(u))}')">거절</button>
-        </div>
-      </div>
-    `).join('');
   }
 
   function renderMemberList() {
@@ -1372,21 +1284,8 @@
     `).join('');
   }
 
-  function approveUser(id) {
-    colUsers.doc(id).update({ memberStatus: 'approved' })
-      .then(() => showToast('✅ 승인 완료!'))
-      .catch(() => alert('승인 실패. 다시 시도해주세요.'));
-  }
-
-  // 팀 참가 신청 거절/팀원 내보내기: 계정 자체는 건드리지 않고 팀 소속만 해제한다
+  // 팀원 내보내기: 계정 자체는 건드리지 않고 팀 소속만 해제한다
   // (개인은 팀 없이도 앱을 계속 쓰므로 예전처럼 계정을 통째로 지우면 안 됨)
-  function rejectUser(id, name) {
-    if (!confirm(`'${name}' 님의 참가 신청을 거절할까요?`)) return;
-    colUsers.doc(id).update({ teamCode: null, memberStatus: null })
-      .then(() => showToast('거절했어요'))
-      .catch(() => alert('처리 실패. 다시 시도해주세요.'));
-  }
-
   function deleteMember(id, name) {
     if (!confirm(`'${name}' 님을 팀에서 내보낼까요? (계정 자체는 유지돼요)`)) return;
     colUsers.doc(id).update({ teamCode: null, memberStatus: null })
@@ -1408,9 +1307,7 @@
   function updateAdminEntry() {
     const menuAdmin = document.getElementById('menu-admin');
     const menuAdminRequest = document.getElementById('menu-admin-request');
-    const badge = document.getElementById('pending-count-badge');
-    const menuBadge = document.getElementById('menu-admin-badge');
-    if (menuAdminRequest) menuAdminRequest.style.display = (myProfile && !myProfile.isAdmin) ? '' : 'none';
+    if (menuAdminRequest) menuAdminRequest.style.display = myProfile ? '' : 'none';
 
     if (!myProfile || (!myProfile.isAdmin && !myProfile.isOperator)) {
       menuAdmin.style.display = 'none';
@@ -1419,20 +1316,6 @@
     menuAdmin.style.display = '';
     const teamCodeEl = document.getElementById('admin-team-code');
     if (teamCodeEl) teamCodeEl.textContent = myProfile.adminTeamCode || '아직 발급 전이에요';
-    const pendingCount = users.filter(u => inScope(u) && u.memberStatus === 'pending').length;
-    [badge, menuBadge].forEach(b => {
-      if (pendingCount > 0) { b.style.display = ''; b.textContent = pendingCount; }
-      else { b.style.display = 'none'; }
-    });
-
-    const opRequestsEntry = document.getElementById('operator-requests-entry');
-    const opRequestsBadge = document.getElementById('admin-request-count-badge');
-    if (opRequestsEntry) {
-      opRequestsEntry.style.display = myProfile.isOperator ? '' : 'none';
-      const reqCount = users.filter(u => u.adminRequestStatus === 'pending').length;
-      if (reqCount > 0) { opRequestsBadge.style.display = ''; opRequestsBadge.textContent = reqCount; }
-      else { opRequestsBadge.style.display = 'none'; }
-    }
   }
 
   // ── 이름 목록 실시간 구독 (로그인 화면 + 승인 화면 공용) ──
@@ -1440,11 +1323,7 @@
     users = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => displayName(a).localeCompare(displayName(b), 'ko'));
     if (document.getElementById('view-admin-approve').classList.contains('active')) {
-      renderApproveList();
       renderMemberList();
-    }
-    if (document.getElementById('view-operator-requests').classList.contains('active')) {
-      renderAdminRequestList();
     }
     updateAdminEntry();
   });
