@@ -80,6 +80,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-icon { width:38px;height:38px;border-radius:10px;font-size:18px;color:var(--gg-ink-soft);display:flex;align-items:center;justify-content:center; }
 .gg-icon:hover { background:var(--gg-paper); }
 .gg-icon-text { width:auto; padding:0 14px; font-size:14px; font-weight:700; color:var(--gg-ink-soft); background:var(--gg-card); border:1px solid var(--gg-line); }
+.gg-brand-btn { font-weight:900; color:var(--gg-accent); border-color:transparent; background:transparent; }
 .gg-monthnav { display:flex; align-items:center; gap:8px; }
 .gg-navbtn { width:32px;height:32px;border-radius:9px;font-size:19px;color:var(--gg-ink); }
 .gg-navbtn:hover { background:var(--gg-paper); }
@@ -87,7 +88,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-monthlabel .gg-year { display:block; font-size:11px; color:var(--gg-ink-faint); }
 .gg-monthlabel strong { font-size:18px; letter-spacing:-.02em; }
 
-.gg-todaybar { display:flex; justify-content:flex-end; padding:10px 16px 0; max-width:640px; margin:0 auto; width:100%; }
+.gg-todaybar { display:flex; justify-content:flex-end; align-items:center; gap:8px; padding:10px 16px 0; max-width:640px; margin:0 auto; width:100%; }
 .gg-todaybtn { font-size:12.5px; font-weight:700; color:var(--gg-ink-soft); padding:5px 12px; border-radius:8px; background:var(--gg-card); border:1px solid var(--gg-line); }
 .gg-todaybtn:hover { background:var(--gg-paper); }
 
@@ -117,8 +118,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-sumitem strong { font-size:16px; font-weight:800; letter-spacing:-.02em; }
 .gg-sumpay strong { color:var(--gg-accent); }
 .gg-sumpay-label { display:flex; align-items:center; gap:6px; }
-.gg-taxtoggle { font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:20px; border:1px solid var(--gg-line); background:var(--gg-card); color:var(--gg-ink-faint); cursor:pointer; line-height:1.6; }
-.gg-taxtoggle:active { opacity:.7; }
+.gg-taxswitch { display:inline-flex; border-radius:20px; background:var(--gg-paper); border:1px solid var(--gg-line); padding:2px; gap:2px; }
+.gg-taxswitch-opt { font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:16px; border:none; background:transparent; color:var(--gg-ink-faint); cursor:pointer; line-height:1.5; }
+.gg-taxswitch-opt.is-active { background:var(--gg-accent); color:#fff; }
 
 .gg-typerow { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:10px; }
 .gg-homechips { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:14px; }
@@ -1137,10 +1139,9 @@ function App() {
   }, React.createElement("header", {
     className: "gg-top"
   }, React.createElement("button", {
-    className: "gg-icon",
-    onClick: () => setShowMenu(true),
-    "aria-label": "메뉴"
-  }, "☰"), React.createElement("div", {
+    className: "gg-icon gg-icon-text gg-brand-btn",
+    onClick: () => { location.href = "index.html"; }
+  }, "Feeder"), React.createElement("div", {
     className: "gg-monthnav"
   }, React.createElement("button", {
     className: "gg-navbtn",
@@ -1155,14 +1156,18 @@ function App() {
     onClick: () => moveMonth(1),
     "aria-label": "다음 달"
   }, "›")), React.createElement("button", {
-    className: "gg-icon gg-icon-text",
-    onClick: () => setShowSummary(true)
-  }, "명세서")), React.createElement("div", {
+    className: "gg-icon",
+    onClick: () => setShowMenu(true),
+    "aria-label": "메뉴"
+  }, "☰")), React.createElement("div", {
     className: "gg-todaybar"
   }, React.createElement("button", {
     className: "gg-todaybtn",
     onClick: goToday
-  }, "Today")), React.createElement("main", {
+  }, "Today"), React.createElement("button", {
+    className: "gg-icon gg-icon-text",
+    onClick: () => setShowSummary(true)
+  }, "명세서")), React.createElement("main", {
     className: "gg-main"
   }, React.createElement("div", {
     className: "gg-weekrow"
@@ -1212,13 +1217,16 @@ function App() {
     className: "gg-sumitem gg-sumpay"
   }, React.createElement("span", {
     className: "gg-sumpay-label"
-  }, "이 달 예상 급여", React.createElement("button", {
-    className: "gg-taxtoggle",
-    onClick: e => {
-      e.stopPropagation();
-      setShowNetPay(v => !v);
-    }
-  }, showNetPay ? "세후" : "세전")), React.createElement("strong", null, won(showNetPay ? monthStats.netPay : monthStats.pay))), React.createElement("div", {
+  }, "이 달 예상 급여", React.createElement("div", {
+    className: "gg-taxswitch",
+    onClick: e => e.stopPropagation()
+  }, React.createElement("button", {
+    className: "gg-taxswitch-opt" + (showNetPay ? "" : " is-active"),
+    onClick: () => setShowNetPay(false)
+  }, "세전"), React.createElement("button", {
+    className: "gg-taxswitch-opt" + (showNetPay ? " is-active" : ""),
+    onClick: () => setShowNetPay(true)
+  }, "세후"))), React.createElement("strong", null, won(showNetPay ? monthStats.netPay : monthStats.pay))), React.createElement("div", {
     className: "gg-sumitem"
   }, React.createElement("span", null, "총 공수"), React.createElement("strong", null, fmtG(monthStats.gongsu)))), React.createElement("div", {
     className: "gg-typerow"
