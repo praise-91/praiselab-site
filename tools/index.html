@@ -1538,7 +1538,7 @@
   function startPresenceWatch() {
     if (presenceUnsub) return;
     presenceUnsub = colPresence.onSnapshot(snap => {
-      presenceDocs = snap.docs.map(d => d.data());
+      presenceDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderPresence();
     }, () => {});
     if (!presenceTimer) presenceTimer = setInterval(renderPresence, 15000);
@@ -1548,9 +1548,18 @@
   // 싶을 때를 위한 수동 재조회(즉시 다시 fetch해서 다시 그림)
   function refreshPresenceNow() {
     colPresence.get().then(snap => {
-      presenceDocs = snap.docs.map(d => d.data());
+      presenceDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderPresence();
     }).catch(() => {});
+  }
+
+  // 정상 하트비트 문서인지 검사 — 로그인 사용자는 문서 키가 본인 uid, 게스트는
+  // guest_ 고정 키여야 함(presence.js v2 키 체계). 초기 버전(탭마다 랜덤 세션 키)
+  // 스크립트가 브라우저 캐시(4시간)에 남아 계속 쓰는 유령 게스트 문서를 걸러냄
+  // (2026-07-13 실제 사고: 스크립트 4번 배포 × 캐시 혼재로 로그인 사용자가 전부
+  // 게스트로 집계되고 새로고침마다 게스트가 늘어나는 증상이 있었음)
+  function isValidPresenceDoc(p) {
+    return p.uid ? p.id === p.uid : String(p.id).indexOf('guest_') === 0;
   }
 
   function stopPresenceWatch() {
@@ -1571,7 +1580,7 @@
     const listEl = document.getElementById('presence-list');
     if (!countEl || !listEl) return;
     const cutoff = Date.now() - 90000;
-    const online = presenceDocs.filter(p => p.lastSeen && p.lastSeen.toMillis() > cutoff);
+    const online = presenceDocs.filter(p => isValidPresenceDoc(p) && p.lastSeen && p.lastSeen.toMillis() > cutoff);
     // presence.js가 신원(uid 또는 게스트 고정 id)별로 문서 하나만 쓰므로,
     // 여기서 uid로 또 묶을 필요 없이 문서 하나 = 한 명으로 바로 대응된다
     const rows = online.map(p => {
