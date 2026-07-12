@@ -146,7 +146,7 @@
   .tabs {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 16px;
     padding-top: 4px;
@@ -161,31 +161,34 @@
     border-left: none; border-right: none; border-top: none;
     font-family: inherit;
     cursor: pointer;
+    flex-shrink: 0;
   }
   .tab.active { color: var(--text); border-bottom-color: var(--orange); }
 
-  .search-bar { display: flex; gap: 8px; margin-bottom: 10px; }
+  .search-bar { display: flex; gap: 6px; align-items: center; margin-left: auto; padding-bottom: 10px; }
   .search-input {
-    flex: 1; min-width: 0;
-    padding: 9px 12px;
+    width: 72px;
+    min-width: 0;
+    padding: 7px 9px;
     background: #FAFAF8;
     border: 1.5px solid var(--border);
     border-radius: 8px;
     color: var(--text);
     font-family: inherit;
-    font-size: 13px;
+    font-size: 12.5px;
     outline: none;
     -webkit-appearance: none;
+    transition: width 0.15s ease;
   }
-  .search-input:focus { border-color: var(--orange); }
+  .search-input:focus { border-color: var(--orange); width: 118px; }
   .filter-btn {
     flex-shrink: 0;
-    width: 38px; height: 38px;
+    width: 32px; height: 32px;
     display: flex; align-items: center; justify-content: center;
     background: #FAFAF8;
     border: 1.5px solid var(--border);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
   }
   .filter-btn.active { border-color: var(--orange); background: rgba(255,107,43,0.08); }
@@ -212,6 +215,27 @@
     -webkit-appearance: none;
   }
   .filter-group select:focus { border-color: var(--orange); }
+  .filter-range {
+    flex: 1 1 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .filter-range input {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    background: #FAFAF8;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12.5px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  .filter-range input:focus { border-color: var(--orange); }
+  .filter-range span { font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
   .filter-reset-btn {
     width: 100%;
     margin-top: 10px;
@@ -414,11 +438,10 @@
       <button class="tab active" id="tab-jobs" onclick="switchTab('jobs')">구인</button>
       <button class="tab" id="tab-seekers" onclick="switchTab('seekers')">구직</button>
       <button class="tab" id="tab-free" onclick="switchTab('free')">자유게시판</button>
-    </div>
-
-    <div class="search-bar">
-      <input type="text" id="search-input" class="search-input" placeholder="🔍 검색" oninput="onSearchInput()" />
-      <button class="filter-btn" id="filter-toggle-btn" onclick="toggleFilterPanel()" aria-label="필터">🔽</button>
+      <div class="search-bar">
+        <input type="text" id="search-input" class="search-input" placeholder="검색" oninput="onSearchInput()" />
+        <button class="filter-btn" id="filter-toggle-btn" onclick="toggleFilterPanel()" aria-label="필터">🎚️</button>
+      </div>
     </div>
 
     <div class="filter-panel" id="filter-panel" style="display:none;">
@@ -446,6 +469,11 @@
           <option value="open">모집중</option>
           <option value="closed">마감</option>
         </select>
+        <div class="filter-range">
+          <input type="number" id="filter-job-wage-min" placeholder="최소 단가" oninput="onJobFilterChange()" />
+          <span>~</span>
+          <input type="number" id="filter-job-wage-max" placeholder="최대 단가" oninput="onJobFilterChange()" />
+        </div>
       </div>
       <div class="filter-group" id="filter-seekers" style="display:none;">
         <select id="filter-seeker-worktype" onchange="onSeekerFilterChange()">
@@ -677,19 +705,20 @@
       <button class="cancel-btn" onclick="closePostDetail()">← 목록으로</button>
     </div>
 
-    <div class="card" id="detail-post-card" style="margin-bottom:16px;"></div>
-
     <div class="card">
-      <div style="font-size:13px; font-weight:700; color:var(--text-dim); margin-bottom:12px;">댓글</div>
-      <div class="list" id="comment-list" style="margin-bottom:14px;"></div>
-      <div id="comment-form-member" style="display:none;">
-        <div class="field" style="margin-bottom:8px;">
-          <textarea id="comment-input" placeholder="댓글을 입력해주세요" style="min-height:60px;"></textarea>
+      <div id="detail-post-card"></div>
+      <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+        <div style="font-size:13px; font-weight:700; color:var(--text-dim); margin-bottom:12px;">댓글</div>
+        <div class="list" id="comment-list" style="margin-bottom:14px;"></div>
+        <div id="comment-form-member" style="display:none;">
+          <div class="field" style="margin-bottom:8px;">
+            <textarea id="comment-input" placeholder="댓글을 입력해주세요" style="min-height:60px;"></textarea>
+          </div>
+          <button class="submit-btn" id="comment-save-btn" onclick="addComment()">댓글 등록</button>
         </div>
-        <button class="submit-btn" id="comment-save-btn" onclick="addComment()">댓글 등록</button>
-      </div>
-      <div id="comment-form-guest" style="display:none;">
-        <button class="new-btn" onclick="location.href='index.html';">로그인하고 댓글 남기기</button>
+        <div id="comment-form-guest" style="display:none;">
+          <button class="new-btn" onclick="location.href='index.html';">로그인하고 댓글 남기기</button>
+        </div>
       </div>
     </div>
   </div>
@@ -744,7 +773,7 @@
 
   let currentTab = 'jobs';
   let searchQuery = '';
-  let jobFilter = { workType: '', sido: '', stay: '', status: '' };
+  let jobFilter = { workType: '', sido: '', stay: '', status: '', wageMin: null, wageMax: null };
   let seekerFilter = { workType: '', region: '', stay: '', status: '' };
   let postFilter = { category: '' };
 
@@ -801,11 +830,15 @@
   }
 
   function onJobFilterChange() {
+    const wageMinRaw = document.getElementById('filter-job-wage-min').value;
+    const wageMaxRaw = document.getElementById('filter-job-wage-max').value;
     jobFilter = {
       workType: document.getElementById('filter-job-worktype').value,
       sido: document.getElementById('filter-job-sido').value,
       stay: document.getElementById('filter-job-stay').value,
       status: document.getElementById('filter-job-status').value,
+      wageMin: wageMinRaw === '' ? null : parseInt(wageMinRaw, 10),
+      wageMax: wageMaxRaw === '' ? null : parseInt(wageMaxRaw, 10),
     };
     renderJobs();
   }
@@ -827,8 +860,9 @@
 
   function resetFilters() {
     if (currentTab === 'jobs') {
-      jobFilter = { workType: '', sido: '', stay: '', status: '' };
+      jobFilter = { workType: '', sido: '', stay: '', status: '', wageMin: null, wageMax: null };
       document.querySelectorAll('#filter-jobs select').forEach(s => s.value = '');
+      document.querySelectorAll('#filter-jobs input').forEach(i => i.value = '');
       renderJobs();
     } else if (currentTab === 'seekers') {
       seekerFilter = { workType: '', region: '', stay: '', status: '' };
@@ -846,6 +880,11 @@
     if (jobFilter.sido && j.regionSido !== jobFilter.sido) return false;
     if (jobFilter.stay && j.stay !== jobFilter.stay) return false;
     if (jobFilter.status && j.status !== jobFilter.status) return false;
+    if (jobFilter.wageMin != null || jobFilter.wageMax != null) {
+      if (j.wageNegotiable || j.wage == null) return false;
+      if (jobFilter.wageMin != null && j.wage < jobFilter.wageMin) return false;
+      if (jobFilter.wageMax != null && j.wage > jobFilter.wageMax) return false;
+    }
     return true;
   }
 
