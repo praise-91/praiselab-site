@@ -426,6 +426,7 @@
   const colSites = db.collection('gongsu_sites');
   const colLeaderboard = db.collection('gongsu_leaderboard');
   const colGongsuCalendars = db.collection('gongsu_calendars');
+  const colSiteRestDays = db.collection('gongsu_site_restdays');
 
   function logout() { auth.signOut(); }
   function openMenu() { document.getElementById('menu-overlay').classList.add('show'); }
@@ -607,6 +608,9 @@
     patch[`restDays.${ds}`] = isRest ? firebase.firestore.FieldValue.delete() : true;
     colSites.doc(currentSiteId).update(patch)
       .catch(() => alert('저장 실패. 인터넷 연결을 확인해주세요.'));
+    // 팀원 전체가 볼 수 있는 휴무일 미러(회사단가 등 민감정보는 빼고 날짜만)
+    colSiteRestDays.doc(currentSiteId).set({ teamCode: myAdminTeamCode, ...patch }, { merge: true })
+      .catch(() => {});
   }
 
   // ── 현장 선택/생성/수정/삭제 ──
@@ -759,12 +763,17 @@
     }).then(() => {
       document.getElementById('member-joined-input').value = '';
       showToast('팀원 추가 완료');
+      // 공수달력에서 이 현장의 팀 휴무일을 보여주기 위한 연결(본인 팀 소속 대상만 허용됨)
+      colToolsUsers.doc(uid).update({ gongsuSiteId: currentSiteId }).catch(() => {});
     }).catch(() => alert('추가 실패. 인터넷 연결을 확인해주세요.'));
   }
 
   function removeMember(uid) {
     if (!confirm('이 팀원을 현장에서 제거할까요?')) return;
     colSites.doc(currentSiteId).collection('members').doc(uid).delete()
+      .then(() => {
+        colToolsUsers.doc(uid).update({ gongsuSiteId: firebase.firestore.FieldValue.delete() }).catch(() => {});
+      })
       .catch(() => alert('삭제 실패. 인터넷 연결을 확인해주세요.'));
   }
 
@@ -869,6 +878,7 @@
 
   // ── 초기화 ──
   let isAdminFlag = false;
+  let myAdminTeamCode = null;
   let gateProfileUnsub = null;
   let dataUnsubs = [];
 
@@ -917,6 +927,7 @@
         return;
       }
       isAdminFlag = !!doc.data().isAdmin;
+      myAdminTeamCode = doc.data().adminTeamCode || null;
       if (!isAdminFlag) {
         document.getElementById('hamburger-btn').style.display = 'none';
         closeMenu();

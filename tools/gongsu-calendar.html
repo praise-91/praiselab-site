@@ -154,6 +154,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-tab.is-on { background:var(--gg-card); color:var(--gg-ink); box-shadow:0 1px 4px rgba(0,0,0,.08); }
 .gg-tabbadge { font-size:11px; font-weight:700; color:var(--gg-accent); }
 
+.gg-teamrest-banner { display:flex; align-items:center; justify-content:center; gap:8px; padding:14px; margin-bottom:18px; border-radius:12px; border:1.5px solid #2F8F5B; color:#2F8F5B; background:rgba(47,143,91,0.08); font-size:14.5px; font-weight:800; }
 .gg-field { margin-bottom:18px; }
 .gg-field > label { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:var(--gg-ink-soft); margin-bottom:9px; }
 .gg-typebadge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; border:1.3px solid; }
@@ -313,6 +314,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   const colToolsUsers = gcDb.collection('tools_users');
   const colGongsuCalendars = gcDb.collection('gongsu_calendars');
   const colGongsuLeaderboard = gcDb.collection('gongsu_leaderboard');
+  const colGongsuSiteRestDays = gcDb.collection('gongsu_site_restdays');
 
   function gcLogout() { gcAuth.signOut().then(() => { location.href = 'index.html'; }); }
 
@@ -341,6 +343,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
       window.gcMyName = doc.data().name;
       // 팀원은 teamCode, 관리자는 adminTeamCode가 "내 팀" — 랭킹을 이 팀으로만 스코프한다
       window.gcMyTeamCode = doc.data().teamCode || doc.data().adminTeamCode || null;
+      // 지금 로그인한 사람(관리자 여부) 기준 — 팀 휴무일 입력 제한 우회 여부에 씀
+      window.gcIsAdmin = !!doc.data().isAdmin;
       window.colGongsuLeaderboard = colGongsuLeaderboard;
 
       // 관리자가 ?as=uid로 들어오면 자기 uid 대신 그 팀원의 달력을 보고 수정한다
@@ -348,15 +352,26 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
       let targetUid = user.uid;
       let targetName = window.gcMyName;
       let targetTeamCode = window.gcMyTeamCode;
+      let targetSiteId = doc.data().gongsuSiteId || null;
       if (asUid && asUid !== user.uid && doc.data().isAdmin) {
         const targetDoc = await colToolsUsers.doc(asUid).get();
         if (targetDoc.exists) {
           targetUid = asUid;
           targetName = targetDoc.data().name;
           targetTeamCode = targetDoc.data().teamCode || targetDoc.data().adminTeamCode || window.gcMyTeamCode;
+          targetSiteId = targetDoc.data().gongsuSiteId || null;
           document.getElementById('gc-admin-target-name').textContent = targetName;
           document.getElementById('gc-admin-banner').style.display = 'flex';
         }
+      }
+
+      // 관리자가 지정한 현장 팀 휴무일(날짜만 담긴 미러 컬렉션) — 소속 현장이 없으면 빈 채로 둠
+      window.gcTeamRestDays = {};
+      if (targetSiteId) {
+        try {
+          const rdDoc = await colGongsuSiteRestDays.doc(targetSiteId).get();
+          if (rdDoc.exists) window.gcTeamRestDays = rdDoc.data().restDays || {};
+        } catch (_) {}
       }
 
       window.gcSyncLeaderboard = async function (entries) {
@@ -717,7 +732,8 @@ const C = {
   early: "#2E6E8E",
   off: "#D9453A",
   sun: "#C1584C",
-  sat: "#2E6E8E"
+  sat: "#2E6E8E",
+  teamRest: "#2F8F5B"
 };
 const THEME_OPTIONS = [
   { id: "cream", label: "크림", swatch: "#F6F4EF" },
@@ -1238,8 +1254,13 @@ function App() {
     const e = state.entries[ds];
     const wd = idx % 7;
     const isToday = ds === todayStr;
-    const dayColor = wd === 0 ? C.sun : wd === 6 ? C.sat : undefined;
+    const isTeamRest = !!(window.gcTeamRestDays && window.gcTeamRestDays[ds]);
+    const workedOnRestDay = isTeamRest && e && e.gongsu > 0;
+    const dayColor = isTeamRest ? C.teamRest : (wd === 0 ? C.sun : wd === 6 ? C.sat : undefined);
     const type = e ? typeOf(e.gongsu || 0) : null;
+    const showLabel = workedOnRestDay || (!isTeamRest && type) || isTeamRest;
+    const labelColor = workedOnRestDay ? TYPE_META[type].color : (isTeamRest ? C.teamRest : (type ? TYPE_META[type].color : undefined));
+    const labelText = workedOnRestDay ? fmtG(e.gongsu) : (isTeamRest ? "휴무" : (type === "off" ? "휴무" : type ? fmtG(e.gongsu) : null));
     return React.createElement("button", {
       key: idx,
       className: "gg-cell" + (isToday ? " is-today" : ""),
@@ -1251,12 +1272,12 @@ function App() {
       style: {
         color: dayColor
       }
-    }, d), type && React.createElement("span", {
+    }, d), showLabel && React.createElement("span", {
       className: "gg-gongsu",
       style: {
-        color: TYPE_META[type].color
+        color: labelColor
       }
-    }, type === "off" ? "휴무" : fmtG(e.gongsu)), React.createElement("span", {
+    }, labelText), React.createElement("span", {
       className: "gg-marks"
     }, e && e.memo && React.createElement("span", {
       className: "gg-mark gg-mark-memo"
@@ -1303,6 +1324,8 @@ function App() {
     customChips: state.customChips,
     defaultUnitPrice: state.defaultUnitPrice,
     defaultAllowance: state.defaultAllowance,
+    isTeamRestDay: !!(window.gcTeamRestDays && window.gcTeamRestDays[dayModal.date]),
+    isAdmin: !!window.gcIsAdmin,
     onClose: closeOverlay,
     onSave: (patch, fillRest) => {
       if (fillRest) fillToMonthEnd(dayModal.date, patch);
@@ -1361,6 +1384,8 @@ function DayModal({
   customChips,
   defaultUnitPrice,
   defaultAllowance,
+  isTeamRestDay,
+  isAdmin,
   onClose,
   onSave,
   onDelete
@@ -1382,6 +1407,59 @@ function DayModal({
   const type = typeOf(gongsu);
   const expenseTotal = Object.values(expenses).reduce((a, b) => a + (b || 0), 0);
   const allChips = useMemo(() => [...DEFAULT_CHIPS, ...customChips].sort((a, b) => chipValue(a) - chipValue(b)), [customChips]);
+  const restricted = isTeamRestDay && !isAdmin;
+  if (restricted) {
+    return React.createElement("div", {
+      className: "gg-overlay",
+      onClick: onClose
+    }, React.createElement("div", {
+      className: "gg-sheet gg-sheet-full",
+      onClick: e => e.stopPropagation()
+    }, React.createElement("div", {
+      className: "gg-sheet-grip"
+    }), React.createElement("div", {
+      className: "gg-sheet-head"
+    }, React.createElement("div", {
+      className: "gg-sheet-date"
+    }, dateLabel), React.createElement("button", {
+      className: "gg-x",
+      onClick: onClose,
+      "aria-label": "닫기"
+    }, "✕")), React.createElement("div", {
+      className: "gg-teamrest-banner"
+    }, "🏖️ 팀 전체 휴무"), React.createElement("div", {
+      className: "gg-field"
+    }, React.createElement("label", null, "기타경비"), React.createElement("input", {
+      className: "gg-input gg-expenseinput",
+      type: "number",
+      inputMode: "numeric",
+      placeholder: "0",
+      value: expenses.etc || "",
+      onChange: e => setExpenses(prev => ({
+        ...prev,
+        etc: Number(e.target.value) || 0
+      }))
+    })), React.createElement("div", {
+      className: "gg-field"
+    }, React.createElement("label", null, "메모"), React.createElement("textarea", {
+      className: "gg-input",
+      rows: 2,
+      placeholder: "작업 내용, 현장 등",
+      value: memo,
+      onChange: e => setMemo(e.target.value)
+    })), React.createElement("div", {
+      className: "gg-sheet-actions"
+    }, React.createElement("button", {
+      className: "gg-btn gg-btn-primary",
+      style: {
+        background: "var(--gg-accent)"
+      },
+      onClick: () => onSave({
+        memo: memo.trim(),
+        expenses
+      }, false)
+    }, "저장"))));
+  }
   return React.createElement("div", {
     className: "gg-overlay",
     onClick: onClose
