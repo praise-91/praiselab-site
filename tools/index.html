@@ -721,11 +721,11 @@
     </a>
 
     <div class="section-label tool-section">커뮤니티</div>
-    <a href="javascript:void(0)" class="tool-card tool-card--soon" id="community-entry">
+    <a href="community.html" class="tool-card" id="community-entry">
       <div class="tool-icon tool-icon--teal">💬</div>
       <div class="tool-info">
-        <div class="tool-name">피더 커뮤니티<span class="tool-badge" id="community-badge">준비중</span></div>
-        <div class="tool-desc">현장 소식 · 정보를 나누는 공간</div>
+        <div class="tool-name">피더 커뮤니티</div>
+        <div class="tool-desc">구인 · 구직 · 자유게시판</div>
       </div>
       <span class="tool-arrow">›</span>
     </a>
@@ -839,6 +839,7 @@
   let myProfileUnsub = null;
   let gongsuSummaryLoaded = false;
   let consumedAdminParam = false;
+  let consumedSettingsParam = false;
 
   // ── 홈 히어로 칩용 실수령액 계산 ──
   // gongsu-calendar.html의 computeSummary와 같은 세율/로직을 축약 반영한 것.
@@ -1409,22 +1410,13 @@
     const menuAdminRequest = document.getElementById('menu-admin-request');
     const badge = document.getElementById('pending-count-badge');
     const menuBadge = document.getElementById('menu-admin-badge');
-    const communityEntry = document.getElementById('community-entry');
-    const communityBadge = document.getElementById('community-badge');
-
     if (menuAdminRequest) menuAdminRequest.style.display = (myProfile && !myProfile.isAdmin) ? '' : 'none';
 
     if (!myProfile || (!myProfile.isAdmin && !myProfile.isOperator)) {
       menuAdmin.style.display = 'none';
-      communityEntry.classList.add('tool-card--soon');
-      communityEntry.setAttribute('href', 'javascript:void(0)');
-      communityBadge.textContent = '준비중';
       return;
     }
     menuAdmin.style.display = '';
-    communityEntry.classList.remove('tool-card--soon');
-    communityEntry.setAttribute('href', 'community.html');
-    communityBadge.textContent = '관리자 미리보기';
     const teamCodeEl = document.getElementById('admin-team-code');
     if (teamCodeEl) teamCodeEl.textContent = myProfile.adminTeamCode || '아직 발급 전이에요';
     const pendingCount = users.filter(u => inScope(u) && u.memberStatus === 'pending').length;
@@ -1465,6 +1457,7 @@
       myProfile = null;
       gongsuSummaryLoaded = false;
       consumedAdminParam = false;
+      consumedSettingsParam = false;
       document.getElementById('hamburger-btn').style.display = 'none';
       document.getElementById('hero-chip').style.display = 'none';
       closeMenu();
@@ -1507,8 +1500,12 @@
       if (!onAdminScreen) {
         const wantsAdminHub = !consumedAdminParam && myProfile.isAdmin
           && new URLSearchParams(location.search).get('admin') === '1';
+        const wantsSettings = !consumedSettingsParam
+          && new URLSearchParams(location.search).get('settings') === '1';
         consumedAdminParam = true;
+        consumedSettingsParam = true;
         if (wantsAdminHub) go('view-admin-hub');
+        else if (wantsSettings) { go('view-settings'); renderSettings(); }
         else syncView('view-app');
       }
     });
