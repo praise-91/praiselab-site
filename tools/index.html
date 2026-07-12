@@ -113,6 +113,25 @@
   .menu-item .tool-badge { margin-left: auto; }
   .menu-item--logout { margin-top: auto; color: #ff8a8a; }
 
+  .menu-profile {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 10px; margin-bottom: 10px;
+    border-radius: 12px;
+    background: var(--steel-light);
+    border: none; width: 100%; text-align: left; cursor: pointer;
+    font-family: inherit;
+  }
+  .menu-profile:hover { background: rgba(255,107,43,0.12); }
+  .menu-profile-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--orange); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 900; flex-shrink: 0;
+  }
+  .menu-profile-info { flex: 1; min-width: 0; }
+  .menu-profile-name { font-size: 15px; font-weight: 900; color: var(--text); }
+  .menu-profile-role { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
   header.page-head { text-align: center; padding: 28px 0 24px; }
   .header-icon { font-size: 40px; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 12px rgba(255,107,43,0.5)); }
   header.page-head h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
@@ -273,6 +292,9 @@
     font-size: 23px;
     flex-shrink: 0;
   }
+  .tool-icon--blue { background: #2E7DFF; border-color: #2E7DFF; }
+  .tool-icon--purple { background: #8B5CF6; border-color: #8B5CF6; }
+  .tool-icon--teal { background: #14B8A6; border-color: #14B8A6; }
 
   .tool-info { flex: 1; min-width: 0; }
   .tool-name { font-size: 15px; font-weight: 900; margin-bottom: 4px; }
@@ -427,6 +449,14 @@
       <span class="menu-title">메뉴</span>
       <button class="menu-close" onclick="closeMenu()" aria-label="닫기">✕</button>
     </div>
+    <button class="menu-profile" onclick="closeMenu(); go('view-my-profile');">
+      <div class="menu-profile-avatar" id="menu-profile-avatar">-</div>
+      <div class="menu-profile-info">
+        <div class="menu-profile-name" id="menu-profile-name">-</div>
+        <div class="menu-profile-role" id="menu-profile-role">-</div>
+      </div>
+      <span class="tool-arrow">›</span>
+    </button>
     <button class="menu-item" id="menu-admin" onclick="closeMenu(); go('view-admin-hub');" style="display:none;">
       <span class="menu-item-icon">🔑</span><span>관리자 기능</span>
       <span class="tool-badge" id="menu-admin-badge" style="display:none;"></span>
@@ -539,6 +569,15 @@
     <div class="card" id="admin-request-body"></div>
   </div>
 
+  <!-- 내 정보 -->
+  <div class="view" id="view-my-profile">
+    <div class="view-head">
+      <button class="back-btn" onclick="history.back()">‹</button>
+      <h2>내 정보</h2>
+    </div>
+    <div class="card" id="my-profile-body"></div>
+  </div>
+
   <!-- 승인 대기 -->
   <div class="view" id="view-pending">
     <header class="page-head">
@@ -569,7 +608,7 @@
     <div class="section-label tool-section">팀 업무</div>
     <div class="tool-duo">
       <a href="qty-report.html" class="tool-card">
-        <div class="tool-icon">🧾</div>
+        <div class="tool-icon tool-icon--blue">🧾</div>
         <div class="tool-info">
           <div class="tool-name">물량작성</div>
           <div class="tool-desc">입력 · 합산 · 공유</div>
@@ -577,7 +616,7 @@
       </a>
 
       <a href="tool-rental.html" class="tool-card">
-        <div class="tool-icon">🔧</div>
+        <div class="tool-icon tool-icon--purple">🔧</div>
         <div class="tool-info">
           <div class="tool-name">자재대여</div>
           <div class="tool-desc">대여 기록 · 반납</div>
@@ -587,7 +626,7 @@
 
     <div class="section-label tool-section">커뮤니티</div>
     <a href="javascript:void(0)" class="tool-card tool-card--soon" id="community-entry">
-      <div class="tool-icon">💬</div>
+      <div class="tool-icon tool-icon--teal">💬</div>
       <div class="tool-info">
         <div class="tool-name">피더 커뮤니티<span class="tool-badge" id="community-badge">준비중</span></div>
         <div class="tool-desc">현장 소식 · 정보를 나누는 공간</div>
@@ -801,6 +840,31 @@
   // 신규가입자는 nickname, 구가입자(이름 예외 유지)는 name — 표시용 통합 헬퍼
   function displayName(u) {
     return u.nickname || u.name || u.username || '이름없음';
+  }
+
+  function roleLabel(u) {
+    if (u.isOperator) return '운영자';
+    if (u.isAdmin) return '관리자';
+    return '일반회원';
+  }
+
+  function renderMyProfile() {
+    const el = document.getElementById('my-profile-body');
+    if (!el || !myProfile) return;
+    const rows = [
+      ['닉네임', displayName(myProfile)],
+      ['아이디', myProfile.username || myProfile.name || '-'],
+      ['이메일', myProfile.email || '-'],
+      ['역할', roleLabel(myProfile)],
+    ];
+    if (myProfile.isAdmin) rows.push(['내 팀 코드', myProfile.adminTeamCode || '아직 발급 전']);
+    else if (myProfile.teamCode) rows.push(['소속 팀', `${myProfile.teamCode} (${myProfile.memberStatus === 'approved' ? '승인됨' : '승인 대기'})`]);
+    el.innerHTML = rows.map(([label, value]) => `
+      <div class="approve-row">
+        <span style="font-size:13px;color:var(--text-dim);">${escapeHtml(label)}</span>
+        <span style="font-size:14px;font-weight:700;">${escapeHtml(String(value))}</span>
+      </div>
+    `).join('');
   }
 
   function escapeHtml(s) {
@@ -1236,6 +1300,16 @@
       updateAdminEntry();
       renderTeamJoin();
       renderAdminRequest();
+      renderMyProfile();
+      const nameEl = document.getElementById('menu-profile-name');
+      const roleEl = document.getElementById('menu-profile-role');
+      const avatarEl = document.getElementById('menu-profile-avatar');
+      if (nameEl) {
+        const dn = displayName(myProfile);
+        nameEl.textContent = dn;
+        roleEl.textContent = roleLabel(myProfile);
+        avatarEl.textContent = dn.charAt(0);
+      }
 
       if (myProfile.status !== 'approved') {
         document.getElementById('pending-name').textContent = displayName(myProfile);
