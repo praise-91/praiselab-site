@@ -1501,29 +1501,32 @@
     presenceDocs = [];
   }
 
+  // since(끊기지 않고 접속을 유지해온 시작 시각)가 없는 옛날 문서도 있을 수 있어 lastSeen으로 폴백
+  function presenceSinceLabel(p) {
+    const t = p.since || p.lastSeen;
+    if (!t) return '';
+    return new Date(t.toMillis()).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
   function renderPresence() {
     const countEl = document.getElementById('presence-count');
     const listEl = document.getElementById('presence-list');
     if (!countEl || !listEl) return;
     const cutoff = Date.now() - 90000;
     const online = presenceDocs.filter(p => p.lastSeen && p.lastSeen.toMillis() > cutoff);
-    const names = [];
-    let guestCount = 0;
-    online.forEach(p => {
-      if (!p.uid) { guestCount += 1; return; }
-      const u = users.find(x => x.id === p.uid);
-      names.push(u ? displayName(u) : '알 수 없음');
-    });
+    // presence.js가 신원(uid 또는 게스트 고정 id)별로 문서 하나만 쓰므로,
+    // 여기서 uid로 또 묶을 필요 없이 문서 하나 = 한 명으로 바로 대응된다
+    const rows = online.map(p => {
+      const u = p.uid && users.find(x => x.id === p.uid);
+      return { name: p.uid ? (u ? displayName(u) : '알 수 없음') : '게스트', since: presenceSinceLabel(p), isGuest: !p.uid };
+    }).sort((a, b) => (a.isGuest - b.isGuest) || a.name.localeCompare(b.name, 'ko'));
+
     countEl.textContent = `${online.length}명 접속 중`;
-    const rows = names.sort((a, b) => a.localeCompare(b, 'ko')).map(n => `
+    listEl.innerHTML = rows.map(r => `
       <div class="approve-row">
-        <span class="approve-name">${escapeHtml(n)}</span>
-      </div>`).join('');
-    const guestRow = guestCount > 0 ? `
-      <div class="approve-row">
-        <span class="approve-name" style="color:var(--text-dim);">게스트 ${guestCount}명</span>
-      </div>` : '';
-    listEl.innerHTML = (rows + guestRow) || '<div class="empty-state"><span class="empty-icon">👀</span>접속 중인 사람이 없어요</div>';
+        <span class="approve-name"${r.isGuest ? ' style="color:var(--text-dim);"' : ''}>${escapeHtml(r.name)}</span>
+        <span style="font-size:12px;color:var(--text-dim);">${escapeHtml(r.since)}부터</span>
+      </div>`).join('') || '<div class="empty-state"><span class="empty-icon">👀</span>접속 중인 사람이 없어요</div>';
   }
 
   // ── 이름 목록 실시간 구독 (로그인 화면 + 승인 화면 공용) ──
