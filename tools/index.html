@@ -80,9 +80,15 @@
     letter-spacing: -0.3px;
     color: var(--text);
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 8px;
     text-decoration: none;
+  }
+  .brand-sub {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: -0.2px;
   }
   .hamburger-btn {
     width: 36px; height: 36px;
@@ -506,6 +512,7 @@
 <header class="site-header">
   <a href="https://praiselab.net/" class="brand">
     Feeder
+    <span class="brand-sub">현장도구모음</span>
   </a>
   <button class="hamburger-btn" id="hamburger-btn" onclick="openMenu()" aria-label="메뉴">☰</button>
 </header>

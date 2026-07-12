@@ -289,6 +289,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 </style>
 </head>
 <body>
+<div class="gc-locked" id="gc-loading" style="display:flex;">
+  <span class="gc-locked-icon">📅</span>
+  <h1 id="gc-loading-title">불러오는 중…</h1>
+  <p id="gc-loading-sub">잠시만 기다려주세요</p>
+  <a href="javascript:void(0)" id="gc-loading-retry" onclick="location.reload()" style="display:none;">다시 시도 →</a>
+</div>
 <div class="gc-locked" id="gc-locked" style="display:none;">
   <span class="gc-locked-icon">🔒</span>
   <h1>로그인이 필요해요</h1>
@@ -300,6 +306,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   <a href="gongsu-admin.html">← 팀장 화면으로</a>
 </div>
 <div id="root"></div>
+<script>
+  // firebase 스크립트 로딩 자체가 실패하거나(네트워크/현장 신호 문제) auth 상태 확인이 오래
+  // 걸려도 "불러오는 중…"에 무한정 멈춰있지 않고 재시도 버튼을 보여줌
+  setTimeout(() => {
+    const loading = document.getElementById('gc-loading');
+    if (loading && loading.style.display !== 'none') {
+      document.getElementById('gc-loading-title').textContent = '연결이 지연되고 있어요';
+      document.getElementById('gc-loading-sub').textContent = '인터넷 연결을 확인해주세요';
+      document.getElementById('gc-loading-retry').style.display = 'inline-block';
+    }
+  }, 12000);
+</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -336,6 +354,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   };
 
   function gcStartGuest() {
+    document.getElementById('gc-loading').style.display = 'none';
     document.getElementById('gc-locked').style.display = 'none';
     document.getElementById('root').style.display = '';
     window.gcMyUid = null;
@@ -363,6 +382,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
         gcStartGuest();
         return;
       }
+      document.getElementById('gc-loading').style.display = 'none';
       document.getElementById('gc-locked').style.display = 'none';
       document.getElementById('root').style.display = '';
 
@@ -382,15 +402,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
       let targetTeamCode = window.gcMyTeamCode;
       let targetSiteId = doc.data().gongsuSiteId || null;
       if (asUid && asUid !== user.uid && doc.data().isAdmin) {
-        const targetDoc = await colToolsUsers.doc(asUid).get();
-        if (targetDoc.exists) {
-          targetUid = asUid;
-          targetName = targetDoc.data().name;
-          targetTeamCode = targetDoc.data().teamCode || targetDoc.data().adminTeamCode || window.gcMyTeamCode;
-          targetSiteId = targetDoc.data().gongsuSiteId || null;
-          document.getElementById('gc-admin-target-name').textContent = targetName;
-          document.getElementById('gc-admin-banner').style.display = 'flex';
-        }
+        try {
+          const targetDoc = await colToolsUsers.doc(asUid).get();
+          if (targetDoc.exists) {
+            targetUid = asUid;
+            targetName = targetDoc.data().name;
+            targetTeamCode = targetDoc.data().teamCode || targetDoc.data().adminTeamCode || window.gcMyTeamCode;
+            targetSiteId = targetDoc.data().gongsuSiteId || null;
+            document.getElementById('gc-admin-target-name').textContent = targetName;
+            document.getElementById('gc-admin-banner').style.display = 'flex';
+          }
+        } catch (_) {}
       }
 
       // 관리자가 지정한 현장 팀 휴무일(날짜만 담긴 미러 컬렉션) — 소속 현장이 없으면 빈 채로 둠
