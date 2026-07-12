@@ -116,6 +116,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-sumitem span { font-size:11.5px; color:var(--gg-ink-faint); }
 .gg-sumitem strong { font-size:16px; font-weight:800; letter-spacing:-.02em; }
 .gg-sumpay strong { color:var(--gg-accent); }
+.gg-sumpay-label { display:flex; align-items:center; gap:6px; }
+.gg-taxtoggle { font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:20px; border:1px solid var(--gg-line); background:var(--gg-card); color:var(--gg-ink-faint); cursor:pointer; line-height:1.6; }
+.gg-taxtoggle:active { opacity:.7; }
 
 .gg-typerow { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:10px; }
 .gg-homechips { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:14px; }
@@ -934,6 +937,7 @@ function App() {
   const [showMenu, setShowMenu] = useState(false);
   const [showTeam, setShowTeam] = useState(false);
   const [showBulkPrice, setShowBulkPrice] = useState(false);
+  const [showNetPay, setShowNetPay] = useState(false);
   const closeOverlay = () => history.back();
   useEffect(() => {
     const onPop = () => {
@@ -1025,9 +1029,13 @@ function App() {
         byType.off += 1;
       }
     }
+    const start = dateStr(cursor.y, cursor.m, 1);
+    const end = dateStr(cursor.y, cursor.m, daysInMonth);
+    const netPay = computeSummary(state.entries, start, end, state.defaultUnitPrice, state.taxMode).netPay;
     return {
       gongsu,
       pay,
+      netPay,
       byType
     };
   }, [state, cursor]);
@@ -1202,7 +1210,15 @@ function App() {
     className: "gg-summary"
   }, React.createElement("div", {
     className: "gg-sumitem gg-sumpay"
-  }, React.createElement("span", null, "이 달 예상 급여"), React.createElement("strong", null, won(monthStats.pay))), React.createElement("div", {
+  }, React.createElement("span", {
+    className: "gg-sumpay-label"
+  }, "이 달 예상 급여", React.createElement("button", {
+    className: "gg-taxtoggle",
+    onClick: e => {
+      e.stopPropagation();
+      setShowNetPay(v => !v);
+    }
+  }, showNetPay ? "세후" : "세전")), React.createElement("strong", null, won(showNetPay ? monthStats.netPay : monthStats.pay))), React.createElement("div", {
     className: "gg-sumitem"
   }, React.createElement("span", null, "총 공수"), React.createElement("strong", null, fmtG(monthStats.gongsu)))), React.createElement("div", {
     className: "gg-typerow"
