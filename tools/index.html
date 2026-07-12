@@ -678,6 +678,7 @@
     </div>
     <div class="card" id="my-profile-body"></div>
     <div class="card" id="my-profile-team-body"></div>
+    <div class="card" id="my-profile-delete-body"></div>
   </div>
 
   <!-- 설정 -->
@@ -989,6 +990,7 @@
         </div>
       `).join('')}`;
     renderMyProfileTeam();
+    renderMyProfileDelete();
   }
 
   function saveNickname() {
@@ -1026,6 +1028,58 @@
         </div>
         <button class="submit-btn" style="background:transparent;border:1.5px solid var(--border);color:var(--text-dim);margin-top:16px;" onclick="cancelTeamJoin()">신청 취소</button>`;
     }
+  }
+
+  // 팀장은 팀이 붕 뜨는 걸 막기 위해 바로 탈퇴 못하게 막고 안내만 표시
+  function renderMyProfileDelete() {
+    const el = document.getElementById('my-profile-delete-body');
+    if (!el || !myProfile) return;
+    if (myProfile.isAdmin) {
+      el.innerHTML = `
+        <div style="font-size:12px;color:var(--text-dim);line-height:1.7;text-align:center;">
+          팀장 계정은 바로 탈퇴할 수 없어요.<br>
+          팀장을 다른 사람에게 넘기거나 운영자에게 문의해주세요.
+        </div>`;
+      return;
+    }
+    el.innerHTML = `
+      <button class="toggle-link" style="color:#ff8a8a;" onclick="deleteAccount()">회원 탈퇴</button>`;
+  }
+
+  // 탈퇴: 본인 소유 데이터(공수달력·랭킹·계정)만 지움. 커뮤니티에 남긴 글은 그대로 두고
+  // 작성자 미상 처리(접속자 대시보드에서 탈퇴자를 "알 수 없음"으로 표시하는 것과 동일한 방식).
+  // Firestore 삭제 후 Auth 계정을 지우는 순서라, requires-recent-login으로 실패해도
+  // 재인증 후 다시 부르면 이미 지워진 문서는 그냥 조용히 넘어가는 멱등 동작이라 안전함
+  function runAccountDeletion(uid) {
+    return db.collection('gongsu_calendars').doc(uid).delete().catch(() => {})
+      .then(() => db.collection('gongsu_leaderboard').doc(uid).delete().catch(() => {}))
+      .then(() => colUsers.doc(uid).delete())
+      .then(() => auth.currentUser.delete());
+  }
+
+  function deleteAccount() {
+    if (!myProfile || !auth.currentUser) return;
+    if (myProfile.isAdmin) return;
+    if (!confirm('정말 탈퇴하시겠어요?\n계정과 공수달력 데이터가 모두 삭제되고 되돌릴 수 없어요.')) return;
+
+    const uid = auth.currentUser.uid;
+    const email = myProfile.authEmail || myProfile.email;
+
+    runAccountDeletion(uid)
+      .then(() => showToast('탈퇴가 완료됐어요'))
+      .catch(err => {
+        if (err.code !== 'auth/requires-recent-login') {
+          alert('탈퇴 처리에 실패했어요. 다시 시도해주세요.');
+          return;
+        }
+        const pw = prompt('보안을 위해 비밀번호를 다시 입력해주세요');
+        if (!pw) return;
+        const cred = firebase.auth.EmailAuthProvider.credential(email, pw);
+        auth.currentUser.reauthenticateWithCredential(cred)
+          .then(() => runAccountDeletion(uid))
+          .then(() => showToast('탈퇴가 완료됐어요'))
+          .catch(() => alert('비밀번호가 맞지 않거나 처리에 실패했어요. 다시 시도해주세요.'));
+      });
   }
 
   // ── 화면 테마 ──

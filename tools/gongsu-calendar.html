@@ -92,6 +92,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-todaybtn { font-size:12.5px; font-weight:700; color:var(--gg-ink-soft); padding:5px 12px; border-radius:8px; background:var(--gg-card); border:1px solid var(--gg-line); }
 .gg-todaybtn:hover { background:var(--gg-paper); }
 
+.gg-guestnotice { display:flex; align-items:center; justify-content:space-between; gap:10px; max-width:640px; margin:10px auto 0; padding:10px 14px; border-radius:12px; background:var(--gg-accent-soft); border:1px solid var(--gg-accent); font-size:12.5px; font-weight:700; color:var(--gg-accent-dark); }
+.gg-guestnotice-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.gg-guestnotice-login { font-size:12px; font-weight:800; color:#fff; background:var(--gg-accent); padding:6px 12px; border-radius:8px; white-space:nowrap; }
+.gg-guestnotice-close { font-size:13px; color:var(--gg-accent-dark); opacity:.6; width:22px; height:22px; display:flex; align-items:center; justify-content:center; }
+.gg-guestnotice-close:hover { opacity:1; }
+
 .gg-main { max-width:640px; margin:0 auto; padding:10px 16px 20px; }
 .gg-weekrow { display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:4px; }
 .gg-weekday { text-align:center; font-size:12.5px; font-weight:700; padding:6px 0; color:var(--gg-ink-soft); }
@@ -1033,6 +1039,12 @@ function App() {
   const [showTeam, setShowTeam] = useState(false);
   const [showBulkPrice, setShowBulkPrice] = useState(false);
   const [showNetPay, setShowNetPay] = useState(true);
+  // 게스트 데이터소실 경고 배너 — 세션(탭)마다 다시 보이게, 완전히 끄진 않음
+  const [showGuestNotice, setShowGuestNotice] = useState(() => !!window.gcIsGuest && !sessionStorage.getItem("gc_guest_notice_dismissed"));
+  const dismissGuestNotice = () => {
+    sessionStorage.setItem("gc_guest_notice_dismissed", "1");
+    setShowGuestNotice(false);
+  };
   const closeOverlay = () => history.back();
   useEffect(() => {
     const onPop = () => {
@@ -1288,7 +1300,18 @@ function App() {
   }, "Today"), React.createElement("button", {
     className: "gg-icon gg-icon-text",
     onClick: () => setShowSummary(true)
-  }, "명세서")), React.createElement("main", {
+  }, "명세서")), showGuestNotice && React.createElement("div", {
+    className: "gg-guestnotice"
+  }, React.createElement("span", null, "🔓 로그인 없이 이용 중이에요 · 이 기기에만 저장돼요"), React.createElement("div", {
+    className: "gg-guestnotice-actions"
+  }, React.createElement("button", {
+    className: "gg-guestnotice-login",
+    onClick: () => { location.href = "index.html?login=1"; }
+  }, "로그인하기"), React.createElement("button", {
+    className: "gg-guestnotice-close",
+    onClick: dismissGuestNotice,
+    "aria-label": "닫기"
+  }, "✕"))), React.createElement("main", {
     className: "gg-main"
   }, React.createElement("div", {
     className: "gg-weekrow"
