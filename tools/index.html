@@ -513,6 +513,24 @@
       <button class="submit-btn" id="login-btn" onclick="login()">로그인</button>
       <div class="error-msg" id="login-error">🔒 아이디 또는 비밀번호가 맞지 않아요</div>
       <button class="toggle-link" onclick="go('view-register')">회원가입</button>
+      <button class="toggle-link" onclick="go('view-forgot-password')">비밀번호를 잊으셨나요?</button>
+    </div>
+  </div>
+
+  <!-- 비밀번호 찾기 -->
+  <div class="view" id="view-forgot-password">
+    <div class="view-head">
+      <button class="back-btn" onclick="history.back()">‹</button>
+      <h2>비밀번호 찾기</h2>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>아이디</label>
+        <input type="text" id="forgot-username" placeholder="아이디"
+          onkeydown="if(event.key==='Enter')requestPasswordReset();" />
+      </div>
+      <button class="submit-btn" id="forgot-btn" onclick="requestPasswordReset()">재설정 메일 보내기</button>
+      <div class="error-msg" id="forgot-error"></div>
     </div>
   </div>
 
@@ -957,14 +975,14 @@
     const btn = document.getElementById('reg-btn');
     btn.disabled = true;
 
-    const authEmail = `${username}@${EMAIL_DOMAIN}`;
+    // Auth 계정 자체를 실제 이메일로 만들어야 비밀번호 재설정 메일을 보낼 수 있음
+    // (예전엔 아이디 기반 가짜 이메일을 썼는데, 그러면 Firebase 기본 재설정 기능을 못 씀)
     // 개인 사용은 승인 없이 바로 가능(status: 'approved') — 팀 참가만 별도 승인 대상(memberStatus)
-    auth.createUserWithEmailAndPassword(authEmail, pw)
+    auth.createUserWithEmailAndPassword(email, pw)
       .then(cred => colUsers.doc(cred.user.uid).set({
         username,
         nickname,
         email,
-        authEmail,
         status: 'approved',
         isAdmin: false,
         role: 'member',
@@ -975,9 +993,37 @@
       .then(() => showToast('✅ 가입 완료!'))
       .catch(err => {
         alert(err.code === 'auth/email-already-in-use'
-          ? '이미 등록된 아이디예요.'
+          ? '이미 등록된 이메일이에요.'
           : '등록 실패. 인터넷 연결을 확인해주세요.');
       })
+      .finally(() => { btn.disabled = false; });
+  }
+
+  // ── 비밀번호 찾기 ──
+  function requestPasswordReset() {
+    const input = document.getElementById('forgot-username').value.trim();
+    const errorEl = document.getElementById('forgot-error');
+    errorEl.style.display = 'none';
+
+    if (!input) { alert('아이디를 입력해주세요!'); return; }
+    const u = users.find(x => x.username === input) || users.find(x => x.name === input);
+    if (!u) {
+      errorEl.textContent = '🔒 해당 아이디를 찾을 수 없어요';
+      errorEl.style.display = 'block';
+      return;
+    }
+    const email = u.authEmail || u.email;
+    if (!email || email.endsWith('@' + EMAIL_DOMAIN)) {
+      errorEl.textContent = '이 계정은 등록된 이메일이 없어요. 운영자에게 문의해주세요.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    const btn = document.getElementById('forgot-btn');
+    btn.disabled = true;
+    auth.sendPasswordResetEmail(email)
+      .then(() => showToast('✅ 재설정 메일을 보냈어요'))
+      .catch(() => alert('전송 실패. 잠시 후 다시 시도해주세요.'))
       .finally(() => { btn.disabled = false; });
   }
 
