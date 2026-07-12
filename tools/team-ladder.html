@@ -504,8 +504,9 @@
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     }).then(() => {
       creatingFormOpen = false;
-    }).catch(() => {
-      alert('만들기 실패. 인터넷 연결을 확인해주세요.');
+    }).catch(err => {
+      console.error('createRoom failed:', err);
+      alert('만들기 실패 (' + (err.code || err.message) + ')');
       btn.disabled = false;
     });
   }
