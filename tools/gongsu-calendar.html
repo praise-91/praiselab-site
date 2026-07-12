@@ -154,6 +154,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-input:focus { outline:none; border-color:var(--gg-accent); background:var(--gg-card); }
 
 .gg-chips { display:flex; gap:7px; flex-wrap:wrap; margin-top:12px; }
+.gg-fillrest { display:flex; align-items:center; gap:7px; margin:14px 0 18px; font-size:13.5px; font-weight:700; color:var(--gg-ink-soft); }
+.gg-fillrest input[type="checkbox"] { width:17px; height:17px; accent-color:var(--gg-accent); }
+.gg-fillrest-hint { font-size:11.5px; font-weight:500; color:var(--gg-ink-faint); }
 .gg-chip { padding:9px 14px; border-radius:10px; font-size:14.5px; font-weight:800; background:var(--gg-paper); border:1.5px solid var(--gg-line); }
 .gg-chip.is-on { color:#fff !important; }
 .gg-chip-off.is-on { color:#fff !important; }
@@ -753,6 +756,23 @@ const FREELANCE_TAX_RATE = 0.03; // 3.3% 사업소득 원천징수 중 소득세
 
 const pad = n => String(n).padStart(2, "0");
 const dateStr = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+// 대한민국 법정 공휴일 — 매년 갱신 필요. 2026년은 확인된 날짜, 2027년은 설날 연휴 범위 등
+// 출처마다 조금씩 달라 추정치 포함(사용 전 재확인 권장). '이후 날짜 채우기' 기능의 휴일 제외용.
+const KR_HOLIDAYS = new Set([
+  "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-01", "2026-03-02",
+  "2026-05-01", "2026-05-05", "2026-05-24", "2026-05-25", "2026-06-03", "2026-06-06",
+  "2026-08-15", "2026-08-17", "2026-09-24", "2026-09-25", "2026-09-26",
+  "2026-10-03", "2026-10-05", "2026-10-09", "2026-12-25",
+  "2027-01-01", "2027-02-06", "2027-02-07", "2027-02-08", "2027-02-09", "2027-02-10",
+  "2027-03-01", "2027-05-01", "2027-05-05", "2027-05-13", "2027-06-06",
+  "2027-08-15", "2027-08-16", "2027-09-14", "2027-09-15", "2027-09-16",
+  "2027-10-03", "2027-10-04", "2027-10-09", "2027-10-11", "2027-12-25", "2027-12-27"
+]);
+const isWorkableDay = ds => {
+  const [y, m, d] = ds.split("-").map(Number);
+  const wd = new Date(y, m - 1, d).getDay();
+  return wd !== 0 && wd !== 6 && !KR_HOLIDAYS.has(ds);
+};
 const won = n => Math.round(n || 0).toLocaleString("ko-KR") + "원";
 const fmtG = g => {
   if (g === 0) return "0";
@@ -1107,6 +1127,31 @@ function App() {
     });
     return targetDates.length;
   };
+  // 선택한 날짜부터 그 달 말일까지, 주말/공휴일을 제외한 날에 같은 공수·단가를 채운다
+  const fillToMonthEnd = (date, patch) => {
+    const [y, m, startD] = date.split("-").map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    const targetDates = [];
+    for (let d = startD; d <= lastDay; d++) {
+      const ds = dateStr(y, m - 1, d);
+      if (isWorkableDay(ds)) targetDates.push(ds);
+    }
+    setState(prev => {
+      const entries = { ...prev.entries };
+      targetDates.forEach(ds => {
+        const cur = entries[ds] || {
+          gongsu: 0,
+          unitPrice: prev.defaultUnitPrice,
+          allowance: prev.defaultAllowance || 0,
+          memo: "",
+          expenses: {}
+        };
+        entries[ds] = { ...cur, gongsu: patch.gongsu, unitPrice: patch.unitPrice };
+      });
+      return { ...prev, entries };
+    });
+    return targetDates.length;
+  };
   const moveMonth = delta => setCursor(c => {
     const d = new Date(c.y, c.m + delta, 1);
     return {
@@ -1252,8 +1297,9 @@ function App() {
     defaultUnitPrice: state.defaultUnitPrice,
     defaultAllowance: state.defaultAllowance,
     onClose: closeOverlay,
-    onSave: patch => {
-      saveEntry(dayModal.date, patch);
+    onSave: (patch, fillRest) => {
+      if (fillRest) fillToMonthEnd(dayModal.date, patch);
+      else saveEntry(dayModal.date, patch);
       closeOverlay();
     },
     onDelete: () => {
@@ -1318,6 +1364,7 @@ function DayModal({
   const [allowance, setAllowance] = useState(entry && entry.allowance != null ? entry.allowance : (defaultAllowance || 0));
   const [memo, setMemo] = useState(entry && entry.memo || "");
   const [expenses, setExpenses] = useState(entry && entry.expenses || {});
+  const [fillRest, setFillRest] = useState(false);
   const parts = date.split("-").map(Number);
   const y = parts[0],
     m = parts[1],
@@ -1424,7 +1471,15 @@ function DayModal({
       },
       onClick: () => setGongsu(g)
     }, chipLabel(chip));
-  }))), React.createElement("div", {
+  }))), React.createElement("label", {
+    className: "gg-fillrest"
+  }, React.createElement("input", {
+    type: "checkbox",
+    checked: fillRest,
+    onChange: e => setFillRest(e.target.checked)
+  }), "말일까지 채우기", React.createElement("span", {
+    className: "gg-fillrest-hint"
+  }, "주말·공휴일 제외")), React.createElement("div", {
     className: "gg-field"
   }, React.createElement("label", null, "메모"), React.createElement("textarea", {
     className: "gg-input",
@@ -1467,7 +1522,7 @@ function DayModal({
       allowance,
       memo: memo.trim(),
       expenses
-    })
+    }, fillRest)
   }, "저장"))));
 }
 function SummaryModal({
