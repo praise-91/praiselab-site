@@ -7,8 +7,9 @@
 // 문제가 있었음, 2026-07-13).
 // 25초 간격으로 lastSeen을 갱신하고, 운영자 화면은 최근 90초 안에 갱신된
 // 문서만 "접속 중"으로 센다(브라우저 종료를 100% 감지할 방법이 없어서
-// staleness 기준으로 판단). since는 이 신원이 끊기지 않고 접속을 유지해온
-// 시작 시각 — 90초 넘게 하트비트가 끊겼다 재개되면 새 접속으로 보고 다시 찍는다.
+// staleness 기준으로 판단). since는 이 페이지에서 이 신원으로 하트비트가 처음
+// 뛴 시각(=페이지 로드/재접속 시각). tools_presence 읽기는 운영자만 가능해서
+// 기존 문서를 조회해 "끊기지 않았으면 since 유지"하는 방식은 쓸 수 없다.
 (function () {
   function start() {
     var db = firebase.firestore();
@@ -32,26 +33,20 @@
 
       if (id !== docId) { docId = id; sinceReady = false; }
 
-      if (sinceReady) {
-        ref.set({
-          uid: user ? user.uid : null,
-          lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-        }, { merge: true }).catch(function () {});
-        return;
+      // tools_presence 읽기는 운영자만 허용(보안규칙)이라, 일반 사용자는 기존 문서를
+      // 미리 조회해서 since를 이어붙이는 방식을 쓸 수 없다(항상 permission-denied로
+      // 조용히 실패해 since가 영영 안 찍히는 버그가 있었음, 2026-07-13). 대신 이
+      // 신원으로 이 페이지에서 처음 뛰는 하트비트에만 since를 새로 찍고, 이후엔
+      // lastSeen만 갱신 — 읽기 없이 항상 merge 쓰기 하나로 끝난다.
+      var payload = {
+        uid: user ? user.uid : null,
+        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      if (!sinceReady) {
+        sinceReady = true;
+        payload.since = firebase.firestore.FieldValue.serverTimestamp();
       }
-      // 이 신원으로 첫 하트비트 — 기존 문서가 90초 이내로 아직 살아있으면 since를
-      // 유지(같은 사람이 새 탭을 하나 더 연 것뿐), 끊겼다 재접속이면 since를 새로 찍음
-      sinceReady = true;
-      ref.get().then(function (doc) {
-        var cutoff = Date.now() - 90000;
-        var d = doc.exists ? doc.data() : null;
-        var keepSince = d && d.since && d.lastSeen && d.lastSeen.toMillis() > cutoff;
-        ref.set({
-          uid: user ? user.uid : null,
-          since: keepSince ? d.since : firebase.firestore.FieldValue.serverTimestamp(),
-          lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
-        }).catch(function () {});
-      }).catch(function () {});
+      ref.set(payload, { merge: true }).catch(function () {});
     }
 
     function loop() {
