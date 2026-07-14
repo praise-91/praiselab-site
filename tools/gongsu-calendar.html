@@ -331,12 +331,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
 <script>
   firebase.initializeApp({
     apiKey: "AIzaSyAIPHUtjoIEjVDmgMgXD3-Moq5oz--2_xY",
     authDomain: "healingcamp-51eb0.firebaseapp.com",
     projectId: "healingcamp-51eb0",
   });
+  // 2026-07-14 App Check 도입: index.html과 동일한 이유(스크립트 기반 도배/가입 공격 방지)
+  firebase.appCheck().activate(
+    new firebase.appCheck.ReCaptchaV3Provider('6LeODVMtAAAAANkeTWgPXGpHO168GqdwwMFQzh7J'),
+    true
+  );
   const gcAuth = firebase.auth();
   const gcDb = firebase.firestore();
   const colToolsUsers = gcDb.collection('tools_users');
