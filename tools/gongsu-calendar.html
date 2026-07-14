@@ -286,6 +286,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-teamrank-track { height:8px; border-radius:5px; background:var(--gg-paper); overflow:hidden; }
 .gg-teamrank-fill { height:100%; border-radius:5px; background:var(--gg-accent); }
 .gg-teamrank-empty { text-align:center; color:var(--gg-ink-faint); font-size:13px; padding:40px 0; }
+.gg-mystats-kpis { display:flex; gap:1px; margin-bottom:18px; border-radius:14px; overflow:hidden; background:var(--gg-line); border:1px solid var(--gg-line); }
+.gg-mystats-kpi { flex:1; background:var(--gg-card); padding:13px 12px; display:flex; flex-direction:column; gap:4px; }
+.gg-mystats-kpi span { font-size:11px; color:var(--gg-ink-faint); }
+.gg-mystats-kpi strong { font-size:15px; font-weight:800; letter-spacing:-.02em; color:var(--gg-accent); }
 .gg-teampresets { display:flex; gap:8px; margin-bottom:10px; }
 .gg-teampreset-btn { padding:7px 14px; border-radius:9px; background:var(--gg-card); border:1.5px solid var(--gg-line); font-size:13px; font-weight:700; color:var(--gg-ink-soft); }
 .gg-teampreset-btn:hover { background:var(--gg-accent-soft); border-color:var(--gg-accent); color:var(--gg-accent); }
@@ -1038,6 +1042,7 @@ function App() {
   const [showMenu, setShowMenu] = useState(false);
   const [showTeam, setShowTeam] = useState(false);
   const [showBulkPrice, setShowBulkPrice] = useState(false);
+  const [showMyStats, setShowMyStats] = useState(false);
   const [showNetPay, setShowNetPay] = useState(true);
   // 게스트 데이터소실 경고 배너 — 세션(탭)마다 다시 보이게, 완전히 끄진 않음
   const [showGuestNotice, setShowGuestNotice] = useState(() => !!window.gcIsGuest && !sessionStorage.getItem("gc_guest_notice_dismissed"));
@@ -1054,11 +1059,12 @@ function App() {
       setShowTeam(false);
       setShowMenu(false);
       setShowBulkPrice(false);
+      setShowMyStats(false);
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
-  const overlayKey = dayModal ? "day" : showMenu ? "menu" : showSummary ? "summary" : showChipEdit ? "settings" : showTeam ? "team" : showBulkPrice ? "bulkprice" : null;
+  const overlayKey = dayModal ? "day" : showMenu ? "menu" : showSummary ? "summary" : showChipEdit ? "settings" : showTeam ? "team" : showBulkPrice ? "bulkprice" : showMyStats ? "mystats" : null;
   const prevOverlayKey = useRef(null);
   useEffect(() => {
     const prev = prevOverlayKey.current;
@@ -1445,6 +1451,10 @@ function App() {
     onBulkPrice: () => {
       setShowMenu(false);
       setShowBulkPrice(true);
+    },
+    onMyStats: () => {
+      setShowMenu(false);
+      setShowMyStats(true);
     }
   }), showTeam && React.createElement(TeamModal, {
     onClose: closeOverlay
@@ -1455,6 +1465,11 @@ function App() {
     defaultUnitPrice: state.defaultUnitPrice,
     onClose: closeOverlay,
     onApply: (start, end, price) => bulkUpdatePrice(start, end, price)
+  }), showMyStats && React.createElement(MyStatsModal, {
+    entries: state.entries,
+    defaultUnitPrice: state.defaultUnitPrice,
+    taxMode: state.taxMode,
+    onClose: closeOverlay
   }));
 }
 function DayModal({
@@ -1973,7 +1988,8 @@ function Sidebar({
   onClose,
   onSettings,
   onTeam,
-  onBulkPrice
+  onBulkPrice,
+  onMyStats
 }) {
   return React.createElement("div", {
     className: "gg-overlay gg-sidesheet-overlay",
@@ -1997,6 +2013,11 @@ function Sidebar({
     className: "gg-menuitem-icon"
   }, "⚙️"), React.createElement("span", null, "설정")), React.createElement("button", {
     className: "gg-menuitem",
+    onClick: onMyStats
+  }, React.createElement("span", {
+    className: "gg-menuitem-icon"
+  }, "📊"), React.createElement("span", null, "나의 공수 현황")), React.createElement("button", {
+    className: "gg-menuitem",
     onClick: onTeam
   }, React.createElement("span", {
     className: "gg-menuitem-icon"
@@ -2012,6 +2033,77 @@ function Sidebar({
   }, React.createElement("span", {
     className: "gg-menuitem-icon"
   }, window.gcIsGuest ? "🔑" : "🚪"), React.createElement("span", null, window.gcIsGuest ? "로그인 / 회원가입" : "로그아웃"))));
+}
+function MyStatsModal({
+  entries,
+  defaultUnitPrice,
+  taxMode,
+  onClose
+}) {
+  const months = useMemo(() => {
+    const now = new Date();
+    const list = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear(), m = d.getMonth();
+      const start = dateStr(y, m, 1);
+      const end = dateStr(y, m, new Date(y, m + 1, 0).getDate());
+      let gongsu = 0;
+      Object.entries(entries).forEach(([date, e]) => {
+        if (date >= start && date <= end) gongsu += e.gongsu || 0;
+      });
+      const netPay = computeSummary(entries, start, end, defaultUnitPrice, taxMode).netPay;
+      list.push({ label: `${m + 1}월`, ym: `${y}-${String(m + 1).padStart(2, "0")}`, gongsu, netPay });
+    }
+    return list;
+  }, [entries, defaultUnitPrice, taxMode]);
+  const workedMonths = months.filter(m => m.gongsu > 0);
+  const avgGongsu = workedMonths.length ? workedMonths.reduce((a, m) => a + m.gongsu, 0) / workedMonths.length : 0;
+  const thisMonth = months[months.length - 1];
+  const maxVal = Math.max(1, ...months.map(m => m.gongsu));
+  return React.createElement("div", {
+    className: "gg-fullscreen"
+  }, React.createElement("div", {
+    className: "gg-fullscreen-head"
+  }, React.createElement("button", {
+    className: "gg-x",
+    onClick: onClose,
+    "aria-label": "닫기"
+  }, "✕"), React.createElement("div", {
+    className: "gg-fullscreen-title"
+  }, "나의 공수 현황")), React.createElement("div", {
+    className: "gg-fullscreen-body"
+  }, React.createElement("div", {
+    className: "gg-mystats-kpis"
+  }, React.createElement("div", {
+    className: "gg-mystats-kpi"
+  }, React.createElement("span", null, "이번달 총공수"), React.createElement("strong", null, fmtG(thisMonth.gongsu))), React.createElement("div", {
+    className: "gg-mystats-kpi"
+  }, React.createElement("span", null, "최근 6개월 평균 공수"), React.createElement("strong", null, fmtG(avgGongsu))), React.createElement("div", {
+    className: "gg-mystats-kpi"
+  }, React.createElement("span", null, "이번달 예상 실수령액"), React.createElement("strong", null, won(thisMonth.netPay)))), React.createElement("div", {
+    className: "gg-field"
+  }, React.createElement("label", null, "월별 공수"), React.createElement("div", {
+    className: "gg-teamrank-list"
+  }, months.every(m => m.gongsu === 0) ? React.createElement("div", {
+    className: "gg-teamrank-empty"
+  }, "최근 6개월간 입력된 공수가 없습니다.") : months.map(m => React.createElement("div", {
+    key: m.ym,
+    className: "gg-teamrank-row"
+  }, React.createElement("div", {
+    className: "gg-teamrank-top"
+  }, React.createElement("span", {
+    className: "gg-teamrank-name"
+  }, m.label), React.createElement("span", {
+    className: "gg-teamrank-value"
+  }, fmtG(m.gongsu))), React.createElement("div", {
+    className: "gg-teamrank-track"
+  }, React.createElement("div", {
+    className: "gg-teamrank-fill",
+    style: {
+      width: m.gongsu / maxVal * 100 + "%"
+    }
+  }))))))));
 }
 function BulkPriceModal({
   entries,
