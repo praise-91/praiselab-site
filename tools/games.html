@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>게임모음</title>
+<script>
+  // 메인화면(index.html)에서 고른 테마를 그대로 따라간다 — 그리기 전에 먼저 적용해서 번쩍임 방지
+  (function () {
+    var t = localStorage.getItem('feederTheme');
+    if (t !== 'dark') document.documentElement.setAttribute('data-theme', 'light');
+  })();
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+  :root {
+    --orange: #FF6B2B;
+    --orange-dark: #E05520;
+    --steel: #1A1E2E;
+    --steel-mid: #252A3D;
+    --steel-light: #2E3450;
+    --text: #F0F2FF;
+    --text-dim: #8892B0;
+    --give: #3BE88A;
+    --border: rgba(255,255,255,0.08);
+    --nav-btn-bg: #fff;
+    --nav-btn-border: transparent;
+    --header-bg: rgba(26, 30, 46, 0.8);
+  }
+
+  :root[data-theme="light"] {
+    --orange: #FF6B2B;
+    --orange-dark: #E05520;
+    --steel: #F4F3F0;
+    --steel-mid: #FFFFFF;
+    --steel-light: #F0EFEA;
+    --text: #1C1E27;
+    --text-dim: #767A85;
+    --give: #1E8E56;
+    --border: rgba(0,0,0,0.08);
+    --nav-btn-bg: #fff;
+    --nav-btn-border: rgba(0,0,0,0.08);
+    --header-bg: rgba(244, 243, 240, 0.8);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--steel);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+    word-break: keep-all;
+  }
+
+  .container { max-width: 480px; margin: 0 auto; }
+
+  /* ── 상단 브랜드 네비 ── */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -20px -16px 20px;
+  }
+
+  .brand { font-size: 15px; font-weight: 700; color: var(--text); text-decoration: none; }
+
+  header.page-head { text-align: center; padding: 28px 0 24px; }
+  .header-icon { font-size: 40px; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 12px rgba(255,107,43,0.5)); }
+  header.page-head h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+  .page-sub { font-size: 13px; color: var(--text-dim); margin-top: 6px; }
+
+  /* ── 도구 카드 (index.html과 동일 패턴) ── */
+  .tool-card {
+    background: var(--steel-mid);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-decoration: none;
+    color: var(--text);
+    transition: all 0.15s;
+    margin-bottom: 12px;
+  }
+  .tool-card:hover { border-color: var(--orange); transform: translateY(-2px); }
+
+  .tool-icon {
+    width: 50px; height: 50px;
+    border-radius: 13px;
+    background: var(--steel-light);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 23px;
+    flex-shrink: 0;
+  }
+  .tool-icon--amber { background: #F59E0B; border-color: #F59E0B; }
+  .tool-icon--pink { background: #EC4899; border-color: #EC4899; }
+
+  .tool-info { flex: 1; min-width: 0; }
+  .tool-name { font-size: 15px; font-weight: 900; margin-bottom: 4px; }
+  .tool-desc { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+
+  .tool-arrow {
+    color: var(--text-dim);
+    font-size: 22px;
+    font-weight: 900;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .tool-card:hover .tool-arrow { color: var(--orange); transform: translateX(2px); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="https://praiselab.net/tools/" class="brand">Feeder</a>
+</header>
+
+<div class="container">
+
+  <header class="page-head">
+    <span class="header-icon">🎮</span>
+    <h1>게임모음</h1>
+    <div class="page-sub">팀원들과 실시간으로 같이 즐겨보세요</div>
+  </header>
+
+  <a href="team-ladder.html" class="tool-card">
+    <div class="tool-icon tool-icon--amber">🪜</div>
+    <div class="tool-info">
+      <div class="tool-name">사다리타기</div>
+      <div class="tool-desc">벌칙 · 결과 항목 정해서 같이 타기</div>
+    </div>
+    <span class="tool-arrow">›</span>
+  </a>
+
+  <a href="roulette.html" class="tool-card">
+    <div class="tool-icon tool-icon--pink">🎡</div>
+    <div class="tool-info">
+      <div class="tool-name">룰렛돌리기</div>
+      <div class="tool-desc">항목 같이 모아서 돌려보기</div>
+    </div>
+    <span class="tool-arrow">›</span>
+  </a>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>룰렛돌리기</title>
+<script>
+  // 메인화면(index.html)에서 고른 테마를 그대로 따라간다 — 그리기 전에 먼저 적용해서 번쩍임 방지
+  (function () {
+    var t = localStorage.getItem('feederTheme');
+    if (t !== 'dark') document.documentElement.setAttribute('data-theme', 'light');
+  })();
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+  :root {
+    --orange: #FF6B2B;
+    --orange-dark: #E05520;
+    --steel: #1A1E2E;
+    --steel-mid: #252A3D;
+    --steel-light: #2E3450;
+    --text: #F0F2FF;
+    --text-dim: #8892B0;
+    --give: #3BE88A;
+    --border: rgba(255,255,255,0.08);
+    --nav-btn-bg: #fff;
+    --nav-btn-border: transparent;
+    --header-bg: rgba(26, 30, 46, 0.8);
+    --chip-btn-bg: rgba(255,255,255,0.14);
+    --chip-btn-bg-hover: rgba(255,255,255,0.28);
+  }
+
+  :root[data-theme="light"] {
+    --orange: #FF6B2B;
+    --orange-dark: #E05520;
+    --steel: #F4F3F0;
+    --steel-mid: #FFFFFF;
+    --steel-light: #F0EFEA;
+    --text: #1C1E27;
+    --text-dim: #767A85;
+    --give: #1E8E56;
+    --border: rgba(0,0,0,0.08);
+    --nav-btn-bg: #fff;
+    --nav-btn-border: rgba(0,0,0,0.08);
+    --header-bg: rgba(244, 243, 240, 0.8);
+    --chip-btn-bg: rgba(0,0,0,0.06);
+    --chip-btn-bg-hover: rgba(0,0,0,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--steel);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+  }
+
+  .container { max-width: 480px; margin: 0 auto; }
+
+  /* ── 상단 브랜드 네비 ── */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -20px -16px 20px;
+  }
+
+  .brand { font-size: 15px; font-weight: 700; color: var(--text); text-decoration: none; }
+
+  .hamburger-btn {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 17px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .hamburger-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  /* ── 사이드 메뉴 ── */
+  .menu-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.5);
+    justify-content: flex-end;
+  }
+  .menu-overlay.show { display: flex; }
+  .menu-sheet {
+    width: 78%; max-width: 300px; height: 100%;
+    background: var(--steel-mid);
+    border-left: 1px solid var(--border);
+    padding: 20px 16px;
+    display: flex; flex-direction: column;
+    animation: menuSlideIn 0.22s cubic-bezier(0.2,0.9,0.3,1);
+  }
+  @keyframes menuSlideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+  .menu-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding: 0 2px; }
+  .menu-title { font-size: 15px; font-weight: 900; color: var(--text-dim); letter-spacing: 0.5px; }
+  .menu-close { width: 32px; height: 32px; border-radius: 8px; background: none; border: none; color: var(--text-dim); font-size: 16px; cursor: pointer; }
+  .menu-close:hover { color: var(--orange); }
+  .menu-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 10px; border-radius: 12px;
+    background: none; border: none;
+    color: var(--text); font-family: inherit;
+    font-size: 15px; font-weight: 700;
+    text-align: left; cursor: pointer; width: 100%;
+  }
+  .menu-item:hover { background: var(--steel-light); }
+  .menu-item-icon { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; }
+  .menu-item--logout { margin-top: auto; color: #ff8a8a; }
+
+  .locked-link {
+    display: block;
+    padding: 16px;
+    background: var(--nav-btn-bg);
+    border: 1.5px solid var(--nav-btn-border);
+    border-radius: 12px;
+    color: var(--orange);
+    text-align: center;
+    text-decoration: none;
+    font-weight: 900;
+  }
+  .locked-link:hover { background: rgba(255,107,43,0.08); }
+
+  header.page-head { text-align: center; padding: 28px 0 24px; }
+  .header-icon { font-size: 40px; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 12px rgba(255,107,43,0.5)); }
+  header.page-head h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+  .page-sub { font-size: 13px; color: var(--text-dim); margin-top: 6px; }
+
+  .sync-indicator { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; font-size: 11px; color: var(--text-dim); }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--give); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .view { display: none; }
+  .view.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .loading-brand { text-align: center; padding-top: 140px; }
+  .loading-brand-title { font-size: 28px; font-weight: 900; color: var(--text); letter-spacing: -0.5px; }
+  .loading-brand-sub { font-size: 13px; color: var(--text-dim); margin-top: 8px; }
+
+  .card {
+    background: var(--steel-mid);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .section-label { font-size: 12px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.8px; margin-bottom: 12px; }
+
+  .empty-state { text-align: center; padding: 32px 16px; color: var(--text-dim); font-size: 14px; line-height: 1.7; }
+  .empty-icon { font-size: 30px; display: block; margin-bottom: 10px; opacity: 0.6; }
+
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--orange);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-family: inherit;
+    font-size: 16px; font-weight: 900;
+    cursor: pointer;
+  }
+  .submit-btn:hover { background: var(--orange-dark); }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .white-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--nav-btn-bg);
+    border: 1.5px solid var(--nav-btn-border);
+    border-radius: 12px;
+    color: var(--orange);
+    font-family: inherit;
+    font-size: 15px; font-weight: 900;
+    cursor: pointer;
+  }
+  .white-btn:hover { background: var(--steel-light); }
+
+  .cancel-link {
+    display: block;
+    text-align: center;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .cancel-link:hover { color: var(--text); }
+
+  /* ── 항목 프리셋 칩 ── */
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.4px; margin-bottom: 8px; }
+  .title-input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--steel-light);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+  }
+  .title-input:focus { border-color: var(--orange); }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .preset-chip {
+    padding: 9px 14px;
+    background: var(--steel-light);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer;
+  }
+  .preset-chip:hover { border-color: var(--orange); }
+
+  .custom-add-row { display: flex; gap: 8px; margin-top: 10px; }
+  .custom-add-row input {
+    flex: 1; min-width: 0;
+    padding: 12px 14px;
+    background: var(--steel-light);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+  }
+  .custom-add-row input:focus { border-color: var(--orange); }
+  .custom-add-btn {
+    padding: 0 18px;
+    background: var(--steel-light);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+  }
+  .custom-add-btn:hover { border-color: var(--orange); color: var(--orange); }
+
+  .draft-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .draft-chip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px;
+    background: rgba(255,107,43,0.12);
+    border: 1px solid rgba(255,107,43,0.3);
+    border-radius: 20px;
+    font-size: 13px; font-weight: 700;
+    color: var(--text);
+  }
+  .draft-chip button {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: var(--chip-btn-bg);
+    color: var(--text);
+    font-size: 13px; font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .draft-chip button:hover { background: var(--chip-btn-bg-hover); }
+
+  /* ── 사이드 메뉴 프로필 카드 ── */
+  .menu-profile {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 10px; margin-bottom: 10px;
+    border-radius: 12px;
+    background: var(--steel-light);
+  }
+  .menu-profile-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--orange); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 900; flex-shrink: 0;
+  }
+  .menu-profile-info { flex: 1; min-width: 0; }
+  .menu-profile-name { font-size: 15px; font-weight: 900; color: var(--text); }
+  .menu-profile-role { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .menu-profile-code { font-size: 11px; font-weight: 700; color: var(--orange); margin-top: 3px; }
+
+  /* ── 모으는 중: 항목 목록 ── */
+  .room-title { font-size: 16px; font-weight: 900; margin-bottom: 14px; text-align: center; }
+  .capacity-badge {
+    display: inline-block;
+    font-size: 12px; font-weight: 900;
+    color: var(--orange);
+    background: rgba(255,107,43,0.12);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+  }
+  .collect-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .collect-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: var(--steel-light);
+    border-radius: 10px;
+    font-size: 14px; font-weight: 700;
+  }
+  .collect-row .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .collect-row .who { margin-left: auto; font-size: 11px; color: var(--text-dim); font-weight: 700; }
+  .collect-row .remove-btn {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: none; background: var(--chip-btn-bg); color: var(--text);
+    font-size: 13px; font-weight: 900; line-height: 1; cursor: pointer; flex-shrink: 0;
+  }
+  .collect-row .remove-btn:hover { background: var(--chip-btn-bg-hover); }
+  .collect-empty-row {
+    padding: 10px 14px;
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    font-size: 13px; color: var(--text-dim);
+    text-align: center;
+  }
+
+  /* ── 룰렛 휠 ── */
+  .wheel-wrap { position: relative; display: flex; justify-content: center; margin-bottom: 18px; }
+  .wheel-svg { display: block; max-width: 100%; height: auto; }
+  .wheel-group { transform-origin: 150px 160px; transition: transform 4.5s cubic-bezier(0.17,0.67,0.12,0.99); }
+
+  /* ── 결과 ── */
+  .result-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+  .result-row {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 12px 14px;
+    background: var(--steel-light);
+    border-radius: 10px;
+    font-size: 14px;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .winner-card { text-align: center; padding: 24px 16px; }
+  .winner-label { font-size: 12px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.6px; margin-bottom: 8px; }
+  .winner-text { font-size: 26px; font-weight: 900; color: var(--orange); word-break: break-word; }
+
+  .result-actions { display: flex; flex-direction: column; gap: 10px; }
+
+  /* ── 지난 기록 ── */
+  .history-list { display: flex; flex-direction: column; gap: 14px; }
+  .history-card { padding: 16px; }
+  .history-date { font-size: 12px; font-weight: 700; color: var(--text-dim); margin-bottom: 10px; }
+  .history-winner { font-size: 16px; font-weight: 900; color: var(--orange); margin-bottom: 8px; }
+  .history-items { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="https://praiselab.net/tools/" class="brand">Feeder</a>
+  <button class="hamburger-btn" id="hamburger-btn" onclick="openMenu()" style="display:none;" aria-label="메뉴">☰</button>
+</header>
+
+<div class="menu-overlay" id="menu-overlay" onclick="closeMenu()">
+  <div class="menu-sheet" onclick="event.stopPropagation()">
+    <div class="menu-head">
+      <span class="menu-title">메뉴</span>
+      <button class="menu-close" onclick="closeMenu()" aria-label="닫기">✕</button>
+    </div>
+    <div class="menu-profile">
+      <div class="menu-profile-avatar" id="menu-profile-avatar">-</div>
+      <div class="menu-profile-info">
+        <div class="menu-profile-name" id="menu-profile-name">-</div>
+        <div class="menu-profile-role" id="menu-profile-role">-</div>
+        <div class="menu-profile-code" id="menu-profile-code" style="display:none;"></div>
+      </div>
+    </div>
+    <button class="menu-item" onclick="closeMenu(); location.href='games.html';">
+      <span class="menu-item-icon">🎮</span><span>게임모음</span>
+    </button>
+    <button class="menu-item" onclick="closeMenu(); openHistory();">
+      <span class="menu-item-icon">🗂️</span><span>지난 기록</span>
+    </button>
+    <button class="menu-item menu-item--logout" onclick="closeMenu(); logout();">
+      <span class="menu-item-icon">🚪</span><span>로그아웃</span>
+    </button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- 로그인 상태 확인 중 -->
+  <div class="view active" id="view-checking">
+    <div class="loading-brand">
+      <div class="loading-brand-title">Feeder</div>
+      <div class="loading-brand-sub">불러오는 중…</div>
+    </div>
+  </div>
+
+  <!-- 로그인 필요 -->
+  <div class="view" id="view-locked">
+    <header class="page-head">
+      <span class="header-icon">🔒</span>
+      <h1>로그인이 필요해요</h1>
+      <div class="page-sub">피더 홈에서 로그인 후 다시 들어와주세요</div>
+    </header>
+    <div class="card">
+      <a href="index.html?login=1" class="locked-link">로그인하러 가기 →</a>
+    </div>
+  </div>
+
+  <!-- 팀 없음 (teamCode 없는 옛날 계정) -->
+  <div class="view" id="view-no-team">
+    <header class="page-head">
+      <span class="header-icon">🎡</span>
+      <h1>룰렛돌리기</h1>
+      <div class="page-sub">팀 코드가 있어야 팀원들과 같이 즐길 수 있어요</div>
+    </header>
+    <div class="card">
+      <a href="index.html" class="locked-link">피더 홈으로 →</a>
+    </div>
+  </div>
+
+  <!-- 룰렛 앱 -->
+  <div class="view" id="view-app">
+    <header class="page-head">
+      <span class="header-icon">🎡</span>
+      <h1>룰렛돌리기</h1>
+      <div class="sync-indicator"><span class="sync-dot"></span>실시간 공유 중</div>
+    </header>
+
+    <!-- 활성 방 없을 때 -->
+    <div id="no-room-block">
+      <div class="card">
+        <div class="empty-state"><span class="empty-icon">🎡</span>진행중인 룰렛이 없어요</div>
+      </div>
+      <button class="submit-btn" onclick="openCreateForm()">+ 새 룰렛 만들기</button>
+    </div>
+
+    <!-- 방 만들기 폼 -->
+    <div class="card" id="create-form" style="display:none;">
+      <div class="field">
+        <label>제목 (선택)</label>
+        <input type="text" id="room-title-input" class="title-input" placeholder="예: 오늘 저녁 뭐 먹지" maxlength="30" />
+      </div>
+      <div class="field">
+        <label>룰렛 항목 고르기</label>
+        <div class="chip-row" id="preset-chip-row"></div>
+        <div class="custom-add-row">
+          <input type="text" id="custom-item-input" placeholder="직접 입력 (예: 순두부찌개)" />
+          <button class="custom-add-btn" onclick="addCustomItem()">추가</button>
+        </div>
+      </div>
+      <div class="field" id="draft-list-field" style="display:none;">
+        <label>추가된 항목</label>
+        <div class="draft-list" id="draft-list"></div>
+      </div>
+      <button class="submit-btn" id="create-submit-btn" onclick="createRoom()">룰렛 만들기 →</button>
+      <button class="cancel-link" onclick="closeCreateForm()">취소</button>
+    </div>
+
+    <!-- 활성 방 -->
+    <div id="room-block" style="display:none;"></div>
+  </div>
+
+  <!-- 지난 기록 -->
+  <div class="view" id="view-history">
+    <header class="page-head">
+      <span class="header-icon">🗂️</span>
+      <h1>지난 기록</h1>
+    </header>
+    <div id="history-block"></div>
+    <button class="white-btn" onclick="go('view-app')">‹ 룰렛돌리기로</button>
+  </div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyAIPHUtjoIEjVDmgMgXD3-Moq5oz--2_xY",
+    authDomain: "healingcamp-51eb0.firebaseapp.com",
+    projectId: "healingcamp-51eb0",
+  });
+
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const colToolsUsers = db.collection('tools_users');
+  const colTeamRoulettes = db.collection('team_roulettes');
+
+  const PRESET_ITEMS = ['🍗 치킨', '🍕 피자', '🍜 중식', '🍚 국밥', '🍔 버거', '🍲 찌개'];
+  const MARKER_COLORS = ['#FF6B2B','#3BE88A','#4FC3F7','#FFD54F','#BA68C8','#FF8A80','#81C784','#F06292','#90A4AE','#FFB74D'];
+
+  let myUid = null, myName = '', myTeamCode = null;
+  let gateProfileUnsub = null;
+  let roomUnsub = null;
+  let currentRoom = null;
+  let draftItems = [];
+  let creatingFormOpen = false;
+  let renderedSpinningRoomId = null;
+  // "닫기"를 눌러도 방 문서 자체는 지우지 않고(다른 참가자가 아직 결과를 못 봤을 수 있어서)
+  // 이 세션에서만 안 보이게 로컬로 숨기는 용도 — 새로고침하면 초기화돼서 다시 리플레이가 보인다
+  let dismissedRoomId = null;
+
+  function hasActiveRoom() {
+    return !!currentRoom && currentRoom.id !== dismissedRoomId;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function go(viewId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function openMenu() { document.getElementById('menu-overlay').classList.add('show'); }
+  function closeMenu() { document.getElementById('menu-overlay').classList.remove('show'); }
+  function logout() { auth.signOut().then(() => { location.href = 'index.html'; }); }
+
+  // ══════════════ 방 만들기 폼 ══════════════
+
+  function renderPresetChips() {
+    const row = document.getElementById('preset-chip-row');
+    row.innerHTML = PRESET_ITEMS.map(item =>
+      `<button class="preset-chip" onclick="addDraftItem('${item.replace(/'/g,"\\'")}')">${escapeHtml(item)}</button>`
+    ).join('');
+  }
+
+  function addDraftItem(item) {
+    const existing = draftItems.find(d => d.name === item);
+    if (existing) existing.count++;
+    else draftItems.push({ name: item, count: 1 });
+    renderDraftList();
+  }
+
+  function addCustomItem() {
+    const input = document.getElementById('custom-item-input');
+    const val = input.value.trim();
+    if (!val) return;
+    input.value = '';
+    addDraftItem(val);
+  }
+
+  function incDraftItem(idx) {
+    draftItems[idx].count++;
+    renderDraftList();
+  }
+
+  function decDraftItem(idx) {
+    draftItems[idx].count--;
+    if (draftItems[idx].count <= 0) draftItems.splice(idx, 1);
+    renderDraftList();
+  }
+
+  function draftTotal() {
+    return draftItems.reduce((sum, d) => sum + d.count, 0);
+  }
+
+  function renderDraftList() {
+    const field = document.getElementById('draft-list-field');
+    const list = document.getElementById('draft-list');
+    if (!draftItems.length) {
+      field.style.display = 'none';
+      list.innerHTML = '';
+    } else {
+      field.style.display = 'block';
+      list.innerHTML = draftItems.map((d, i) => `
+        <span class="draft-chip">
+          <button onclick="decDraftItem(${i})" aria-label="빼기">−</button>
+          <span>${escapeHtml(d.name)} ×${d.count}</span>
+          <button onclick="incDraftItem(${i})" aria-label="더하기">+</button>
+        </span>`).join('');
+    }
+    document.getElementById('create-submit-btn').disabled = draftTotal() < 2;
+  }
+
+  function openCreateForm() {
+    if (hasActiveRoom()) return;
+    draftItems = [];
+    document.getElementById('room-title-input').value = '';
+    renderPresetChips();
+    renderDraftList();
+    creatingFormOpen = true;
+    renderApp();
+  }
+
+  function closeCreateForm() {
+    creatingFormOpen = false;
+    renderApp();
+  }
+
+  function createRoom() {
+    const flatNames = draftItems.flatMap(d => Array(d.count).fill(d.name));
+    if (flatNames.length < 2) { alert('룰렛 항목을 2개 이상 추가해주세요!'); return; }
+    const title = document.getElementById('room-title-input').value.trim();
+    const items = flatNames.map(name => ({ text: name, addedByUid: myUid, addedByName: myName }));
+    const btn = document.getElementById('create-submit-btn');
+    btn.disabled = true;
+    colTeamRoulettes.add({
+      teamCode: myTeamCode,
+      title,
+      status: 'collecting',
+      items,
+      createdBy: myUid,
+      createdByName: myName,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }).then(() => {
+      creatingFormOpen = false;
+      dismissedRoomId = null;
+      // 이전 판(status:'done')은 지우지 않고 그대로 둔다 — "지난 기록"에서 계속 조회됨
+    }).catch(err => {
+      console.error('createRoom failed:', err);
+      alert('만들기 실패 (' + (err.code || err.message) + ')');
+      btn.disabled = false;
+    });
+  }
+
+  // ══════════════ 모으는 중: 항목 추가/삭제 · 돌리기 · 취소 ══════════════
+
+  function addItemLive(text) {
+    if (!currentRoom) return;
+    const ref = colTeamRoulettes.doc(currentRoom.id);
+    db.runTransaction(tx => tx.get(ref).then(doc => {
+      if (!doc.exists) return;
+      const data = doc.data();
+      if (data.status !== 'collecting') return;
+      const items = data.items || [];
+      items.push({ text, addedByUid: myUid, addedByName: myName });
+      tx.update(ref, { items });
+    })).catch(err => {
+      console.error('addItemLive failed:', err);
+      alert('추가 실패 (' + (err.code || err.message) + ')');
+    });
+  }
+
+  function addLiveCustomItem() {
+    const input = document.getElementById('live-item-input');
+    const val = input.value.trim();
+    if (!val) return;
+    input.value = '';
+    addItemLive(val);
+  }
+
+  function removeItemLive(idx) {
+    if (!currentRoom) return;
+    const ref = colTeamRoulettes.doc(currentRoom.id);
+    db.runTransaction(tx => tx.get(ref).then(doc => {
+      if (!doc.exists) return;
+      const data = doc.data();
+      if (data.status !== 'collecting') return;
+      const items = data.items || [];
+      const item = items[idx];
+      if (!item) return;
+      const canRemove = item.addedByUid === myUid || data.createdBy === myUid;
+      if (!canRemove) return;
+      items.splice(idx, 1);
+      tx.update(ref, { items });
+    })).catch(err => {
+      console.error('removeItemLive failed:', err);
+      alert('삭제 실패 (' + (err.code || err.message) + ')');
+    });
+  }
+
+  function spinRoom() {
+    if (!currentRoom) return;
+    const ref = colTeamRoulettes.doc(currentRoom.id);
+    db.runTransaction(tx => tx.get(ref).then(doc => {
+      if (!doc.exists) return;
+      const data = doc.data();
+      if (data.status !== 'collecting') return;
+      const items = data.items || [];
+      if (items.length < 2) { throw new Error('not-enough'); }
+      const winnerIndex = Math.floor(Math.random() * items.length);
+      tx.update(ref, { status: 'spinning', winnerIndex, spunAt: firebase.firestore.FieldValue.serverTimestamp() });
+    })).catch(err => {
+      if (err && err.message === 'not-enough') { alert('항목이 2개 이상이어야 돌릴 수 있어요!'); return; }
+      console.error('spinRoom failed:', err);
+      alert('돌리기 실패 (' + (err.code || err.message) + ')');
+    });
+  }
+
+  function closeRoom() {
+    if (!currentRoom) return;
+    if (!confirm('이 룰렛을 취소할까요?')) return;
+    colTeamRoulettes.doc(currentRoom.id).delete().catch(() => alert('처리 실패. 다시 시도해주세요.'));
+  }
+
+  // 결과를 본 뒤 "닫기" — 방 문서는 지우지 않고 내 화면에서만 안 보이게 한다.
+  function dismissRoom() {
+    if (currentRoom) dismissedRoomId = currentRoom.id;
+    renderApp();
+  }
+
+  function rematchRoom() {
+    if (!currentRoom) return;
+    const items = currentRoom.items || [];
+    if (items.length < 2) return;
+    dismissedRoomId = currentRoom.id;
+    colTeamRoulettes.add({
+      teamCode: myTeamCode,
+      title: currentRoom.title || '',
+      status: 'collecting',
+      items,
+      createdBy: myUid,
+      createdByName: myName,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }).catch(err => {
+      console.error('rematchRoom failed:', err);
+      alert('처리 실패 (' + (err.code || err.message) + ')');
+    });
+  }
+
+  // ══════════════ 지난 기록 ══════════════
+
+  function openHistory() {
+    go('view-history');
+    loadHistory();
+  }
+
+  function fmtRoomDate(room) {
+    const t = room.spunAt || room.createdAt;
+    if (!t) return '';
+    return t.toDate().toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
+  function loadHistory() {
+    const block = document.getElementById('history-block');
+    block.innerHTML = '<div class="card"><div class="empty-state">불러오는 중…</div></div>';
+    colTeamRoulettes.where('teamCode', '==', myTeamCode).where('status', '==', 'done').get()
+      .then(snap => {
+        const rooms = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        rooms.sort((a, b) => {
+          const ta = (a.spunAt || a.createdAt);
+          const tb = (b.spunAt || b.createdAt);
+          return (tb ? tb.toMillis() : 0) - (ta ? ta.toMillis() : 0);
+        });
+        if (!rooms.length) {
+          block.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">🗂️</span>아직 완료된 룰렛 기록이 없어요</div></div>';
+          return;
+        }
+        block.innerHTML = `<div class="history-list">${rooms.map(renderHistoryCard).join('')}</div>`;
+      })
+      .catch(() => {
+        block.innerHTML = '<div class="card"><div class="empty-state">⚠️ 기록을 불러오지 못했어요.</div></div>';
+      });
+  }
+
+  function renderHistoryCard(room) {
+    const items = room.items || [];
+    const winner = items[room.winnerIndex] ? items[room.winnerIndex].text : '';
+    const itemsText = items.map(it => it.text).join(', ');
+    return `
+      <div class="card history-card">
+        <div class="history-date">${escapeHtml(fmtRoomDate(room))}${room.title ? ' · ' + escapeHtml(room.title) : ''}</div>
+        <div class="history-winner">🎉 ${escapeHtml(winner)}</div>
+        <div class="history-items">${escapeHtml(itemsText)}</div>
+      </div>`;
+  }
+
+  // ══════════════ 렌더링 ══════════════
+
+  function renderApp() {
+    const hasRoom = hasActiveRoom();
+    document.getElementById('no-room-block').style.display = (!hasRoom && !creatingFormOpen) ? 'block' : 'none';
+    document.getElementById('create-form').style.display = (!hasRoom && creatingFormOpen) ? 'block' : 'none';
+    document.getElementById('room-block').style.display = hasRoom ? 'block' : 'none';
+    if (hasRoom) renderRoomBlock();
+  }
+
+  function renderRoomBlock() {
+    const room = currentRoom;
+    const block = document.getElementById('room-block');
+
+    if (room.status === 'collecting') {
+      renderedSpinningRoomId = null;
+      const items = room.items || [];
+      const rows = items.map((it, i) => `
+        <div class="collect-row">
+          <span class="dot" style="background:${MARKER_COLORS[i % MARKER_COLORS.length]}"></span>
+          <span>${escapeHtml(it.text)}</span>
+          <span class="who">${escapeHtml(it.addedByName || '')}</span>
+          <button class="remove-btn" onclick="removeItemLive(${i})" aria-label="삭제">✕</button>
+        </div>`).join('');
+      const empty = !items.length ? `<div class="collect-empty-row">아직 항목이 없어요</div>` : '';
+
+      block.innerHTML = `
+        <div class="card">
+          ${room.title ? `<div class="room-title">${escapeHtml(room.title)}</div>` : ''}
+          <span class="capacity-badge">${items.length}개 항목</span>
+          <div class="collect-list">${rows}${empty}</div>
+          <div class="field">
+            <label>항목 추가</label>
+            <div class="chip-row" id="live-preset-chip-row">${PRESET_ITEMS.map(p => `<button class="preset-chip" onclick="addItemLive('${p.replace(/'/g,"\\'")}')">${escapeHtml(p)}</button>`).join('')}</div>
+            <div class="custom-add-row">
+              <input type="text" id="live-item-input" placeholder="직접 입력" />
+              <button class="custom-add-btn" onclick="addLiveCustomItem()">추가</button>
+            </div>
+          </div>
+          <button class="submit-btn" onclick="spinRoom()" ${items.length < 2 ? 'disabled' : ''}>🎡 돌리기</button>
+          <button class="cancel-link" onclick="closeRoom()">이 룰렛 취소하기</button>
+        </div>`;
+      return;
+    }
+
+    if (room.status === 'spinning' || room.status === 'done') {
+      if (renderedSpinningRoomId === room.id) return; // 이미 렌더링·애니메이션(또는 리플레이) 중이면 건드리지 않음
+      renderedSpinningRoomId = room.id;
+      renderWheel(room);
+      return;
+    }
+  }
+
+  // ══════════════ 룰렛 휠 ══════════════
+
+  function truncateLabel(text) {
+    return text.length > 7 ? text.slice(0, 6) + '…' : text;
+  }
+
+  function polarPoint(cx, cy, r, angleDeg) {
+    const rad = angleDeg * Math.PI / 180;
+    return { x: cx + r * Math.sin(rad), y: cy - r * Math.cos(rad) };
+  }
+
+  function buildWheelSvg(items) {
+    const cx = 150, cy = 160, r = 120;
+    const n = items.length;
+    const sliceAngle = 360 / n;
+    let slicesSvg = '';
+    for (let i = 0; i < n; i++) {
+      const start = i * sliceAngle, end = (i + 1) * sliceAngle;
+      const large = sliceAngle > 180 ? 1 : 0;
+      const p0 = polarPoint(cx, cy, r, start);
+      const p1 = polarPoint(cx, cy, r, end);
+      const color = MARKER_COLORS[i % MARKER_COLORS.length];
+      slicesSvg += `<path d="M ${cx},${cy} L ${p0.x.toFixed(2)},${p0.y.toFixed(2)} A ${r},${r} 0 ${large} 1 ${p1.x.toFixed(2)},${p1.y.toFixed(2)} Z" fill="${color}" stroke="#1A1E2E" stroke-width="1.5" />`;
+      const mid = start + sliceAngle / 2;
+      slicesSvg += `<text transform="rotate(${mid.toFixed(2)} ${cx} ${cy})" x="${cx}" y="${(cy - r * 0.62).toFixed(2)}" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1E2E">${escapeHtml(truncateLabel(items[i].text))}</text>`;
+    }
+    return `
+      <svg class="wheel-svg" width="300" height="320" viewBox="0 0 300 320">
+        <g class="wheel-group" id="wheel-group">
+          <circle cx="${cx}" cy="${cy}" r="${r + 2}" fill="none" stroke="#1A1E2E" stroke-width="2" />
+          ${slicesSvg}
+        </g>
+        <circle cx="${cx}" cy="${cy}" r="10" fill="#1A1E2E" stroke="${MARKER_COLORS[0]}" stroke-width="2" />
+        <polygon points="140,22 160,22 150,44" fill="var(--orange)" stroke="#1A1E2E" stroke-width="1.5" />
+      </svg>`;
+  }
+
+  function renderWheel(room) {
+    const block = document.getElementById('room-block');
+    const items = room.items || [];
+    const n = items.length;
+
+    block.innerHTML = `
+      <div class="card">
+        ${room.title ? `<div class="room-title">${escapeHtml(room.title)}</div>` : ''}
+        <div class="wheel-wrap">${buildWheelSvg(items)}</div>
+        <div id="roulette-result-area"></div>
+      </div>`;
+
+    const group = document.getElementById('wheel-group');
+    const sliceAngle = 360 / n;
+    const winnerMid = room.winnerIndex * sliceAngle + sliceAngle / 2;
+    const extraSpins = 5;
+    const rotation = extraSpins * 360 + ((360 - winnerMid) % 360);
+
+    group.style.transform = 'rotate(0deg)';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        group.style.transform = `rotate(${rotation}deg)`;
+      });
+    });
+    group.addEventListener('transitionend', () => showRouletteResult(room), { once: true });
+  }
+
+  function showRouletteResult(room) {
+    const area = document.getElementById('roulette-result-area');
+    if (!area) return;
+    const items = room.items || [];
+    const winner = items[room.winnerIndex] ? items[room.winnerIndex].text : '';
+    area.innerHTML = `
+      <div class="winner-card">
+        <div class="winner-label">당첨</div>
+        <div class="winner-text">🎉 ${escapeHtml(winner)}</div>
+      </div>
+      <div class="result-actions">
+        <button class="white-btn" onclick="rematchRoom()">🔁 같은 항목으로 다시 돌리기</button>
+        <button class="submit-btn" onclick="dismissRoom()">닫기</button>
+      </div>`;
+    // 결과가 나왔다는 걸 문서에 남겨서, 도중에 나갔다 돌아온 다른 참가자도 재입장 시 결과를 볼 수 있게 한다
+    if (room.status !== 'done') {
+      colTeamRoulettes.doc(room.id).update({ status: 'done' }).catch(() => {});
+    }
+  }
+
+  // ══════════════ 팀 룰렛 실시간 구독 ══════════════
+
+  function startRoomFeed() {
+    if (roomUnsub) return;
+    roomUnsub = colTeamRoulettes.where('teamCode', '==', myTeamCode).onSnapshot(snap => {
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      docs.sort((a, b) => (b.createdAt ? b.createdAt.toMillis() : 0) - (a.createdAt ? a.createdAt.toMillis() : 0));
+      currentRoom = docs[0] || null;
+      if (!currentRoom) renderedSpinningRoomId = null;
+      renderApp();
+    }, () => {
+      document.getElementById('room-block').innerHTML = '<div class="card"><div class="empty-state">⚠️ 연결 오류. 새로고침 해주세요.</div></div>';
+    });
+  }
+
+  // ══════════════ 로그인 게이트 ══════════════
+
+  auth.onAuthStateChanged(user => {
+    if (gateProfileUnsub) { gateProfileUnsub(); gateProfileUnsub = null; }
+
+    if (!user) {
+      myUid = null;
+      document.getElementById('hamburger-btn').style.display = 'none';
+      closeMenu();
+      go('view-locked');
+      return;
+    }
+
+    gateProfileUnsub = colToolsUsers.doc(user.uid).onSnapshot(doc => {
+      if (!doc.exists || doc.data().status !== 'approved') {
+        myUid = null;
+        document.getElementById('hamburger-btn').style.display = 'none';
+        closeMenu();
+        go('view-locked');
+        return;
+      }
+      const profile = doc.data();
+      const teamCode = profile.teamCode || profile.adminTeamCode || null;
+      if (!teamCode) {
+        document.getElementById('hamburger-btn').style.display = 'none';
+        closeMenu();
+        go('view-no-team');
+        return;
+      }
+      myUid = user.uid;
+      myName = profile.name;
+      myTeamCode = teamCode;
+
+      const dn = profile.nickname || profile.name || profile.username || '이름없음';
+      const roleText = profile.isOperator ? '운영자' : (profile.isAdmin ? '팀장' : '반장');
+      const code = profile.isAdmin ? profile.adminTeamCode : profile.teamCode;
+      document.getElementById('menu-profile-name').textContent = dn;
+      document.getElementById('menu-profile-role').textContent = roleText;
+      document.getElementById('menu-profile-avatar').textContent = dn.charAt(0);
+      const codeEl = document.getElementById('menu-profile-code');
+      codeEl.textContent = code ? `코드 ${code}` : '';
+      codeEl.style.display = code ? '' : 'none';
+
+      document.getElementById('hamburger-btn').style.display = '';
+      startRoomFeed();
+      go('view-app');
+    });
+  });
+</script>
+<script src="/tools/assets/presence.js?v=3"></script>
+</body>
+</html>

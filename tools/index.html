@@ -771,11 +771,11 @@
     </div>
 
     <div class="section-label tool-section">팀 게임</div>
-    <a href="team-ladder.html" class="tool-card" onclick="return checkTeamLadderAccess()">
-      <div class="tool-icon tool-icon--amber">🪜</div>
+    <a href="games.html" class="tool-card" onclick="return checkTeamGameAccess()">
+      <div class="tool-icon tool-icon--amber">🎮</div>
       <div class="tool-info">
-        <div class="tool-name">사다리타기</div>
-        <div class="tool-desc">팀원들과 실시간으로 같이 타기</div>
+        <div class="tool-name">게임모음</div>
+        <div class="tool-desc">사다리타기 · 룰렛돌리기</div>
       </div>
       <span class="tool-arrow">›</span>
     </a>
@@ -1508,7 +1508,7 @@
     return false;
   }
 
-  function checkTeamLadderAccess() {
+  function checkTeamGameAccess() {
     if (!requireLogin()) return false;
     if (myProfile && (myProfile.teamCode || myProfile.adminTeamCode)) return true;
     alert('팀 코드가 있어야 팀원들과 같이 즐길 수 있어요');
@@ -1698,7 +1698,7 @@
       // ?login=1 여부는 그 전에 미리 읽어둬야 한다
       const wantsLogin = new URLSearchParams(location.search).get('login') === '1';
       // 게스트도 도구 목록 화면(공수달력 등)을 바로 볼 수 있게 — 로그인은 팀업무/팀게임 등을
-      // 누를 때만 요구한다(requireLogin/checkTeamLadderAccess 참고)
+      // 누를 때만 요구한다(requireLogin/checkTeamGameAccess 참고)
       syncView('view-app');
       // 공수달력 등 다른 도구에서 "로그인" 메뉴를 눌러 넘어온 경우 바로 로그인 화면으로
       if (wantsLogin) go('view-login');
