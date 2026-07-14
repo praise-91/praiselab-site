@@ -1332,7 +1332,8 @@ function App() {
     const isToday = ds === todayStr;
     const isTeamRest = !!(window.gcTeamRestDays && window.gcTeamRestDays[ds]);
     const workedOnRestDay = isTeamRest && e && e.gongsu > 0;
-    const dayColor = isTeamRest ? C.teamRest : (wd === 0 ? C.sun : wd === 6 ? C.sat : undefined);
+    const isHoliday = KR_HOLIDAYS.has(ds);
+    const dayColor = isTeamRest ? C.teamRest : (wd === 0 || isHoliday ? C.sun : wd === 6 ? C.sat : undefined);
     const type = e ? typeOf(e.gongsu || 0) : null;
     const showLabel = workedOnRestDay || (!isTeamRest && type) || isTeamRest;
     const labelColor = workedOnRestDay ? TYPE_META[type].color : (isTeamRest ? C.teamRest : (type ? TYPE_META[type].color : undefined));
