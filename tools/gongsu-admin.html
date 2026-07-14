@@ -925,7 +925,9 @@
       renderMemberPicker();
     }));
 
-    dataUnsubs.push(colLeaderboard.onSnapshot(snap => {
+    // 보안규칙이 resource.data.teamCode로 스코프를 걸어놔서, where 필터 없이 통째로
+    // 구독하면 쿼리 자체가 permission-denied로 거부됨(팀원 공수 전체가 0으로 보이던 버그의 원인)
+    dataUnsubs.push(colLeaderboard.where('teamCode', '==', myAdminTeamCode).onSnapshot(snap => {
       leaderboardAll = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderMemberTable();
     }));
