@@ -55,6 +55,18 @@
       timer = setInterval(beat, 25000);
     }
 
+    // 누적 방문 카운터 — 실시간 접속자(현재 이 순간)와 별개로, 사이트가 지금까지
+    // 총 몇 번 열렸는지 세는 값. 같은 브라우저 탭에서 새로고침을 반복해도 중복
+    // 집계되지 않게 sessionStorage 플래그로 탭 세션당 1회만 증가시킨다(완벽한
+    // 어뷰징 방지는 아니지만 팀 내부 도구 수준에선 충분).
+    function bumpVisitCount() {
+      if (sessionStorage.getItem('gc_visit_counted')) return;
+      sessionStorage.setItem('gc_visit_counted', '1');
+      db.collection('tools_stats').doc('visits').set({
+        total: firebase.firestore.FieldValue.increment(1),
+      }, { merge: true }).catch(function () {});
+    }
+
     var started = false;
     document.addEventListener('visibilitychange', function () {
       if (!started) return;
@@ -71,6 +83,7 @@
       unsubInit();
       started = true;
       loop();
+      bumpVisitCount();
       // 이후 실제 로그인/로그아웃 등 상태 변화에는 즉시 반영
       firebase.auth().onAuthStateChanged(function () { beat(); });
     });

@@ -816,6 +816,16 @@
       </div>
     </div>
     <div class="card" id="presence-card" style="display:none;">
+      <div style="display:flex; gap:10px; margin-bottom:16px;">
+        <div style="flex:1;">
+          <div class="section-label" style="margin-bottom:4px;">누적 방문</div>
+          <div id="stat-total-visits" style="font-size:18px; font-weight:900;">-</div>
+        </div>
+        <div style="flex:1;">
+          <div class="section-label" style="margin-bottom:4px;">운영중인 팀</div>
+          <div id="stat-active-teams" style="font-size:18px; font-weight:900;">-</div>
+        </div>
+      </div>
       <div style="display:flex; align-items:center; justify-content:space-between;">
         <div class="section-label" style="margin-bottom:0;">실시간 접속자</div>
         <button class="back-btn" style="width:32px;height:32px;font-size:15px;" onclick="refreshPresenceNow()" aria-label="새로고침">↻</button>
@@ -1529,7 +1539,7 @@
     const presenceCard = document.getElementById('presence-card');
     const isOperatorNow = !isGuest && myProfile && myProfile.isOperator;
     if (presenceCard) presenceCard.style.display = isOperatorNow ? '' : 'none';
-    if (isOperatorNow) startPresenceWatch(); else stopPresenceWatch();
+    if (isOperatorNow) { startPresenceWatch(); startStatsWatch(); } else { stopPresenceWatch(); stopStatsWatch(); }
 
     if (isGuest || !myProfile || (!myProfile.isAdmin && !myProfile.isOperator)) {
       menuAdmin.style.display = 'none';
@@ -1577,6 +1587,26 @@
     if (presenceUnsub) { presenceUnsub(); presenceUnsub = null; }
     if (presenceTimer) { clearInterval(presenceTimer); presenceTimer = null; }
     presenceDocs = [];
+  }
+
+  // ── 운영자 전용: 누적 방문 수 + 운영중인 팀 개수 ──
+  let statsUnsub = null;
+  function startStatsWatch() {
+    if (statsUnsub) return;
+    const unsubVisits = db.collection('tools_stats').doc('visits').onSnapshot(doc => {
+      const el = document.getElementById('stat-total-visits');
+      if (el) el.textContent = (doc.exists ? (doc.data().total || 0) : 0).toLocaleString('ko-KR');
+    }, () => {});
+    // active 필드가 없는 옛날 팀 문서도 있어(위 참가 신청 검증 로직과 동일하게)
+    // active === false인 것만 비활성으로 취급하고 나머지는 전부 운영중으로 센다
+    const unsubTeams = colTeams.onSnapshot(snap => {
+      const el = document.getElementById('stat-active-teams');
+      if (el) el.textContent = snap.docs.filter(d => d.data().active !== false).length.toLocaleString('ko-KR');
+    }, () => {});
+    statsUnsub = () => { unsubVisits(); unsubTeams(); };
+  }
+  function stopStatsWatch() {
+    if (statsUnsub) { statsUnsub(); statsUnsub = null; }
   }
 
   // since(끊기지 않고 접속을 유지해온 시작 시각)가 없는 옛날 문서도 있을 수 있어 lastSeen으로 폴백
@@ -1690,6 +1720,6 @@
     });
   });
 </script>
-<script src="/tools/assets/presence.js?v=2"></script>
+<script src="/tools/assets/presence.js?v=3"></script>
 </body>
 </html>
