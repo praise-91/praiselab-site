@@ -131,6 +131,13 @@
     font-size: 16px; cursor: pointer;
   }
   .menu-close:hover { color: var(--orange); }
+  .theme-quickswitch { display:inline-flex; border-radius:16px; background:var(--steel-light); border:1px solid var(--border); padding:2px; gap:2px; }
+  .theme-quickswitch-opt {
+    width: 26px; height: 26px; display:flex; align-items:center; justify-content:center;
+    font-size: 12px; border-radius: 12px; border: none; background: transparent;
+    cursor: pointer; opacity: 0.4;
+  }
+  .theme-quickswitch-opt.is-active { background: var(--orange); opacity: 1; }
   .menu-item {
     display: flex; align-items: center; gap: 12px;
     padding: 14px 10px; border-radius: 12px;
@@ -534,7 +541,10 @@
     <div class="menu-head">
       <span class="menu-title">메뉴</span>
       <div style="display:flex; align-items:center; gap:2px;">
-        <button class="menu-close" id="menu-theme-toggle" onclick="toggleThemeQuick()" aria-label="테마 변경">🌙</button>
+        <div class="theme-quickswitch" onclick="event.stopPropagation()">
+          <button class="theme-quickswitch-opt" id="theme-quick-dark" onclick="setTheme('dark')" aria-label="다크 테마">🌙</button>
+          <button class="theme-quickswitch-opt" id="theme-quick-light" onclick="setTheme('light')" aria-label="화이트 테마">☀️</button>
+        </div>
         <button class="menu-close" onclick="closeMenu()" aria-label="닫기">✕</button>
       </div>
     </div>
@@ -1109,13 +1119,10 @@
   function renderSettings() {
     document.getElementById('theme-opt-dark').classList.toggle('is-on', currentTheme !== 'light');
     document.getElementById('theme-opt-light').classList.toggle('is-on', currentTheme === 'light');
-    document.getElementById('menu-theme-toggle').textContent = currentTheme === 'light' ? '☀️' : '🌙';
+    document.getElementById('theme-quick-dark').classList.toggle('is-active', currentTheme !== 'light');
+    document.getElementById('theme-quick-light').classList.toggle('is-active', currentTheme === 'light');
   }
   renderSettings();
-
-  function toggleThemeQuick() {
-    setTheme(currentTheme === 'light' ? 'dark' : 'light');
-  }
 
   function escapeHtml(s) {
     return String(s)
