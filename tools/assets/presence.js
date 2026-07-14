@@ -59,10 +59,20 @@
     // 총 몇 번 열렸는지 세는 값. 같은 브라우저 탭에서 새로고침을 반복해도 중복
     // 집계되지 않게 sessionStorage 플래그로 탭 세션당 1회만 증가시킨다(완벽한
     // 어뷰징 방지는 아니지만 팀 내부 도구 수준에선 충분).
+    // 날짜별 문서(visits_YYYY-MM-DD)에도 같이 +1 해서, 운영자 대시보드가 "최근 7일
+    // 일평균 방문자"를 계산할 수 있게 한다(2026-07-14, 평균 접속자 카드용).
+    function todayKey() {
+      var d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
     function bumpVisitCount() {
       if (sessionStorage.getItem('gc_visit_counted')) return;
       sessionStorage.setItem('gc_visit_counted', '1');
       db.collection('tools_stats').doc('visits').set({
+        total: firebase.firestore.FieldValue.increment(1),
+      }, { merge: true }).catch(function () {});
+      db.collection('tools_stats').doc('visits_' + todayKey()).set({
         total: firebase.firestore.FieldValue.increment(1),
       }, { merge: true }).catch(function () {});
     }

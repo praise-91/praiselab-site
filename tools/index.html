@@ -827,6 +827,16 @@
         </button>
       </div>
       <div id="teams-list" style="display:none; margin-bottom:16px;"></div>
+      <div style="display:flex; gap:10px; margin-bottom:16px;">
+        <div style="flex:1;">
+          <div class="section-label" style="margin-bottom:4px;">가입한 회원수</div>
+          <div id="stat-member-count" style="font-size:18px; font-weight:900;">-</div>
+        </div>
+        <div style="flex:1;">
+          <div class="section-label" style="margin-bottom:4px;">최근 7일 일평균 방문</div>
+          <div id="stat-avg-visits" style="font-size:18px; font-weight:900;">-</div>
+        </div>
+      </div>
       <div style="display:flex; align-items:center; justify-content:space-between;">
         <div class="section-label" style="margin-bottom:0;">실시간 접속자</div>
         <button class="back-btn" style="width:32px;height:32px;font-size:15px;" onclick="refreshPresenceNow()" aria-label="새로고침">↻</button>
@@ -1600,6 +1610,8 @@
       const el = document.getElementById('stat-total-visits');
       if (el) el.textContent = (doc.exists ? (doc.data().total || 0) : 0).toLocaleString('ko-KR');
     }, () => {});
+    renderMemberCount();
+    loadAvgVisits();
     // active 필드가 없는 옛날 팀 문서도 있어(참가 신청 검증 로직과 동일하게)
     // active === false인 것만 비활성으로 취급
     const unsubTeams = colTeams.onSnapshot(snap => {
@@ -1611,6 +1623,31 @@
   function stopStatsWatch() {
     if (statsUnsub) { statsUnsub(); statsUnsub = null; }
     teamsAll = [];
+  }
+
+  // 가입한 회원수 — 이미 로그인 화면용으로 항상 구독 중인 users 배열 길이 그대로 표시
+  function renderMemberCount() {
+    const el = document.getElementById('stat-member-count');
+    if (el) el.textContent = users.length.toLocaleString('ko-KR');
+  }
+
+  // 최근 7일 일평균 방문자 — presence.js가 날짜별로 남기는 tools_stats/visits_YYYY-MM-DD
+  // 문서 7개를 한 번에 읽어 평균낸다(실시간 구독까진 필요 없어 단발성 get())
+  function dateKeyDaysAgo(n) {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function loadAvgVisits() {
+    const el = document.getElementById('stat-avg-visits');
+    if (!el) return;
+    const keys = Array.from({ length: 7 }, (_, i) => dateKeyDaysAgo(i));
+    Promise.all(keys.map(k => db.collection('tools_stats').doc('visits_' + k).get()))
+      .then(docs => {
+        const sum = docs.reduce((acc, d) => acc + (d.exists ? (d.data().total || 0) : 0), 0);
+        el.textContent = Math.round(sum / 7).toLocaleString('ko-KR') + '명';
+      })
+      .catch(() => { el.textContent = '-'; });
   }
 
   // 팀장 혼자 관리자로 전환만 하고 아무도 참가하지 않은 건 "운영중인 팀"으로
