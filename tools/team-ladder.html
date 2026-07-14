@@ -332,7 +332,7 @@
   /* ── 결과 ── */
   .result-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
   .result-row {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; flex-direction: column; gap: 6px;
     padding: 12px 14px;
     background: var(--steel-light);
     border-radius: 10px;
@@ -340,10 +340,17 @@
     animation: slideIn 0.3s ease;
   }
   @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .result-row .name-row { display: flex; align-items: center; gap: 8px; }
   .result-row .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .result-row .name { font-weight: 700; }
-  .result-row .arrow { color: var(--text-dim); margin: 0 4px; }
-  .result-row .item { font-weight: 900; color: var(--orange); margin-left: auto; }
+  .result-row .name { font-weight: 700; word-break: break-word; }
+  .result-row .item-row { display: flex; align-items: center; gap: 6px; padding-left: 16px; }
+  .result-row .arrow { color: var(--text-dim); flex-shrink: 0; }
+  .result-row .item { font-weight: 900; color: var(--orange); word-break: break-word; }
+
+  /* ── 지난 기록 ── */
+  .history-list { display: flex; flex-direction: column; gap: 14px; }
+  .history-card { padding: 16px; }
+  .history-date { font-size: 12px; font-weight: 700; color: var(--text-dim); margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -369,6 +376,9 @@
     </div>
     <button class="menu-item" onclick="closeMenu(); location.href='index.html';">
       <span class="menu-item-icon">🏠</span><span>피더 홈</span>
+    </button>
+    <button class="menu-item" onclick="closeMenu(); openHistory();">
+      <span class="menu-item-icon">🗂️</span><span>지난 기록</span>
     </button>
     <button class="menu-item menu-item--logout" onclick="closeMenu(); logout();">
       <span class="menu-item-icon">🚪</span><span>로그아웃</span>
@@ -446,6 +456,16 @@
 
     <!-- 활성 방 -->
     <div id="room-block" style="display:none;"></div>
+  </div>
+
+  <!-- 지난 기록 -->
+  <div class="view" id="view-history">
+    <header class="page-head">
+      <span class="header-icon">🗂️</span>
+      <h1>지난 기록</h1>
+    </header>
+    <div id="history-block"></div>
+    <button class="white-btn" onclick="go('view-app')">‹ 사다리타기로</button>
   </div>
 
 </div>
@@ -573,7 +593,6 @@
     if (items.length < 2) { alert('벌칙 항목을 2개 이상 추가해주세요!'); return; }
     const btn = document.getElementById('create-submit-btn');
     btn.disabled = true;
-    const oldRoomId = currentRoom ? currentRoom.id : null;
     colTeamLadders.add({
       teamCode: myTeamCode,
       status: 'waiting',
@@ -585,8 +604,7 @@
     }).then(() => {
       creatingFormOpen = false;
       dismissedRoomId = null;
-      // 이전 판(리플레이용으로 남겨뒀던 done 방)은 새 판이 생겼으니 정리
-      if (oldRoomId) colTeamLadders.doc(oldRoomId).delete().catch(() => {});
+      // 이전 판(status:'done')은 지우지 않고 그대로 둔다 — "지난 기록"에서 계속 조회됨
     }).catch(err => {
       console.error('createRoom failed:', err);
       alert('만들기 실패 (' + (err.code || err.message) + ')');
@@ -644,6 +662,63 @@
   function dismissRoom() {
     if (currentRoom) dismissedRoomId = currentRoom.id;
     renderApp();
+  }
+
+  // ══════════════ 지난 기록 ══════════════
+
+  function openHistory() {
+    go('view-history');
+    loadHistory();
+  }
+
+  function fmtRoomDate(room) {
+    const t = room.startedAt || room.createdAt;
+    if (!t) return '';
+    return t.toDate().toLocaleString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+  }
+
+  function loadHistory() {
+    const block = document.getElementById('history-block');
+    block.innerHTML = '<div class="card"><div class="empty-state">불러오는 중…</div></div>';
+    colTeamLadders.where('teamCode', '==', myTeamCode).where('status', '==', 'done').get()
+      .then(snap => {
+        const rooms = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        rooms.sort((a, b) => {
+          const ta = (a.startedAt || a.createdAt);
+          const tb = (b.startedAt || b.createdAt);
+          return (tb ? tb.toMillis() : 0) - (ta ? ta.toMillis() : 0);
+        });
+        if (!rooms.length) {
+          block.innerHTML = '<div class="card"><div class="empty-state"><span class="empty-icon">🗂️</span>아직 완료된 사다리 기록이 없어요</div></div>';
+          return;
+        }
+        block.innerHTML = `<div class="history-list">${rooms.map(renderHistoryCard).join('')}</div>`;
+      })
+      .catch(() => {
+        block.innerHTML = '<div class="card"><div class="empty-state">⚠️ 기록을 불러오지 못했어요.</div></div>';
+      });
+  }
+
+  function renderHistoryCard(room) {
+    const participants = room.participants || [];
+    const n = participants.length;
+    const rows = participants.map((p, i) => {
+      // 참가자→결과 매칭은 저장된 rungs로 사다리 경로를 다시 계산해야 정확함
+      // (참가자 순서와 결과 순서가 index로 그대로 대응되지 않음, 실시간 결과와 동일한 방식)
+      const { endCol } = traceColumn(i, room.rungs || [], n);
+      const item = room.items && room.items[endCol] != null ? room.items[endCol] : '';
+      const color = MARKER_COLORS[i % MARKER_COLORS.length];
+      return `
+        <div class="result-row">
+          <div class="name-row"><span class="dot" style="background:${color}"></span><span class="name">${escapeHtml(p.name)}</span></div>
+          <div class="item-row"><span class="arrow">→</span><span class="item">${escapeHtml(item)}</span></div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="card history-card">
+        <div class="history-date">${escapeHtml(fmtRoomDate(room))}</div>
+        <div class="result-list" style="margin-bottom:0;">${rows}</div>
+      </div>`;
   }
 
   // ══════════════ 사다리 생성 · 경로 계산 ══════════════
@@ -815,10 +890,8 @@
       const color = MARKER_COLORS[t.startCol % MARKER_COLORS.length];
       return `
         <div class="result-row">
-          <span class="dot" style="background:${color}"></span>
-          <span class="name">${escapeHtml(p.name)}</span>
-          <span class="arrow">→</span>
-          <span class="item">${escapeHtml(item)}</span>
+          <div class="name-row"><span class="dot" style="background:${color}"></span><span class="name">${escapeHtml(p.name)}</span></div>
+          <div class="item-row"><span class="arrow">→</span><span class="item">${escapeHtml(item)}</span></div>
         </div>`;
     }).join('');
     area.innerHTML = `
