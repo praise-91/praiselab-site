@@ -1,0 +1,12 @@
+{
+  "name": "Feeder : 현장도구모음",
+  "short_name": "Feeder",
+  "start_url": "/tools/",
+  "display": "standalone",
+  "background_color": "#F4F3F0",
+  "theme_color": "#FF6B2B",
+  "icons": [
+    { "src": "/tools/assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/tools/assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
