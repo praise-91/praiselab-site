@@ -109,6 +109,40 @@
   .menu-item:hover { background: var(--bg); }
   .menu-item-icon { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; }
   .menu-item--logout { margin-top: auto; color: #D3453F; }
+  .menu-badge {
+    margin-left: auto;
+    background: #D3453F; color: #fff;
+    font-size: 11px; font-weight: 800;
+    padding: 2px 7px; border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  /* ── 신고 모달 ── */
+  .report-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 220;
+    background: rgba(28,30,39,0.45);
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .report-overlay.show { display: flex; }
+  .report-modal {
+    width: 100%; max-width: 340px;
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 20px 16px;
+    animation: fadeIn 0.2s ease;
+  }
+  .report-reason-list { display: flex; flex-direction: column; gap: 8px; }
+  .report-reason-opt {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 13.5px;
+    cursor: pointer;
+  }
+  .report-reason-opt:has(input:checked) { border-color: var(--orange); background: rgba(255,107,43,0.06); }
 
   .view { display: none; }
   .view.active { display: block; animation: fadeIn 0.25s ease; }
@@ -418,9 +452,34 @@
     <button class="menu-item" id="menu-announce" onclick="closeMenu(); openAnnounceForm();" style="display:none;">
       <span class="menu-item-icon">📢</span><span>공지 관리</span>
     </button>
+    <button class="menu-item" id="menu-reports" onclick="closeMenu(); openReportsView();" style="display:none;">
+      <span class="menu-item-icon">🚩</span><span>신고 관리</span><span class="menu-badge" id="reports-badge" style="display:none;"></span>
+    </button>
     <button class="menu-item menu-item--logout" id="menu-logout" onclick="closeMenu(); logout();" style="display:none;">
       <span class="menu-item-icon">🚪</span><span>로그아웃</span>
     </button>
+  </div>
+</div>
+
+<div class="report-overlay" id="report-overlay" onclick="closeReportModal()">
+  <div class="report-modal" onclick="event.stopPropagation()">
+    <div class="menu-head">
+      <span class="menu-title">🚩 신고하기</span>
+      <button class="menu-close" onclick="closeReportModal()" aria-label="닫기">✕</button>
+    </div>
+    <div class="field">
+      <label>신고 사유</label>
+      <div class="report-reason-list">
+        <label class="report-reason-opt"><input type="radio" name="report-reason" value="스팸·광고" onchange="onReportReasonChange()"> 스팸·광고</label>
+        <label class="report-reason-opt"><input type="radio" name="report-reason" value="허위정보" onchange="onReportReasonChange()"> 허위정보</label>
+        <label class="report-reason-opt"><input type="radio" name="report-reason" value="욕설·비방" onchange="onReportReasonChange()"> 욕설·비방</label>
+        <label class="report-reason-opt"><input type="radio" name="report-reason" value="기타" onchange="onReportReasonChange()"> 기타</label>
+      </div>
+    </div>
+    <div class="field" id="report-detail-field" style="display:none;">
+      <textarea id="report-detail-input" placeholder="구체적으로 알려주세요" rows="3"></textarea>
+    </div>
+    <button class="submit-btn" id="report-submit-btn" onclick="submitReport()" disabled>신고하기</button>
   </div>
 </div>
 
@@ -745,6 +804,16 @@
         </div>
       </div>
     </div>
+
+    <div id="reports-area" style="display:none;">
+      <div style="padding:0 0 12px;">
+        <button class="cancel-btn" onclick="hideReportsArea()">← 목록으로</button>
+      </div>
+      <div class="card">
+        <div style="font-size:13px; font-weight:700; color:var(--text-dim); margin-bottom:12px;">🚩 신고 관리</div>
+        <div id="reports-list"></div>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -768,6 +837,7 @@
   const colComments = db.collection('community_comments');
   const colViews = db.collection('community_views');
   const colAnnouncement = db.collection('community_announcements');
+  const colReports = db.collection('community_reports');
 
   const SIDO_LIST = [
     '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시',
@@ -815,6 +885,11 @@
   let commentsUnsub = null;
   let editingCommentId = null;
 
+  let reports = [];
+  let reportsUnsub = null;
+  let reportTarget = null; // { type, id, title }
+  const REPORT_TARGET_LABEL = { job: '구인', seeker: '구직', post: '자유게시판' };
+
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, '&amp;')
@@ -843,6 +918,7 @@
 
   function showDetailArea() {
     document.getElementById('list-area').style.display = 'none';
+    document.getElementById('reports-area').style.display = 'none';
     document.getElementById('detail-area').style.display = 'block';
     window.scrollTo(0, 0);
   }
@@ -851,6 +927,32 @@
     document.getElementById('detail-area').style.display = 'none';
     document.getElementById('list-area').style.display = 'block';
     window.scrollTo(0, 0);
+  }
+
+  function showReportsArea() {
+    document.getElementById('list-area').style.display = 'none';
+    document.getElementById('detail-area').style.display = 'none';
+    document.getElementById('reports-area').style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+
+  function hideReportsArea() {
+    document.getElementById('reports-area').style.display = 'none';
+    document.getElementById('list-area').style.display = 'block';
+    window.scrollTo(0, 0);
+  }
+
+  function openReportsView() {
+    if (currentDetailId) closePostDetail();
+    renderReports();
+    showReportsArea();
+  }
+
+  function jumpToReportedItem(type, id) {
+    hideReportsArea();
+    if (type === 'job') openJobDetail(id);
+    else if (type === 'seeker') openSeekerDetail(id);
+    else openPostDetail(id);
   }
 
   function switchTab(name) {
@@ -1564,12 +1666,17 @@
         <button class="mini-btn" onclick="editPost('${p.id}')">수정</button>
         <button class="mini-btn danger" onclick="deletePost('${p.id}')">삭제</button>
       </div>` : '';
+    const reportAction = (myUid && !canManage) ? `
+      <div class="admin-actions">
+        <button class="mini-btn" onclick="openReportModal('post','${p.id}')">🚩 신고</button>
+      </div>` : '';
     document.getElementById('detail-post-card').innerHTML = `
       <span class="post-cat">${escapeHtml(p.category)}</span>
       <div class="post-title" style="font-size:17px; margin-top:10px;">${escapeHtml(p.title)}</div>
       <div class="post-meta" style="margin-bottom:12px;">${escapeHtml(p.authorName)} · ${formatDate(p.createdAt)} · 👁 ${p.views || 0}</div>
       <div class="post-content">${linkify(escapeHtml(p.content))}</div>
       ${manageActions}
+      ${reportAction}
     `;
   }
 
@@ -1590,6 +1697,10 @@
         <button class="mini-btn" onclick="toggleJobStatus('${j.id}','${j.status}')">${j.status === 'open' ? '마감 처리' : '모집 재개'}</button>
         <button class="mini-btn danger" onclick="deleteJob('${j.id}')">삭제</button>
       </div>` : '';
+    const reportAction = (myUid && !myIsAdmin) ? `
+      <div class="admin-actions">
+        <button class="mini-btn" onclick="openReportModal('job','${j.id}')">🚩 신고</button>
+      </div>` : '';
     document.getElementById('detail-post-card').innerHTML = `
       <div class="job-card-top">
         <div>
@@ -1606,6 +1717,7 @@
         <span class="job-contact">${contactLabel} · ${escapeHtml(j.contactValue)}</span>
       </div>
       ${manageActions}
+      ${reportAction}
     `;
   }
 
@@ -1621,6 +1733,10 @@
         <button class="mini-btn" onclick="toggleSeekerStatus('${s.id}','${s.status}')">${s.status === 'available' ? '구직완료 처리' : '구직중으로 전환'}</button>
         <button class="mini-btn danger" onclick="deleteSeeker('${s.id}')">삭제</button>
       </div>` : '';
+    const reportAction = (myUid && !canManage) ? `
+      <div class="admin-actions">
+        <button class="mini-btn" onclick="openReportModal('seeker','${s.id}')">🚩 신고</button>
+      </div>` : '';
     document.getElementById('detail-post-card').innerHTML = `
       <div class="job-card-top">
         <div>
@@ -1635,6 +1751,7 @@
         <span class="job-contact">${contactLabel} · ${escapeHtml(s.contactValue)}</span>
       </div>
       ${manageActions}
+      ${reportAction}
     `;
   }
 
@@ -1819,14 +1936,129 @@
       .catch(() => alert('처리 실패. 다시 시도해주세요.'));
   }
 
+  // ══════════════ 신고 ══════════════
+
+  function openReportModal(type, id) {
+    if (!myUid) { alert('로그인 후 신고할 수 있어요.'); return; }
+    let title = '';
+    if (type === 'job') { const j = jobs.find(x => x.id === id); title = j ? (j.title || j.siteName || '') : ''; }
+    else if (type === 'seeker') { const s = seekers.find(x => x.id === id); title = s ? (s.title || s.authorName || '') : ''; }
+    else { const p = posts.find(x => x.id === id); title = p ? (p.title || '') : ''; }
+    reportTarget = { type, id, title };
+    document.querySelectorAll('input[name="report-reason"]').forEach(r => { r.checked = false; });
+    document.getElementById('report-detail-field').style.display = 'none';
+    document.getElementById('report-detail-input').value = '';
+    document.getElementById('report-submit-btn').disabled = true;
+    document.getElementById('report-overlay').classList.add('show');
+  }
+
+  function closeReportModal() {
+    document.getElementById('report-overlay').classList.remove('show');
+    reportTarget = null;
+  }
+
+  function onReportReasonChange() {
+    const checked = document.querySelector('input[name="report-reason"]:checked');
+    document.getElementById('report-detail-field').style.display = (checked && checked.value === '기타') ? 'block' : 'none';
+    document.getElementById('report-submit-btn').disabled = !checked;
+  }
+
+  function submitReport() {
+    if (!reportTarget || !myUid) return;
+    const checked = document.querySelector('input[name="report-reason"]:checked');
+    if (!checked) return;
+    let reason = checked.value;
+    if (reason === '기타') {
+      const detail = document.getElementById('report-detail-input').value.trim();
+      if (!detail) { alert('상세 내용을 입력해주세요!'); return; }
+      reason = detail;
+    }
+    const docId = `${reportTarget.type}_${reportTarget.id}_${myUid}`;
+    const btn = document.getElementById('report-submit-btn');
+    btn.disabled = true;
+    colReports.doc(docId).set({
+      targetType: reportTarget.type,
+      targetId: reportTarget.id,
+      targetTitle: reportTarget.title || '',
+      reason,
+      reportedByUid: myUid,
+      reportedByName: myName,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }).then(() => {
+      closeReportModal();
+      alert('신고했어요. 확인 후 조치할게요.');
+    }).catch(err => {
+      if (err.code === 'permission-denied') alert('이미 신고한 게시글이에요.');
+      else alert('신고 실패. 다시 시도해주세요.');
+    }).finally(() => { btn.disabled = false; });
+  }
+
+  function resolveReport(id) {
+    colReports.doc(id).update({ status: 'resolved' })
+      .catch(() => alert('처리 실패. 다시 시도해주세요.'));
+  }
+
+  function renderReports() {
+    const list = document.getElementById('reports-list');
+    if (!reports.length) {
+      list.innerHTML = '<div class="empty-state">대기 중인 신고가 없어요</div>';
+      return;
+    }
+    list.innerHTML = reports.map(r => `
+      <div class="post-card" style="padding:10px 12px; margin-bottom:8px;">
+        <div class="post-card-top" style="margin-bottom:2px;">
+          <span style="font-size:12.5px; font-weight:700;">[${REPORT_TARGET_LABEL[r.targetType] || r.targetType}] ${escapeHtml(r.targetTitle || '(제목 없음)')}</span>
+        </div>
+        <div class="post-content" style="font-size:13px;">사유: ${escapeHtml(r.reason)}</div>
+        <div class="post-meta">${escapeHtml(r.reportedByName || '')} 신고 · ${formatDate(r.createdAt)}</div>
+        <div class="admin-actions">
+          <button class="mini-btn" onclick="jumpToReportedItem('${r.targetType}','${r.targetId}')">원글 보기</button>
+          <button class="mini-btn" onclick="resolveReport('${r.id}')">처리완료</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function updateReportsBadge() {
+    const badge = document.getElementById('reports-badge');
+    if (reports.length > 0) {
+      badge.textContent = reports.length;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function startReportsFeed() {
+    if (reportsUnsub) return;
+    reportsUnsub = colReports.where('status', '==', 'pending').onSnapshot(snap => {
+      reports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      reports.sort((a, b) => (b.createdAt ? b.createdAt.toMillis() : 0) - (a.createdAt ? a.createdAt.toMillis() : 0));
+      renderReports();
+      updateReportsBadge();
+    }, () => {});
+  }
+
+  function syncReportsFeed() {
+    if (myIsAdmin) {
+      startReportsFeed();
+    } else {
+      if (reportsUnsub) { reportsUnsub(); reportsUnsub = null; }
+      reports = [];
+      updateReportsBadge();
+    }
+  }
+
   function updateMenuForAuth() {
     document.getElementById('menu-user').style.display = myUid ? '' : 'none';
     document.getElementById('menu-user-name').textContent = myName;
     document.getElementById('menu-guest').style.display = myUid ? 'none' : '';
     document.getElementById('menu-admin').style.display = myIsAdmin ? '' : 'none';
     document.getElementById('menu-announce').style.display = myIsOperator ? '' : 'none';
+    document.getElementById('menu-reports').style.display = myIsAdmin ? '' : 'none';
     document.getElementById('menu-logout').style.display = myUid ? '' : 'none';
     renderAnnouncement();
+    syncReportsFeed();
 
     document.getElementById('job-new-btn').style.display = myIsAdmin ? 'block' : 'none';
     document.getElementById('seeker-new-btn').style.display = myUid ? 'block' : 'none';
