@@ -415,6 +415,9 @@
     <button class="menu-item" id="menu-admin" onclick="closeMenu(); location.href='index.html?admin=1';" style="display:none;">
       <span class="menu-item-icon">🔑</span><span>팀장 기능</span>
     </button>
+    <button class="menu-item" id="menu-announce" onclick="closeMenu(); openAnnounceForm();" style="display:none;">
+      <span class="menu-item-icon">📢</span><span>공지 관리</span>
+    </button>
     <button class="menu-item menu-item--logout" id="menu-logout" onclick="closeMenu(); logout();" style="display:none;">
       <span class="menu-item-icon">🚪</span><span>로그아웃</span>
     </button>
@@ -433,6 +436,24 @@
 
   <!-- 커뮤니티 -->
   <div class="view" id="view-app">
+    <div class="card" id="announcement-banner" style="display:none; border-left:3px solid var(--orange); align-items:flex-start; gap:10px;">
+      <span style="font-size:15px;">📢</span>
+      <div style="flex:1; font-size:13.5px; line-height:1.5; white-space:pre-wrap;" id="announcement-text"></div>
+      <button class="menu-item-icon" id="announce-edit-btn" onclick="openAnnounceForm()" style="display:none; background:none; border:none; cursor:pointer; font-size:14px; color:var(--text-dim);" aria-label="공지 수정">✎</button>
+    </div>
+
+    <div class="card form-card" id="announce-form" style="display:none;">
+      <div class="field">
+        <label>공지 내용</label>
+        <textarea id="announce-content" rows="4" placeholder="전체 회원에게 보여줄 공지 내용을 입력하세요"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="cancel-btn" onclick="closeAnnounceForm()">취소</button>
+        <button class="submit-btn" id="announce-save-btn" onclick="saveAnnouncement()">저장</button>
+      </div>
+      <button class="new-btn" id="announce-clear-btn" style="background:none; color:#c1584c; border:1px solid rgba(193,88,76,0.35); margin-top:10px;" onclick="clearAnnouncement()">공지 내리기</button>
+    </div>
+
     <div class="tabs">
       <button class="tab active" id="tab-jobs" onclick="switchTab('jobs')">구인</button>
       <button class="tab" id="tab-seekers" onclick="switchTab('seekers')">구직</button>
@@ -746,6 +767,7 @@
   const colSeekers = db.collection('community_seekers');
   const colComments = db.collection('community_comments');
   const colViews = db.collection('community_views');
+  const colAnnouncement = db.collection('community_announcements');
 
   const SIDO_LIST = [
     '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시',
@@ -762,6 +784,9 @@
   let myUid = null;
   let myName = '';
   let myIsAdmin = false;
+  let myIsOperator = false;
+  let announcement = null;
+  let announcementUnsub = null;
 
   let jobs = [];
   let jobsUnsub = null;
@@ -1739,12 +1764,69 @@
     return profile.nickname || profile.name || profile.username || '이름없음';
   }
 
+  // ── 공지사항 (운영자 전용 등록/수정, 열람은 전체공개) ──
+  function startAnnouncementFeed() {
+    if (announcementUnsub) return;
+    announcementUnsub = colAnnouncement.doc('main').onSnapshot(doc => {
+      announcement = doc.exists ? doc.data() : null;
+      renderAnnouncement();
+    }, () => {});
+  }
+
+  function renderAnnouncement() {
+    const banner = document.getElementById('announcement-banner');
+    const editBtn = document.getElementById('announce-edit-btn');
+    editBtn.style.display = myIsOperator ? '' : 'none';
+    if (announcement && announcement.content) {
+      document.getElementById('announcement-text').textContent = announcement.content;
+      banner.style.display = 'flex';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  function openAnnounceForm() {
+    document.getElementById('announce-content').value = (announcement && announcement.content) || '';
+    document.getElementById('announce-clear-btn').style.display = (announcement && announcement.content) ? 'block' : 'none';
+    document.getElementById('announce-form').style.display = 'block';
+    go('view-app');
+    window.scrollTo(0, 0);
+  }
+
+  function closeAnnounceForm() {
+    document.getElementById('announce-form').style.display = 'none';
+  }
+
+  function saveAnnouncement() {
+    const content = document.getElementById('announce-content').value.trim();
+    if (!content) { alert('공지 내용을 입력해주세요!'); return; }
+    const btn = document.getElementById('announce-save-btn');
+    btn.disabled = true;
+    colAnnouncement.doc('main').set({
+      content,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: myUid,
+    })
+      .then(() => { closeAnnounceForm(); })
+      .catch(() => alert('저장 실패. 인터넷 연결을 확인해주세요.'))
+      .finally(() => { btn.disabled = false; });
+  }
+
+  function clearAnnouncement() {
+    if (!confirm('공지를 내릴까요?')) return;
+    colAnnouncement.doc('main').delete()
+      .then(() => { closeAnnounceForm(); })
+      .catch(() => alert('처리 실패. 다시 시도해주세요.'));
+  }
+
   function updateMenuForAuth() {
     document.getElementById('menu-user').style.display = myUid ? '' : 'none';
     document.getElementById('menu-user-name').textContent = myName;
     document.getElementById('menu-guest').style.display = myUid ? 'none' : '';
     document.getElementById('menu-admin').style.display = myIsAdmin ? '' : 'none';
+    document.getElementById('menu-announce').style.display = myIsOperator ? '' : 'none';
     document.getElementById('menu-logout').style.display = myUid ? '' : 'none';
+    renderAnnouncement();
 
     document.getElementById('job-new-btn').style.display = myIsAdmin ? 'block' : 'none';
     document.getElementById('seeker-new-btn').style.display = myUid ? 'block' : 'none';
@@ -1757,11 +1839,13 @@
     myUid = null;
     myName = '';
     myIsAdmin = false;
+    myIsOperator = false;
     updateMenuForAuth();
     startJobsFeed();
     startSeekersFeed();
     startPostsFeed();
     startAllCommentsFeed();
+    startAnnouncementFeed();
     go('view-app');
   }
 
@@ -1782,12 +1866,14 @@
       myUid = user.uid;
       myName = displayName(profile);
       myIsAdmin = !!profile.isAdmin;
+      myIsOperator = !!profile.isOperator;
       updateMenuForAuth();
 
       startJobsFeed();
       startSeekersFeed();
       startPostsFeed();
       startAllCommentsFeed();
+      startAnnouncementFeed();
       go('view-app');
     });
   });
