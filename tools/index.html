@@ -428,6 +428,16 @@
     margin-left: 8px;
   }
 
+  .notify-badge {
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+    background: #D3453F;
+    border-radius: 20px;
+    padding: 2px 8px;
+    margin-left: 8px;
+  }
+
   .tool-card--admin {
     border-color: rgba(255,107,43,0.35);
     background: rgba(255,107,43,0.06);
@@ -861,7 +871,7 @@
     <a href="admin-dashboard.html" class="tool-card tool-card--admin" id="dashboard-entry" style="display:none; margin-bottom:16px;">
       <div class="tool-icon">📊</div>
       <div class="tool-info">
-        <div class="tool-name">운영자 대시보드</div>
+        <div class="tool-name">운영자 대시보드<span class="notify-badge" id="dashboard-inquiry-badge" style="display:none;"></span></div>
         <div class="tool-desc">방문 통계 · 가입자 · 접속자 · 문의함</div>
       </div>
       <span class="tool-arrow">›</span>
@@ -1239,6 +1249,21 @@
         document.getElementById('inquiry-list').innerHTML = '<div class="empty-state">⚠️ 연결 오류. 새로고침 해주세요.</div>';
       });
     }
+  }
+
+  // 운영자 로그인 시 홈 화면 "운영자 대시보드" 카드에 미확인(접수됨) 문의 개수를 배지로 표시
+  let openInquiryUnsub = null;
+  function startOpenInquiryWatch() {
+    if (openInquiryUnsub) return;
+    openInquiryUnsub = colInquiries.where('status', '==', 'open').onSnapshot(snap => {
+      const badge = document.getElementById('dashboard-inquiry-badge');
+      if (!badge) return;
+      if (snap.size > 0) { badge.textContent = snap.size; badge.style.display = ''; }
+      else { badge.style.display = 'none'; }
+    }, () => {});
+  }
+  function stopOpenInquiryWatch() {
+    if (openInquiryUnsub) { openInquiryUnsub(); openInquiryUnsub = null; }
   }
 
   function paintInquiryList() {
@@ -1703,6 +1728,7 @@
     const dashboardEntry = document.getElementById('dashboard-entry');
     const isOperatorNow = !isGuest && myProfile && myProfile.isOperator;
     if (dashboardEntry) dashboardEntry.style.display = isOperatorNow ? '' : 'none';
+    if (isOperatorNow) { startOpenInquiryWatch(); } else { stopOpenInquiryWatch(); }
 
     if (isGuest || !myProfile || (!myProfile.isAdmin && !myProfile.isOperator)) {
       menuAdmin.style.display = 'none';

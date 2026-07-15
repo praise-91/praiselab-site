@@ -212,6 +212,12 @@
     border-radius: 20px; padding: 2px 10px;
   }
 
+  .notify-badge {
+    font-size: 11px; font-weight: 800; color: #fff;
+    background: #D3453F; border-radius: 20px; padding: 2px 8px;
+    margin-left: 8px;
+  }
+
   .approve-row {
     display: flex; align-items: center; justify-content: space-between;
     gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border);
@@ -341,7 +347,7 @@
 
     <!-- 문의함 -->
     <div class="card">
-      <div class="card-title">문의함</div>
+      <div class="card-title">문의함<span class="notify-badge" id="inquiry-badge" style="display:none;"></span></div>
       <div class="preset-row">
         <button class="preset-btn active" id="inq-filter-all" onclick="setInquiryFilter('all')">전체</button>
         <button class="preset-btn" id="inq-filter-open" onclick="setInquiryFilter('open')">접수됨</button>
@@ -587,6 +593,10 @@
       inquiriesAll = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (b.createdAt ? b.createdAt.toMillis() : 0) - (a.createdAt ? a.createdAt.toMillis() : 0));
       renderInquiryList();
+      const openCount = inquiriesAll.filter(q => q.status === 'open').length;
+      const badge = document.getElementById('inquiry-badge');
+      if (openCount > 0) { badge.textContent = openCount; badge.style.display = ''; }
+      else { badge.style.display = 'none'; }
     }, () => {});
   }
 
