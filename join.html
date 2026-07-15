@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>피더 팀 초대</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #1A1E2E;
+    color: #F0F2FF;
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+  }
+  .brand { font-size: 22px; font-weight: 900; margin-bottom: 8px; }
+  .sub { font-size: 13px; color: #8892B0; }
+</style>
+</head>
+<body>
+  <div>
+    <div class="brand">🧰 피더</div>
+    <div class="sub">팀 초대 확인 중…</div>
+  </div>
+  <script>
+    var code = new URLSearchParams(location.search).get('code') || '';
+    var target = 'tools/index.html' + (code ? ('?join=' + encodeURIComponent(code)) : '');
+    setTimeout(function () { location.replace(target); }, 50);
+  </script>
+  <noscript>
+    <p>자바스크립트를 켜주세요. <a href="tools/index.html">피더 홈으로 이동</a></p>
+  </noscript>
+</body>
+</html>

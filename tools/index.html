@@ -621,6 +621,10 @@
       </div>
     </header>
 
+    <div class="card" id="login-join-banner" style="display:none; border-left:3px solid var(--orange); font-size:13px; line-height:1.6; color:var(--text-dim);">
+      🔗 팀 초대 링크로 오셨어요 (코드 <b style="color:var(--text);" id="login-join-code"></b>). 로그인하거나 가입하면 바로 참가 확인창이 떠요.
+    </div>
+
     <div class="card">
       <div class="field">
         <label>아이디</label>
@@ -674,6 +678,9 @@
     <div class="view-head">
       <button class="back-btn" onclick="history.back()">‹</button>
       <h2>회원가입</h2>
+    </div>
+    <div class="card" id="register-join-banner" style="display:none; border-left:3px solid var(--orange); font-size:13px; line-height:1.6; color:var(--text-dim);">
+      🔗 팀 초대 링크로 오셨어요 (코드 <b style="color:var(--text);" id="register-join-code"></b>). 가입하면 바로 참가 확인창이 떠요.
     </div>
     <div class="card">
       <div class="field">
@@ -864,8 +871,10 @@
         <div id="admin-team-code" style="font-size:22px; font-weight:900; letter-spacing:2px;">-</div>
         <button class="approve-btn" style="margin-left:auto;" onclick="copyTeamCode()">복사</button>
       </div>
+      <button class="submit-btn" style="margin-top:12px;" onclick="shareTeamInvite()">📤 초대링크 공유하기</button>
       <div style="font-size:12px; color:var(--text-dim); margin-top:10px; line-height:1.6;">
-        팀원에게 이 코드를 알려주면 메뉴의 "팀 참가"에서 입력해 신청할 수 있어요.
+        초대링크를 카톡으로 보내면 팀원이 누르는 것만으로 바로 참가돼요. 코드만 따로
+        받은 팀원은 메뉴의 "팀 참가"에서 직접 입력해도 돼요.
       </div>
     </div>
     <a href="admin-dashboard.html" class="tool-card tool-card--admin" id="dashboard-entry" style="display:none; margin-bottom:16px;">
@@ -954,6 +963,11 @@
   let consumedAdminParam = false;
   let consumedSettingsParam = false;
   let consumedProfileParam = false;
+  let consumedJoinParam = false;
+  // ?join=코드 딥링크로 들어온 초대 코드. 로그인 전엔 팀 정보를 조회할 권한이 없어서
+  // 코드 원문만 배너로 보여주고, 로그인/가입 이후에 실제 팀 존재 확인 + 참가 확인창(pendingJoinInfo)으로 이어간다
+  let pendingJoinCode = null;
+  let pendingJoinInfo = null;
   let inquiryType = 'bug';
   let myInquiries = [];
   let myInquiriesUnsub = null;
@@ -1299,6 +1313,23 @@
     setTimeout(() => t.classList.remove('show'), 2200);
   }
 
+  // 게스트 상태에서 ?join= 딥링크로 들어왔을 때 로그인/가입 화면에 초대 코드를 안내하는 배너.
+  // 로그인 전이라 팀 존재 여부/팀장 이름은 조회 권한이 없어 코드 원문만 보여준다
+  function renderLoginJoinBanner() {
+    const loginBanner = document.getElementById('login-join-banner');
+    const registerBanner = document.getElementById('register-join-banner');
+    if (!loginBanner || !registerBanner) return;
+    if (pendingJoinCode) {
+      document.getElementById('login-join-code').textContent = pendingJoinCode;
+      document.getElementById('register-join-code').textContent = pendingJoinCode;
+      loginBanner.style.display = '';
+      registerBanner.style.display = '';
+    } else {
+      loginBanner.style.display = 'none';
+      registerBanner.style.display = 'none';
+    }
+  }
+
   function showView(viewId) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
@@ -1472,7 +1503,18 @@
   function renderTeamJoin() {
     const el = document.getElementById('team-join-body');
     if (!el || !myProfile) return;
-    if (!myProfile.teamCode) {
+    if (!myProfile.teamCode && pendingJoinInfo) {
+      el.innerHTML = `
+        <div style="text-align:center;">
+          <div style="font-size:15px; margin-bottom:8px;">🔗 초대 링크로 오셨어요</div>
+          <div style="font-size:14px; color:var(--text-dim); line-height:1.6; margin-bottom:20px;">
+            <b style="color:var(--text);">${escapeHtml(pendingJoinInfo.code)}</b> 팀
+            (팀장: ${escapeHtml(pendingJoinInfo.leaderName)})에 참가하시겠어요?
+          </div>
+          <button class="submit-btn" id="team-join-btn" onclick="confirmPendingJoin()">참가하기</button>
+          <button class="toggle-link" onclick="dismissPendingJoin()">다른 코드로 참가하기</button>
+        </div>`;
+    } else if (!myProfile.teamCode) {
       el.innerHTML = `
         <div class="field">
           <label>팀 코드</label>
@@ -1502,10 +1544,13 @@
     const codeInput = document.getElementById('team-code-input');
     const code = codeInput.value.trim().toUpperCase();
     if (!code) { alert('팀 코드를 입력해주세요!'); return; }
+    joinTeamWithCode(code);
+  }
 
+  function joinTeamWithCode(code) {
     const btn = document.getElementById('team-join-btn');
-    btn.disabled = true;
-    colTeams.doc(code).get()
+    if (btn) btn.disabled = true;
+    return colTeams.doc(code).get()
       .then(doc => {
         if (!doc.exists || doc.data().active === false) {
           alert('존재하지 않거나 비활성화된 팀 코드예요.');
@@ -1515,7 +1560,37 @@
       })
       .then(() => showToast('✅ 팀에 참가했어요!'))
       .catch(() => alert('처리 실패. 다시 시도해주세요.'))
-      .finally(() => { btn.disabled = false; });
+      .finally(() => { if (btn) btn.disabled = false; });
+  }
+
+  // ?join=코드 딥링크로 로그인/가입을 마친 직후 호출 — 팀 존재 여부를 확인하고
+  // (로그인 전엔 tools_teams 읽기 권한이 없어서 여기서 처음 조회 가능) 팀장 이름까지
+  // 붙여서 확인창(renderTeamJoin의 pendingJoinInfo 분기)을 띄운다
+  function promptJoinFromLink(code) {
+    colTeams.doc(code).get()
+      .then(doc => {
+        if (!doc.exists || doc.data().active === false) {
+          showToast('유효하지 않은 초대 링크예요');
+          go('view-team-join');
+          return;
+        }
+        const leader = users.find(u => u.id === doc.data().adminUid);
+        pendingJoinInfo = { code, leaderName: leader ? displayName(leader) : '알 수 없음' };
+        renderTeamJoin();
+        go('view-team-join');
+      })
+      .catch(() => { go('view-team-join'); });
+  }
+
+  function confirmPendingJoin() {
+    if (!pendingJoinInfo) return;
+    const code = pendingJoinInfo.code;
+    joinTeamWithCode(code).then(() => { pendingJoinInfo = null; });
+  }
+
+  function dismissPendingJoin() {
+    pendingJoinInfo = null;
+    renderTeamJoin();
   }
 
   function cancelTeamJoin() {
@@ -1684,6 +1759,26 @@
       .catch(() => alert(code));
   }
 
+  // 코드를 텍스트로만 복붙하면 받는 사람이 메뉴 찾아 들어가 직접 타이핑해야 해서
+  // 이탈이 컸음(2026-07-15) — 링크 하나로 로그인/가입 후 바로 참가 확인창까지 이어지게
+  async function shareTeamInvite() {
+    const code = myProfile && myProfile.adminTeamCode;
+    if (!code) { showToast('아직 발급된 팀 코드가 없어요'); return; }
+    const url = `https://praiselab.net/join.html?code=${code}`;
+    const text = `피더 팀에 초대할게요! 아래 링크 눌러서 로그인/가입하면 바로 참가돼요.\n${url}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: '피더 팀 초대', text, url });
+      } catch (e) {
+        if (e.name !== 'AbortError') alert('공유에 실패했어요.');
+      }
+      return;
+    }
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('✅ 초대 문구를 복사했어요'))
+      .catch(() => alert(text));
+  }
+
   // 공수달력은 비로그인으로도 쓸 수 있지만, 팀업무/팀게임/직접 데이터 저장이 필요한
   // 기능은 계정이 있어야 함 — 게스트가 누르면 화면 이동 대신 로그인 화면으로 유도
   function requireLogin() {
@@ -1759,17 +1854,22 @@
       consumedAdminParam = false;
       consumedSettingsParam = false;
       consumedProfileParam = false;
+      consumedJoinParam = false;
       document.getElementById('hero-chip').style.display = 'none';
       closeMenu();
       updateAdminEntry();
       // syncView가 history.replaceState(location.pathname)으로 쿼리스트링을 지워버리므로
-      // ?login=1 여부는 그 전에 미리 읽어둬야 한다
+      // ?login=1 / ?join=코드 여부는 그 전에 미리 읽어둬야 한다
       const wantsLogin = new URLSearchParams(location.search).get('login') === '1';
+      const joinCodeParam = new URLSearchParams(location.search).get('join');
+      if (joinCodeParam) pendingJoinCode = joinCodeParam.toUpperCase();
       // 게스트도 도구 목록 화면(공수달력 등)을 바로 볼 수 있게 — 로그인은 팀업무/팀게임 등을
       // 누를 때만 요구한다(requireLogin/checkTeamGameAccess 참고)
       syncView('view-app');
-      // 공수달력 등 다른 도구에서 "로그인" 메뉴를 눌러 넘어온 경우 바로 로그인 화면으로
-      if (wantsLogin) go('view-login');
+      // 공수달력 등 다른 도구에서 "로그인" 메뉴를 눌러 넘어온 경우, 또는 팀 초대 링크로
+      // 들어온 경우 바로 로그인 화면으로 (로그인해야 팀 정보를 조회하고 참가할 수 있음)
+      if (wantsLogin || pendingJoinCode) go('view-login');
+      renderLoginJoinBanner();
       return;
     }
 
@@ -1811,10 +1911,19 @@
           && new URLSearchParams(location.search).get('settings') === '1';
         const wantsProfile = !consumedProfileParam
           && new URLSearchParams(location.search).get('profile') === '1';
+        const joinCode = !consumedJoinParam
+          && (pendingJoinCode || new URLSearchParams(location.search).get('join'));
         consumedAdminParam = true;
         consumedSettingsParam = true;
         consumedProfileParam = true;
-        if (wantsAdminHub) go('view-admin-hub');
+        consumedJoinParam = true;
+        pendingJoinCode = null;
+        // 팀 초대 링크는 이미 팀이 있는 사람(팀원/팀장)에겐 적용 안 함 — 다른 팀으로
+        // 옮기려면 먼저 탈퇴 후 메뉴에서 수동으로 참가하게 두는 게 안전(데이터 꼬임 방지)
+        if (joinCode && !myProfile.teamCode && !myProfile.isAdmin) {
+          promptJoinFromLink(String(joinCode).toUpperCase());
+        }
+        else if (wantsAdminHub) go('view-admin-hub');
         else if (wantsSettings) { go('view-settings'); renderSettings(); }
         else if (wantsProfile) go('view-my-profile');
         else syncView('view-app');
