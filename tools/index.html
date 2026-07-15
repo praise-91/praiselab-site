@@ -801,6 +801,16 @@
 
   <!-- 도구 목록 (로그인 후) -->
   <div class="view" id="view-app">
+    <div class="card" id="signup-team-banner" style="display:none; border-left:3px solid var(--orange);">
+      <div style="display:flex; align-items:flex-start; gap:10px;">
+        <span style="font-size:16px;">🔑</span>
+        <div style="flex:1;">
+          <div style="font-size:13.5px; line-height:1.5;">팀장이신가요? 팀 코드를 발급받아 팀원을 초대해보세요.</div>
+          <button class="submit-btn" style="margin-top:10px; width:auto; padding:9px 16px; font-size:13px;" onclick="claimTeamCodeFromBanner()">팀 코드 발급받기 →</button>
+        </div>
+        <button onclick="dismissSignupBanner()" style="background:none; border:none; color:var(--text-dim); font-size:14px; cursor:pointer; padding:4px;" aria-label="닫기">✕</button>
+      </div>
+    </div>
     <a href="gongsu-calendar.html" class="tool-card tool-card--hero">
       <div class="tool-icon">📅</div>
       <div class="tool-info">
@@ -1419,7 +1429,13 @@
         memberStatus: null,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       }))
-      .then(() => showToast('✅ 가입 완료!'))
+      .then(() => {
+        // 가입 직후 화면에 "팀장이신가요?" 배너를 한 번만 보여주기 위한 플래그(2026-07-15).
+        // 강제 스텝이 아니라 스킵 가능한 배너라, 딥링크로 이미 팀 참가 확인창을 보는
+        // 사람과는 화면이 겹치지 않는다(view-app에 도달했을 때만 렌더링하므로).
+        sessionStorage.setItem('feederJustRegistered', '1');
+        showToast('✅ 가입 완료!');
+      })
       .catch(err => {
         alert(err.code === 'auth/email-already-in-use'
           ? '이미 등록된 이메일이에요.'
@@ -1670,6 +1686,27 @@
         .then(() => showToast('반장으로 전환했어요'))
         .catch(() => alert('처리 실패. 다시 시도해주세요.'));
     }
+  }
+
+  // 가입 직후 한 번만 보여주는 "팀장이신가요?" 배너 — 강제 스텝이 아니라 스킵 가능한
+  // 넛지라, 팀/관리자 상태가 하나라도 생긴 사람에겐 다시 보여줄 이유가 없다
+  function renderSignupBanner() {
+    const banner = document.getElementById('signup-team-banner');
+    if (!banner || !myProfile) return;
+    const shouldShow = sessionStorage.getItem('feederJustRegistered') === '1'
+      && !myProfile.teamCode && !myProfile.isAdmin;
+    banner.style.display = shouldShow ? '' : 'none';
+  }
+
+  function claimTeamCodeFromBanner() {
+    setAdminMode(true);
+    dismissSignupBanner();
+  }
+
+  function dismissSignupBanner() {
+    sessionStorage.removeItem('feederJustRegistered');
+    const banner = document.getElementById('signup-team-banner');
+    if (banner) banner.style.display = 'none';
   }
 
   // ── 로그아웃 ──
@@ -1926,7 +1963,7 @@
         else if (wantsAdminHub) go('view-admin-hub');
         else if (wantsSettings) { go('view-settings'); renderSettings(); }
         else if (wantsProfile) go('view-my-profile');
-        else syncView('view-app');
+        else { syncView('view-app'); renderSignupBanner(); }
       }
     });
   });
