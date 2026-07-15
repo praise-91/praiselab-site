@@ -1939,8 +1939,16 @@
 
       loadGongsuSummary(user.uid);
 
+      // 프로필 문서 쓰기 직후엔 onSnapshot이 로컬 낙관적 업데이트 → 서버 확정으로 같은
+      // 내용이라도 연속 두 번 발화할 수 있다(2026-07-15, 가입 직후 팀 참가 확인창이
+      // 뜨자마자 두 번째 발화의 else 분기(syncView('view-app'))가 화면을 홈으로 덮어써
+      // 버리던 버그로 발견함). consumedJoinParam은 재발화를 막아주지만 이미 보여준
+      // 확인창 자체를 지켜주진 못해서, pendingJoinInfo가 떠 있고 이미 그 화면에 있으면
+      // 이 블록 전체를 건너뛴다(팀장/설정/프로필 파라미터도 같은 이유로 admin 화면일 땐
+      // 이미 건너뛰고 있었음 — 그 원칙을 join 확인창에도 동일 적용)
       const onAdminScreen = document.getElementById('view-admin-approve').classList.contains('active')
-        || document.getElementById('view-admin-hub').classList.contains('active');
+        || document.getElementById('view-admin-hub').classList.contains('active')
+        || (pendingJoinInfo && document.getElementById('view-team-join').classList.contains('active'));
       if (!onAdminScreen) {
         const wantsAdminHub = !consumedAdminParam && myProfile.isAdmin
           && new URLSearchParams(location.search).get('admin') === '1';
