@@ -1601,7 +1601,10 @@
   function confirmPendingJoin() {
     if (!pendingJoinInfo) return;
     const code = pendingJoinInfo.code;
-    joinTeamWithCode(code).then(() => { pendingJoinInfo = null; });
+    joinTeamWithCode(code).then(() => {
+      pendingJoinInfo = null;
+      syncView('view-app');
+    });
   }
 
   function dismissPendingJoin() {
