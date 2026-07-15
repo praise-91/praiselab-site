@@ -317,6 +317,10 @@
           <div class="stat-value" id="stat-today">-</div>
         </div>
         <div>
+          <div class="section-label">오늘 DAU (고유 방문자)</div>
+          <div class="stat-value" id="stat-dau">-</div>
+        </div>
+        <div>
           <div class="section-label">최근 7일 일평균</div>
           <div class="stat-value" id="stat-avg7">-</div>
         </div>
@@ -622,6 +626,13 @@
             <span style="font-size:13px; color:var(--text-dim);">${escapeHtml(c.date)}</span>
             <span style="font-size:14px; font-weight:700;">${c.total.toLocaleString('ko-KR')}명</span>
           </div>`).join('');
+      })
+      .catch(() => {});
+
+    colStats.doc('dau_' + keys[0]).get()
+      .then(doc => {
+        const uids = doc.exists ? (doc.data().uids || []) : [];
+        document.getElementById('stat-dau').textContent = uids.length.toLocaleString('ko-KR');
       })
       .catch(() => {});
   }

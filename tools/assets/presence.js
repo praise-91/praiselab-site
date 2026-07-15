@@ -75,6 +75,19 @@
       db.collection('tools_stats').doc('visits_' + todayKey()).set({
         total: firebase.firestore.FieldValue.increment(1),
       }, { merge: true }).catch(function () {});
+      bumpDauCount();
+    }
+
+    // DAU(고유 방문자) 집계 — visits 카운터는 세션(탭)마다 늘어나서 같은 사람이
+    // 여러 탭/기기로 접속하면 중복 집계되지만, 이건 신원(uid 또는 게스트id) 배열에
+    // arrayUnion으로 추가해서 서버 쪽에서 자동으로 중복 제거된다(2026-07-15 대시보드
+    // DAU 카드용). 세션당 1회만 호출해도 arrayUnion이 멱등이라 여러 세션이 겹쳐도 안전.
+    function bumpDauCount() {
+      var user = firebase.auth().currentUser;
+      var id = user ? user.uid : guestId();
+      db.collection('tools_stats').doc('dau_' + todayKey()).set({
+        uids: firebase.firestore.FieldValue.arrayUnion(id),
+      }, { merge: true }).catch(function () {});
     }
 
     var started = false;
