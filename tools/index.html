@@ -973,6 +973,7 @@
   let consumedAdminParam = false;
   let consumedSettingsParam = false;
   let consumedProfileParam = false;
+  let consumedInquiryParam = false;
   let consumedJoinParam = false;
   // ?join=코드 딥링크로 들어온 초대 코드. 로그인 전엔 팀 정보를 조회할 권한이 없어서
   // 코드 원문만 배너로 보여주고, 로그인/가입 이후에 실제 팀 존재 확인 + 참가 확인창(pendingJoinInfo)으로 이어간다
@@ -1894,6 +1895,7 @@
       consumedAdminParam = false;
       consumedSettingsParam = false;
       consumedProfileParam = false;
+      consumedInquiryParam = false;
       consumedJoinParam = false;
       document.getElementById('hero-chip').style.display = 'none';
       closeMenu();
@@ -1959,11 +1961,14 @@
           && new URLSearchParams(location.search).get('settings') === '1';
         const wantsProfile = !consumedProfileParam
           && new URLSearchParams(location.search).get('profile') === '1';
+        const wantsInquiry = !consumedInquiryParam
+          && new URLSearchParams(location.search).get('inquiry') === '1';
         const joinCode = !consumedJoinParam
           && (pendingJoinCode || new URLSearchParams(location.search).get('join'));
         consumedAdminParam = true;
         consumedSettingsParam = true;
         consumedProfileParam = true;
+        consumedInquiryParam = true;
         consumedJoinParam = true;
         pendingJoinCode = null;
         // 팀 초대 링크는 이미 팀이 있는 사람(팀원/팀장)에겐 적용 안 함 — 다른 팀으로
@@ -1974,6 +1979,7 @@
         else if (wantsAdminHub) go('view-admin-hub');
         else if (wantsSettings) { go('view-settings'); renderSettings(); }
         else if (wantsProfile) go('view-my-profile');
+        else if (wantsInquiry) { go('view-inquiry'); renderInquiryList(); }
         else { syncView('view-app'); renderSignupBanner(); }
       }
     });

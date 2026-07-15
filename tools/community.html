@@ -443,6 +443,9 @@
     <button class="menu-item" id="menu-user" onclick="closeMenu(); location.href='index.html?profile=1';" style="display:none;">
       <span class="menu-item-icon">👤</span><span id="menu-user-name"></span>
     </button>
+    <button class="menu-item" id="menu-inquiry" onclick="closeMenu(); location.href='index.html?inquiry=1';" style="display:none;">
+      <span class="menu-item-icon">📮</span><span>문의하기</span>
+    </button>
     <button class="menu-item" id="menu-guest" onclick="closeMenu(); location.href='index.html?login=1';" style="display:none;">
       <span class="menu-item-icon">🔑</span><span>로그인 / 회원가입</span>
     </button>
@@ -2185,6 +2188,7 @@
   function updateMenuForAuth() {
     document.getElementById('menu-user').style.display = myUid ? '' : 'none';
     document.getElementById('menu-user-name').textContent = myName;
+    document.getElementById('menu-inquiry').style.display = myUid ? '' : 'none';
     document.getElementById('menu-guest').style.display = myUid ? 'none' : '';
     document.getElementById('menu-admin').style.display = myIsAdmin ? '' : 'none';
     document.getElementById('menu-announce').style.display = myIsOperator ? '' : 'none';
