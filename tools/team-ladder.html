@@ -346,6 +346,7 @@
   .result-row .item-row { display: flex; align-items: center; gap: 6px; padding-left: 16px; }
   .result-row .arrow { color: var(--text-dim); flex-shrink: 0; }
   .result-row .item { font-weight: 900; color: var(--orange); word-break: break-word; }
+  .result-actions { display: flex; flex-direction: column; gap: 10px; }
 
   /* ── 지난 기록 ── */
   .history-list { display: flex; flex-direction: column; gap: 14px; }
@@ -903,11 +904,34 @@
     }).join('');
     area.innerHTML = `
       <div class="result-list" style="margin-top:16px;">${rows}</div>
-      <button class="submit-btn" onclick="dismissRoom()">닫기</button>`;
+      <div class="result-actions">
+        <button class="white-btn" onclick="shareLadderResult()">📤 결과 공유하기</button>
+        <button class="submit-btn" onclick="dismissRoom()">닫기</button>
+      </div>`;
     // 결과가 나왔다는 걸 문서에 남겨서, 도중에 나갔다 돌아온 다른 참가자도 재입장 시 리플레이를 볼 수 있게 한다
     if (room.status !== 'done') {
       colTeamLadders.doc(room.id).update({ status: 'done' }).catch(() => {});
     }
+  }
+
+  async function shareLadderResult() {
+    if (!currentRoom || !currentRoom.participants || !currentRoom.items) return;
+    const n = currentRoom.participants.length;
+    const lines = currentRoom.participants.map((p, i) => {
+      const { endCol } = traceColumn(i, currentRoom.rungs || [], n);
+      const item = currentRoom.items[endCol] != null ? currentRoom.items[endCol] : '';
+      return `${p.name} → ${item}`;
+    });
+    const text = `🪜 피더 사다리타기 결과\n\n${lines.join('\n')}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: '피더 사다리타기 결과', text });
+      } catch (e) {
+        if (e.name !== 'AbortError') alert('공유에 실패했어요.');
+      }
+      return;
+    }
+    alert('이 브라우저는 공유하기를 지원하지 않아요.');
   }
 
   // ══════════════ 팀 사다리 실시간 구독 ══════════════

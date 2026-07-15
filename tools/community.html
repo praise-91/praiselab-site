@@ -495,10 +495,16 @@
 
   <!-- 커뮤니티 -->
   <div class="view" id="view-app">
-    <div class="card" id="announcement-banner" style="display:none; border-left:3px solid var(--orange); align-items:flex-start; gap:10px;">
+    <div class="tabs">
+      <button class="tab active" id="tab-jobs" onclick="switchTab('jobs')">구인</button>
+      <button class="tab" id="tab-seekers" onclick="switchTab('seekers')">구직</button>
+      <button class="tab" id="tab-free" onclick="switchTab('free')">자유게시판</button>
+    </div>
+
+    <div class="card" id="announcement-banner" style="display:none; border-left:3px solid var(--orange); align-items:flex-start; gap:10px; cursor:pointer;" onclick="openAnnouncementDetail(event)">
       <span style="font-size:15px;">📢</span>
       <div style="flex:1; font-size:13.5px; line-height:1.5; white-space:pre-wrap;" id="announcement-text"></div>
-      <button class="menu-item-icon" id="announce-edit-btn" onclick="openAnnounceForm()" style="display:none; background:none; border:none; cursor:pointer; font-size:14px; color:var(--text-dim);" aria-label="공지 수정">✎</button>
+      <button class="menu-item-icon" id="announce-edit-btn" onclick="event.stopPropagation(); openAnnounceForm()" style="display:none; background:none; border:none; cursor:pointer; font-size:14px; color:var(--text-dim);" aria-label="공지 수정">✎</button>
     </div>
 
     <div class="card form-card" id="announce-form" style="display:none;">
@@ -511,12 +517,6 @@
         <button class="submit-btn" id="announce-save-btn" onclick="saveAnnouncement()">저장</button>
       </div>
       <button class="new-btn" id="announce-clear-btn" style="background:none; color:#c1584c; border:1px solid rgba(193,88,76,0.35); margin-top:10px;" onclick="clearAnnouncement()">공지 내리기</button>
-    </div>
-
-    <div class="tabs">
-      <button class="tab active" id="tab-jobs" onclick="switchTab('jobs')">구인</button>
-      <button class="tab" id="tab-seekers" onclick="switchTab('seekers')">구직</button>
-      <button class="tab" id="tab-free" onclick="switchTab('free')">자유게시판</button>
     </div>
 
     <div class="search-bar">
@@ -837,6 +837,7 @@
     apiKey: "AIzaSyAIPHUtjoIEjVDmgMgXD3-Moq5oz--2_xY",
     authDomain: "healingcamp-51eb0.firebaseapp.com",
     projectId: "healingcamp-51eb0",
+    storageBucket: "healingcamp-51eb0.firebasestorage.app",
     appId: "1:147368194254:web:bb087f46ff60f4db62e09f",
   });
   // 2026-07-14 App Check 도입: index.html과 동일한 이유(스크립트 기반 도배/가입 공격 방지)
@@ -1643,7 +1644,10 @@
       });
     })
       .then(() => { closePostForm(); })
-      .catch(() => alert((wasEditing ? '수정' : '등록') + ' 실패. 인터넷 연결을 확인해주세요.'))
+      .catch(err => {
+        console.error('[community] 게시글 저장 실패', err);
+        alert((wasEditing ? '수정' : '등록') + ' 실패. 인터넷 연결을 확인해주세요.');
+      })
       .finally(() => { btn.disabled = false; });
   }
 
@@ -2010,6 +2014,26 @@
     }
   }
 
+  function openAnnouncementDetail(event) {
+    if (event) event.stopPropagation();
+    if (!announcement || !announcement.content) return;
+    currentDetailId = 'announcement_main';
+    currentDetailType = 'announcement';
+    renderAnnouncementDetail();
+    startCommentsFeed('announcement_main');
+    history.pushState({ feederDetail: true }, '', location.href);
+    showDetailArea();
+  }
+
+  function renderAnnouncementDetail() {
+    const authorName = announcement.updatedByName || '운영자';
+    document.getElementById('detail-post-card').innerHTML = `
+      <span class="post-cat">📢 공지</span>
+      <div class="post-meta" style="margin-top:10px; margin-bottom:12px;">${escapeHtml(authorName)} · ${formatDate(announcement.updatedAt)}</div>
+      <div class="post-content">${linkify(escapeHtml(announcement.content))}</div>
+    `;
+  }
+
   function openAnnounceForm() {
     document.getElementById('announce-content').value = (announcement && announcement.content) || '';
     document.getElementById('announce-clear-btn').style.display = (announcement && announcement.content) ? 'block' : 'none';
@@ -2031,6 +2055,7 @@
       content,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: myUid,
+      updatedByName: myName,
     })
       .then(() => { closeAnnounceForm(); })
       .catch(() => alert('저장 실패. 인터넷 연결을 확인해주세요.'))

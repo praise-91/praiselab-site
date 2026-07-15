@@ -573,6 +573,9 @@
     <button class="menu-item" id="menu-admin-request" onclick="closeMenu(); go('view-admin-request');">
       <span class="menu-item-icon">📋</span><span>직위 변경</span>
     </button>
+    <button class="menu-item" id="menu-inquiry" onclick="closeMenu(); go('view-inquiry'); renderInquiryList();" style="display:none;">
+      <span class="menu-item-icon">📮</span><span>문의하기</span>
+    </button>
     <button class="menu-item" onclick="closeMenu(); go('view-settings'); renderSettings();">
       <span class="menu-item-icon">⚙️</span><span>설정</span>
     </button>
@@ -603,7 +606,7 @@
     </div>
     <header class="page-head" style="padding:10px 0 14px;">
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-        <h1 style="font-size:26px;">피더</h1>
+        <h1 style="font-size:26px;">🧰 피더</h1>
         <span class="page-sub" style="margin-top:0;font-size:13px;">현장도구모음</span>
       </div>
     </header>
@@ -620,8 +623,11 @@
       </div>
       <button class="submit-btn" id="login-btn" onclick="login()">로그인</button>
       <div class="error-msg" id="login-error">🔒 아이디 또는 비밀번호가 맞지 않아요</div>
-      <button class="toggle-link" onclick="go('view-register')">회원가입</button>
-      <button class="toggle-link" onclick="go('view-forgot-password')">비밀번호를 잊으셨나요?</button>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;">
+        <button class="toggle-link" style="margin-top:0;width:auto;padding:8px 4px;" onclick="go('view-register')">회원가입</button>
+        <span style="color:var(--border);font-size:13px;">|</span>
+        <button class="toggle-link" style="margin-top:0;width:auto;padding:8px 4px;" onclick="go('view-forgot-password')">비밀번호 찾기</button>
+      </div>
 
       <div style="display:flex; align-items:center; gap:10px; margin:10px 0;">
         <div style="flex:1; height:1px; background:var(--border);"></div>
@@ -734,6 +740,33 @@
     </div>
   </div>
 
+  <!-- 문의하기 -->
+  <div class="view" id="view-inquiry">
+    <div class="view-head">
+      <button class="back-btn" onclick="history.back()">‹</button>
+      <h2>문의하기</h2>
+    </div>
+    <div class="card form-card">
+      <div class="field">
+        <label>유형</label>
+        <div class="theme-toggle">
+          <button type="button" class="theme-toggle-opt is-on" id="inquiry-type-bug" onclick="setInquiryType('bug')">🐛 버그 신고</button>
+          <button type="button" class="theme-toggle-opt" id="inquiry-type-suggest" onclick="setInquiryType('suggest')">💡 건의사항</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>내용</label>
+        <textarea id="inquiry-content" rows="5" placeholder="어떤 문제가 있었는지, 어떤 기능이 있으면 좋을지 자유롭게 남겨주세요"></textarea>
+      </div>
+      <button class="submit-btn" id="inquiry-save-btn" onclick="submitInquiry()">보내기</button>
+      <div class="error-msg" id="inquiry-error"></div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px; font-weight:700; color:var(--text-dim); margin-bottom:12px;">내가 보낸 문의</div>
+      <div class="list" id="inquiry-list"></div>
+    </div>
+  </div>
+
   <!-- 승인 대기 -->
   <div class="view" id="view-pending">
     <header class="page-head">
@@ -825,35 +858,14 @@
         팀원에게 이 코드를 알려주면 메뉴의 "팀 참가"에서 입력해 신청할 수 있어요.
       </div>
     </div>
-    <div class="card" id="presence-card" style="display:none;">
-      <div style="display:flex; gap:10px; margin-bottom:16px;">
-        <div style="flex:1;">
-          <div class="section-label" style="margin-bottom:4px;">누적 방문</div>
-          <div id="stat-total-visits" style="font-size:18px; font-weight:900;">-</div>
-        </div>
-        <button type="button" onclick="toggleTeamsList()" style="flex:1; text-align:left; background:none; border:none; padding:0; font-family:inherit; cursor:pointer;">
-          <div class="section-label" style="margin-bottom:4px;">운영중인 팀 <span style="color:var(--text-dim);">▾</span></div>
-          <div id="stat-active-teams" style="font-size:18px; font-weight:900; color:var(--text);">-</div>
-        </button>
+    <a href="admin-dashboard.html" class="tool-card tool-card--admin" id="dashboard-entry" style="display:none; margin-bottom:16px;">
+      <div class="tool-icon">📊</div>
+      <div class="tool-info">
+        <div class="tool-name">운영자 대시보드</div>
+        <div class="tool-desc">방문 통계 · 가입자 · 접속자 · 문의함</div>
       </div>
-      <div id="teams-list" style="display:none; margin-bottom:16px;"></div>
-      <div style="display:flex; gap:10px; margin-bottom:16px;">
-        <div style="flex:1;">
-          <div class="section-label" style="margin-bottom:4px;">가입한 회원수</div>
-          <div id="stat-member-count" style="font-size:18px; font-weight:900;">-</div>
-        </div>
-        <div style="flex:1;">
-          <div class="section-label" style="margin-bottom:4px;">최근 7일 일평균 방문</div>
-          <div id="stat-avg-visits" style="font-size:18px; font-weight:900;">-</div>
-        </div>
-      </div>
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <div class="section-label" style="margin-bottom:0;">실시간 접속자</div>
-        <button class="back-btn" style="width:32px;height:32px;font-size:15px;" onclick="refreshPresenceNow()" aria-label="새로고침">↻</button>
-      </div>
-      <div id="presence-count" style="font-size:22px; font-weight:900; margin-top:8px;">-</div>
-      <div id="presence-list" style="margin-top:10px;"></div>
-    </div>
+      <span class="tool-arrow">›</span>
+    </a>
     <div class="tool-list">
       <a href="javascript:void(0)" class="tool-card tool-card--admin" onclick="openAdminApprove()">
         <div class="tool-icon">🔑</div>
@@ -922,6 +934,7 @@
   const db = firebase.firestore();
   const colUsers = db.collection('tools_users');
   const colGongsuCalendars = db.collection('gongsu_calendars');
+  const colInquiries = db.collection('tools_inquiries');
   const EMAIL_DOMAIN = 'feeder.praiselab.internal';
 
   let users = [];
@@ -931,6 +944,9 @@
   let consumedAdminParam = false;
   let consumedSettingsParam = false;
   let consumedProfileParam = false;
+  let inquiryType = 'bug';
+  let myInquiries = [];
+  let myInquiriesUnsub = null;
 
   // ── 홈 히어로 칩용 실수령액 계산 ──
   // gongsu-calendar.html의 computeSummary와 같은 세율/로직을 축약 반영한 것.
@@ -1166,6 +1182,81 @@
     document.getElementById('theme-quick-light').classList.toggle('is-active', currentTheme === 'light');
   }
   renderSettings();
+
+  const INQUIRY_TYPE_LABEL = { bug: '🐛 버그 신고', suggest: '💡 건의사항' };
+
+  function setInquiryType(type) {
+    inquiryType = type;
+    document.getElementById('inquiry-type-bug').classList.toggle('is-on', type === 'bug');
+    document.getElementById('inquiry-type-suggest').classList.toggle('is-on', type === 'suggest');
+  }
+
+  function submitInquiry() {
+    const content = document.getElementById('inquiry-content').value.trim();
+    const errEl = document.getElementById('inquiry-error');
+    errEl.style.display = 'none';
+    if (!content) { errEl.textContent = '내용을 입력해주세요!'; errEl.style.display = 'block'; return; }
+    if (!myUidSafe()) { errEl.textContent = '로그인 후 이용할 수 있어요.'; errEl.style.display = 'block'; return; }
+
+    const btn = document.getElementById('inquiry-save-btn');
+    btn.disabled = true;
+    colInquiries.add({
+      type: inquiryType,
+      content,
+      authorUid: auth.currentUser.uid,
+      authorName: displayName(myProfile || {}),
+      status: 'open',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    })
+      .then(() => {
+        document.getElementById('inquiry-content').value = '';
+        showToast('문의가 접수됐어요. 확인 후 반영할게요!');
+      })
+      .catch(() => { errEl.textContent = '전송 실패. 인터넷 연결을 확인해주세요.'; errEl.style.display = 'block'; })
+      .finally(() => { btn.disabled = false; });
+  }
+
+  function myUidSafe() { return auth.currentUser && auth.currentUser.uid; }
+
+  function formatInquiryDate(ts) {
+    if (!ts) return '';
+    const d = ts.toDate();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${mm}/${dd} ${hh}:${mi}`;
+  }
+
+  function renderInquiryList() {
+    if (!myUidSafe()) return;
+    if (!myInquiriesUnsub) {
+      myInquiriesUnsub = colInquiries.where('authorUid', '==', auth.currentUser.uid).onSnapshot(snap => {
+        myInquiries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        myInquiries.sort((a, b) => (b.createdAt ? b.createdAt.toMillis() : 0) - (a.createdAt ? a.createdAt.toMillis() : 0));
+        paintInquiryList();
+      }, () => {
+        document.getElementById('inquiry-list').innerHTML = '<div class="empty-state">⚠️ 연결 오류. 새로고침 해주세요.</div>';
+      });
+    }
+  }
+
+  function paintInquiryList() {
+    const list = document.getElementById('inquiry-list');
+    if (!myInquiries.length) {
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">📮</span>아직 보낸 문의가 없어요</div>';
+      return;
+    }
+    list.innerHTML = myInquiries.map(q => `
+      <div class="approve-row" style="align-items:flex-start; flex-direction:column; gap:6px;">
+        <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+          <span class="tool-badge">${INQUIRY_TYPE_LABEL[q.type] || q.type}</span>
+          <span style="font-size:11px; color:var(--text-dim);">${q.status === 'open' ? '접수됨' : '처리완료'} · ${formatInquiryDate(q.createdAt)}</span>
+        </div>
+        <div style="font-size:13px; line-height:1.5; white-space:pre-wrap;">${escapeHtml(q.content)}</div>
+      </div>
+    `).join('');
+  }
 
   function escapeHtml(s) {
     return String(s)
@@ -1606,10 +1697,12 @@
     // 일반 팀장은 그대로 둬서 반장으로 다시 내려가고 싶을 때 메뉴에서 갈 수 있게 유지
     if (menuAdminRequest) menuAdminRequest.style.display = (!isGuest && myProfile && !myProfile.isOperator) ? '' : 'none';
 
-    const presenceCard = document.getElementById('presence-card');
+    const menuInquiry = document.getElementById('menu-inquiry');
+    if (menuInquiry) menuInquiry.style.display = isGuest ? 'none' : '';
+
+    const dashboardEntry = document.getElementById('dashboard-entry');
     const isOperatorNow = !isGuest && myProfile && myProfile.isOperator;
-    if (presenceCard) presenceCard.style.display = isOperatorNow ? '' : 'none';
-    if (isOperatorNow) { startPresenceWatch(); startStatsWatch(); } else { stopPresenceWatch(); stopStatsWatch(); }
+    if (dashboardEntry) dashboardEntry.style.display = isOperatorNow ? '' : 'none';
 
     if (isGuest || !myProfile || (!myProfile.isAdmin && !myProfile.isOperator)) {
       menuAdmin.style.display = 'none';
@@ -1620,152 +1713,6 @@
     if (teamCodeEl) teamCodeEl.textContent = myProfile.adminTeamCode || '아직 발급 전이에요';
   }
 
-  // ── 운영자 전용: 실시간 접속자(하트비트 staleness 기준, assets/presence.js가 남기는 문서) ──
-  let presenceUnsub = null;
-  let presenceTimer = null;
-  let presenceDocs = [];
-  const colPresence = db.collection('tools_presence');
-
-  function startPresenceWatch() {
-    if (presenceUnsub) return;
-    presenceUnsub = colPresence.onSnapshot(snap => {
-      presenceDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderPresence();
-    }, () => {});
-    if (!presenceTimer) presenceTimer = setInterval(renderPresence, 15000);
-  }
-
-  // onSnapshot이 실시간으로 갱신해주긴 하지만, 운영자가 "지금 바로" 다시 보고
-  // 싶을 때를 위한 수동 재조회(즉시 다시 fetch해서 다시 그림)
-  function refreshPresenceNow() {
-    colPresence.get().then(snap => {
-      presenceDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderPresence();
-    }).catch(() => {});
-  }
-
-  // 정상 하트비트 문서인지 검사 — 로그인 사용자는 문서 키가 본인 uid, 게스트는
-  // guest_ 고정 키여야 함(presence.js v2 키 체계). 초기 버전(탭마다 랜덤 세션 키)
-  // 스크립트가 브라우저 캐시(4시간)에 남아 계속 쓰는 유령 게스트 문서를 걸러냄
-  // (2026-07-13 실제 사고: 스크립트 4번 배포 × 캐시 혼재로 로그인 사용자가 전부
-  // 게스트로 집계되고 새로고침마다 게스트가 늘어나는 증상이 있었음)
-  function isValidPresenceDoc(p) {
-    return p.uid ? p.id === p.uid : String(p.id).indexOf('guest_') === 0;
-  }
-
-  function stopPresenceWatch() {
-    if (presenceUnsub) { presenceUnsub(); presenceUnsub = null; }
-    if (presenceTimer) { clearInterval(presenceTimer); presenceTimer = null; }
-    presenceDocs = [];
-  }
-
-  // ── 운영자 전용: 누적 방문 수 + 운영중인 팀 개수/목록 ──
-  let statsUnsub = null;
-  let teamsAll = [];
-  let teamsListOpen = false;
-  function startStatsWatch() {
-    if (statsUnsub) return;
-    const unsubVisits = db.collection('tools_stats').doc('visits').onSnapshot(doc => {
-      const el = document.getElementById('stat-total-visits');
-      if (el) el.textContent = (doc.exists ? (doc.data().total || 0) : 0).toLocaleString('ko-KR');
-    }, () => {});
-    renderMemberCount();
-    loadAvgVisits();
-    // active 필드가 없는 옛날 팀 문서도 있어(참가 신청 검증 로직과 동일하게)
-    // active === false인 것만 비활성으로 취급
-    const unsubTeams = colTeams.onSnapshot(snap => {
-      teamsAll = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(t => t.active !== false);
-      renderTeamsStats();
-    }, () => {});
-    statsUnsub = () => { unsubVisits(); unsubTeams(); };
-  }
-  function stopStatsWatch() {
-    if (statsUnsub) { statsUnsub(); statsUnsub = null; }
-    teamsAll = [];
-  }
-
-  // 가입한 회원수 — 이미 로그인 화면용으로 항상 구독 중인 users 배열 길이 그대로 표시
-  function renderMemberCount() {
-    const el = document.getElementById('stat-member-count');
-    if (el) el.textContent = users.length.toLocaleString('ko-KR');
-  }
-
-  // 최근 7일 일평균 방문자 — presence.js가 날짜별로 남기는 tools_stats/visits_YYYY-MM-DD
-  // 문서 7개를 한 번에 읽어 평균낸다(실시간 구독까진 필요 없어 단발성 get())
-  function dateKeyDaysAgo(n) {
-    const d = new Date();
-    d.setDate(d.getDate() - n);
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  }
-  function loadAvgVisits() {
-    const el = document.getElementById('stat-avg-visits');
-    if (!el) return;
-    const keys = Array.from({ length: 7 }, (_, i) => dateKeyDaysAgo(i));
-    Promise.all(keys.map(k => db.collection('tools_stats').doc('visits_' + k).get()))
-      .then(docs => {
-        const sum = docs.reduce((acc, d) => acc + (d.exists ? (d.data().total || 0) : 0), 0);
-        el.textContent = Math.round(sum / 7).toLocaleString('ko-KR') + '명';
-      })
-      .catch(() => { el.textContent = '-'; });
-  }
-
-  // 팀장 혼자 관리자로 전환만 하고 아무도 참가하지 않은 건 "운영중인 팀"으로
-  // 치지 않는다 — teamCode로 실제 참가한 팀원이 1명 이상 있어야 팀으로 집계
-  function renderTeamsStats() {
-    const countEl = document.getElementById('stat-active-teams');
-    if (!countEl) return;
-    const rows = teamsAll.map(t => {
-      const leader = users.find(u => u.id === t.adminUid);
-      const memberCount = users.filter(u => u.teamCode === t.id).length;
-      return { code: t.id, leaderName: leader ? displayName(leader) : '알 수 없음', memberCount };
-    }).filter(t => t.memberCount >= 1)
-      .sort((a, b) => b.memberCount - a.memberCount || a.code.localeCompare(b.code));
-
-    countEl.textContent = rows.length.toLocaleString('ko-KR');
-    const listEl = document.getElementById('teams-list');
-    if (listEl) {
-      listEl.innerHTML = rows.map(t => `
-        <div class="approve-row">
-          <span class="approve-name">${escapeHtml(t.code)} <span style="color:var(--text-dim); font-weight:400;">· ${escapeHtml(t.leaderName)}</span></span>
-          <span style="font-size:12px;color:var(--text-dim);">팀원 ${t.memberCount}명</span>
-        </div>`).join('') || '<div class="empty-state"><span class="empty-icon">👥</span>운영중인 팀이 없어요</div>';
-    }
-  }
-
-  function toggleTeamsList() {
-    teamsListOpen = !teamsListOpen;
-    const listEl = document.getElementById('teams-list');
-    if (listEl) listEl.style.display = teamsListOpen ? '' : 'none';
-  }
-
-  // since(끊기지 않고 접속을 유지해온 시작 시각)가 없는 옛날 문서도 있을 수 있어 lastSeen으로 폴백
-  function presenceSinceLabel(p) {
-    const t = p.since || p.lastSeen;
-    if (!t) return '';
-    return new Date(t.toMillis()).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-  }
-
-  function renderPresence() {
-    const countEl = document.getElementById('presence-count');
-    const listEl = document.getElementById('presence-list');
-    if (!countEl || !listEl) return;
-    const cutoff = Date.now() - 90000;
-    const online = presenceDocs.filter(p => isValidPresenceDoc(p) && p.lastSeen && p.lastSeen.toMillis() > cutoff);
-    // presence.js가 신원(uid 또는 게스트 고정 id)별로 문서 하나만 쓰므로,
-    // 여기서 uid로 또 묶을 필요 없이 문서 하나 = 한 명으로 바로 대응된다
-    const rows = online.map(p => {
-      const u = p.uid && users.find(x => x.id === p.uid);
-      return { name: p.uid ? (u ? displayName(u) : '알 수 없음') : '게스트', since: presenceSinceLabel(p), isGuest: !p.uid };
-    }).sort((a, b) => (a.isGuest - b.isGuest) || a.name.localeCompare(b.name, 'ko'));
-
-    countEl.textContent = `${online.length}명 접속 중`;
-    listEl.innerHTML = rows.map(r => `
-      <div class="approve-row">
-        <span class="approve-name"${r.isGuest ? ' style="color:var(--text-dim);"' : ''}>${escapeHtml(r.name)}</span>
-        <span style="font-size:12px;color:var(--text-dim);">${escapeHtml(r.since)}부터</span>
-      </div>`).join('') || '<div class="empty-state"><span class="empty-icon">👀</span>접속 중인 사람이 없어요</div>';
-  }
-
   // ── 이름 목록 실시간 구독 (로그인 화면 + 승인 화면 공용) ──
   colUsers.onSnapshot(snap => {
     users = snap.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -1774,7 +1721,6 @@
       renderMemberList();
     }
     updateAdminEntry();
-    if (statsUnsub) renderTeamsStats();
   });
 
   // ── 로그인 상태 변화 ──

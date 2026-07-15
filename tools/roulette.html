@@ -909,6 +909,7 @@
         <div class="winner-text">🎉 ${escapeHtml(winner)}</div>
       </div>
       <div class="result-actions">
+        <button class="white-btn" onclick="shareRouletteResult()">📤 결과 공유하기</button>
         <button class="white-btn" onclick="rematchRoom()">🔁 같은 항목으로 다시 돌리기</button>
         <button class="submit-btn" onclick="dismissRoom()">닫기</button>
       </div>`;
@@ -916,6 +917,23 @@
     if (room.status !== 'done') {
       colTeamRoulettes.doc(room.id).update({ status: 'done' }).catch(() => {});
     }
+  }
+
+  async function shareRouletteResult() {
+    if (!currentRoom) return;
+    const items = currentRoom.items || [];
+    const winner = items[currentRoom.winnerIndex] ? items[currentRoom.winnerIndex].text : '';
+    const title = currentRoom.title ? `[${currentRoom.title}] ` : '';
+    const text = `🎡 ${title}피더 룰렛 결과\n\n🎉 당첨: ${winner}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: '피더 룰렛 결과', text });
+      } catch (e) {
+        if (e.name !== 'AbortError') alert('공유에 실패했어요.');
+      }
+      return;
+    }
+    alert('이 브라우저는 공유하기를 지원하지 않아요.');
   }
 
   // ══════════════ 팀 룰렛 실시간 구독 ══════════════
