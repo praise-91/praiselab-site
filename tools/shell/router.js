@@ -17,6 +17,7 @@ const VIEW_PATHS = {
   community: '/tools/community.html',
   'admin-dashboard': '/tools/admin-dashboard.html',
   'gongsu-admin': '/tools/gongsu-admin.html',
+  'gongsu-calendar': '/tools/gongsu-calendar.html',
 };
 
 function mountEl() {

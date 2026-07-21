@@ -73,6 +73,10 @@ function loadScriptOnce(src) {
 }
 
 export function mount(container) {
+  // gongsu-calendar-app.js는 원본처럼 모듈 스코프가 아닌 전역 gcLogout()을 그대로 호출한다
+  // (React 컴포넌트 코드는 원본과 100% 동일하게 유지) — 여기서 전역에 채워주고 unmount 때 지운다.
+  window.gcLogout = () => auth.signOut();
+
   if (!document.getElementById(STYLE_ID)) {
     const link = document.createElement('link');
     link.id = STYLE_ID;
@@ -224,6 +228,7 @@ export function mount(container) {
     delete window.gcSyncLeaderboard;
     delete window.colGongsuLeaderboard;
     delete window.storage;
+    delete window.gcLogout;
     const link = document.getElementById(STYLE_ID);
     if (link) link.remove();
     console.log('[gongsu-calendar-view] unmounted — React 루트/구독/스타일 정리 완료');
