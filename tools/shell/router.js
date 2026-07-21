@@ -15,6 +15,7 @@ const VIEW_PATHS = {
   'tool-rental': '/tools/tool-rental.html',
   'qty-report': '/tools/qty-report.html',
   community: '/tools/community.html',
+  'admin-dashboard': '/tools/admin-dashboard.html',
 };
 
 function mountEl() {
