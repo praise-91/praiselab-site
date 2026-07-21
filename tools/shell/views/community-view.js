@@ -16,6 +16,11 @@ const STYLE = `
   --give-bg: #E5F5EC; --give-text: #1E8E56;
   --muted-bg: #F1F0EC; --muted-text: #8B8F9C;
 }
+/* 커뮤니티는 다크/화이트 테마 구분 없이 항상 화이트 톤인 예외 화면이라, 셸 공용
+   body 배경(--steel, 다크/화이트에 따라 바뀜)을 이 화면이 떠있는 동안만 덮어쓴다.
+   이 <style>은 mount() 때마다 head에 나중에 추가되므로 shell-base.css의 body 규칙보다
+   소스 순서상 뒤에 와서(!important 없이도) 자연스럽게 우선 적용된다. */
+body { background: var(--bg); color: var(--text); }
 .community-root { font-family: 'Noto Sans KR', sans-serif; color: var(--text); }
 .community-root .container { max-width: 480px; margin: 0 auto; }
 .community-root .site-header { position:sticky; top:0; z-index:100; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); background:rgba(244,243,240,0.85); border-bottom:1px solid var(--border); padding:0 20px; height:52px; display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }

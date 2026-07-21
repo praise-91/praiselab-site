@@ -14,6 +14,7 @@ const VIEW_PATHS = {
   'team-ladder': '/tools/team-ladder.html',
   'tool-rental': '/tools/tool-rental.html',
   'qty-report': '/tools/qty-report.html',
+  community: '/tools/community.html',
 };
 
 function mountEl() {
