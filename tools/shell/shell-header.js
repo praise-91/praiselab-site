@@ -50,6 +50,9 @@ const STYLE = `
 .shellhdr-item:hover { background: var(--steel-light, #2E3450); }
 .shellhdr-item-icon { font-size: 17px; width: 22px; text-align: center; flex-shrink: 0; }
 .shellhdr-item--logout { margin-top: auto; color: #ff8a8a; }
+.shellhdr-theme-quickswitch { display: inline-flex; border-radius: 16px; background: var(--steel-light, #2E3450); border: 1px solid var(--border, rgba(255,255,255,0.08)); padding: 2px; gap: 2px; }
+.shellhdr-theme-quickswitch-opt { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 12px; border-radius: 12px; border: none; background: transparent; cursor: pointer; opacity: 0.4; }
+.shellhdr-theme-quickswitch-opt.is-active { background: var(--orange, #FF6B2B); opacity: 1; }
 `;
 
 const HEADER_HTML = `
@@ -61,7 +64,13 @@ const HEADER_HTML = `
   <div class="shellhdr-sheet">
     <div class="shellhdr-menu-head">
       <span class="shellhdr-menu-title">메뉴</span>
-      <button type="button" class="shellhdr-menu-close" aria-label="닫기">✕</button>
+      <div style="display:flex; align-items:center; gap:2px;">
+        <div class="shellhdr-theme-quickswitch" style="display:none;">
+          <button type="button" class="shellhdr-theme-quickswitch-opt" data-theme-opt="dark" aria-label="다크 테마">🌙</button>
+          <button type="button" class="shellhdr-theme-quickswitch-opt" data-theme-opt="light" aria-label="화이트 테마">☀️</button>
+        </div>
+        <button type="button" class="shellhdr-menu-close" aria-label="닫기">✕</button>
+      </div>
     </div>
     <div class="shellhdr-profile">
       <div class="shellhdr-profile-avatar">-</div>
@@ -90,7 +99,9 @@ function escapeHtml(s) {
 
 // menuItems: [{ icon, label, onClick, visible?: (profile) => boolean }]
 // 로그아웃 항목은 이 함수가 항상 마지막에 고정으로 붙이므로 menuItems엔 넣지 않는다.
-export function mountShellHeader(rootEl, { menuItems = [] } = {}) {
+// showThemeSwitch: 메뉴 안에 다크/화이트 테마 퀵스위치를 보여줄지 (원본에서 index.html/
+// qty-report.html/tool-rental.html 3개만 갖고 있던 기능이라 기본은 꺼둔다).
+export function mountShellHeader(rootEl, { menuItems = [], showThemeSwitch = false } = {}) {
   ensureStyle();
   rootEl.insertAdjacentHTML('afterbegin', HEADER_HTML);
 
@@ -103,10 +114,31 @@ export function mountShellHeader(rootEl, { menuItems = [] } = {}) {
   const nameEl = overlay.querySelector('.shellhdr-profile-name');
   const roleEl = overlay.querySelector('.shellhdr-profile-role');
   const codeEl = overlay.querySelector('.shellhdr-profile-code');
+  const themeSwitchEl = overlay.querySelector('.shellhdr-theme-quickswitch');
+  const themeDarkBtn = overlay.querySelector('[data-theme-opt="dark"]');
+  const themeLightBtn = overlay.querySelector('[data-theme-opt="light"]');
 
   function openMenu() { overlay.classList.add('show'); }
   function closeMenu() { overlay.classList.remove('show'); }
   function logout() { auth.signOut().then(() => { location.href = '/tools/index.html'; }); }
+
+  function renderTheme() {
+    const t = localStorage.getItem('feederTheme') === 'dark' ? 'dark' : 'light';
+    themeDarkBtn.classList.toggle('is-active', t !== 'light');
+    themeLightBtn.classList.toggle('is-active', t === 'light');
+  }
+  function setTheme(t) {
+    localStorage.setItem('feederTheme', t);
+    if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    else document.documentElement.removeAttribute('data-theme');
+    renderTheme();
+  }
+  if (showThemeSwitch) {
+    themeSwitchEl.style.display = '';
+    renderTheme();
+    themeDarkBtn.addEventListener('click', (e) => { e.stopPropagation(); setTheme('dark'); });
+    themeLightBtn.addEventListener('click', (e) => { e.stopPropagation(); setTheme('light'); });
+  }
 
   function renderItems(profile) {
     const visibleItems = menuItems.filter((item) => !item.visible || item.visible(profile));

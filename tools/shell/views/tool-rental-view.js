@@ -39,6 +39,16 @@ const STYLE = `
   --header-bg: rgba(244, 243, 240, 0.8);
 }
 .trv-root { font-family: 'Noto Sans KR', sans-serif; color: var(--text); }
+.trv-root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,107,43,0.04) 39px, rgba(255,107,43,0.04) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,107,43,0.04) 39px, rgba(255,107,43,0.04) 40px);
+  pointer-events: none;
+  z-index: 0;
+}
 .trv-root .container { max-width: 480px; margin: 0 auto; position: relative; z-index: 1; }
 .trv-root .form-card { background: var(--steel-mid); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
 .trv-root .toggle-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 24px; }
@@ -160,6 +170,7 @@ export function mount(container) {
   }
   container.innerHTML = TEMPLATE;
   const unmountHeader = mountShellHeader(container.querySelector('.trv-root'), {
+    showThemeSwitch: true,
     menuItems: [
       {
         icon: '🔑',

@@ -12,6 +12,7 @@ const VIEW_PATHS = {
   games: '/tools/games.html',
   roulette: '/tools/roulette.html',
   'team-ladder': '/tools/team-ladder.html',
+  'tool-rental': '/tools/tool-rental.html',
 };
 
 function mountEl() {
