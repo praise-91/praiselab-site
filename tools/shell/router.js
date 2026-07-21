@@ -16,6 +16,7 @@ const VIEW_PATHS = {
   'qty-report': '/tools/qty-report.html',
   community: '/tools/community.html',
   'admin-dashboard': '/tools/admin-dashboard.html',
+  'gongsu-admin': '/tools/gongsu-admin.html',
 };
 
 function mountEl() {
