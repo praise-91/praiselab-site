@@ -1,3 +1,4 @@
+import { navigate } from '../router.js';
 const {
   useState,
   useEffect,
@@ -497,7 +498,7 @@ function App() {
     className: "gg-top"
   }, React.createElement("button", {
     className: "gg-icon gg-icon-text gg-brand-btn",
-    onClick: () => { location.href = "index.html"; }
+    onClick: () => { navigate('home'); }
   }, "Feeder"), React.createElement("div", {
     className: "gg-monthnav"
   }, React.createElement("button", {

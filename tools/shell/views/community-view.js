@@ -6,6 +6,7 @@
 // (하드웨어 뒤로가기로 상세를 닫는 동작만 이번 이관에서 빠짐 — home-view.js와 동일한 트레이드오프).
 
 import { auth, db, onProfile } from '../firebase-shell.js';
+import { navigate } from '../router.js';
 
 const STYLE_ID = 'view-style-community';
 const STYLE = `
@@ -132,7 +133,7 @@ body { background: var(--bg); color: var(--text); }
 const TEMPLATE = `
 <div class="community-root">
   <header class="site-header">
-    <a href="/tools/index.html" class="brand">Fee<span>der</span> · 커뮤니티</a>
+    <a href="/tools/index.html" class="brand" data-route="home">Fee<span>der</span> · 커뮤니티</a>
     <button class="hamburger-btn" id="hamburger-btn" onclick="window.__community.openMenu()" aria-label="메뉴">☰</button>
   </header>
 
@@ -677,7 +678,7 @@ export function mount(container) {
   }
   function matchesPostFilter(p) { return !(postFilter.category && p.category !== postFilter.category); }
 
-  function logout() { auth.signOut().then(() => { location.href = '/tools/index.html'; }); }
+  function logout() { auth.signOut().then(() => { navigate('home'); }); }
   function openMenu() { $('menu-overlay').classList.add('show'); }
   function closeMenu() { $('menu-overlay').classList.remove('show'); }
 

@@ -114,7 +114,7 @@ const TEMPLATE = `
 <div class="gadmin-root">
   <div class="toast" id="gadmin-toast">저장 완료</div>
   <header class="site-header">
-    <a href="/tools/index.html" class="brand">Feeder</a>
+    <a href="/tools/index.html" class="brand" data-route="home">Feeder</a>
     <span class="site-header-title">공수달력 관리</span>
     <button class="hamburger-btn" id="hamburger-btn" onclick="window.__gadmin.openMenu()" style="display:none;" aria-label="메뉴">☰</button>
   </header>

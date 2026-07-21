@@ -118,7 +118,7 @@ const TEMPLATE = `
         <span class="header-icon">🪜</span><h1>사다리타기</h1>
         <div class="page-sub">팀 코드가 있어야 팀원들과 같이 즐길 수 있어요</div>
       </header>
-      <div class="card"><a href="/tools/index.html" class="locked-link">피더 홈으로 →</a></div>
+      <div class="card"><a href="/tools/index.html" class="locked-link" data-route="home">피더 홈으로 →</a></div>
     </div>
     <div class="view" id="view-app">
       <header class="page-head">

@@ -28,7 +28,7 @@ const TEMPLATE = `
   <span class="gc-locked-icon">🔒</span>
   <h1>로그인이 필요해요</h1>
   <p>피더 홈에서 로그인 후 다시 들어와주세요</p>
-  <a href="/tools/index.html">피더 홈으로 →</a>
+  <a href="/tools/index.html" data-route="home">피더 홈으로 →</a>
 </div>
 <div class="gc-admin-banner" id="gc-admin-banner" style="display:none;">
   🔧 팀장 모드: <span id="gc-admin-target-name"></span>님의 공수달력 수정 중

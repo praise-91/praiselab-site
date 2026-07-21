@@ -150,7 +150,7 @@ const TEMPLATE = `
 <div class="qty-root">
   <div class="toast" id="qty-toast">✅ 저장 완료!</div>
   <header class="site-header">
-    <a href="/tools/index.html" class="brand">Feeder</a>
+    <a href="/tools/index.html" class="brand" data-route="home">Feeder</a>
     <button class="hamburger-btn" id="hamburger-btn" onclick="window.__qty.openMenu()" style="display:none;" aria-label="메뉴">☰</button>
   </header>
   <div class="menu-overlay" id="menu-overlay" onclick="window.__qty.closeMenu()">

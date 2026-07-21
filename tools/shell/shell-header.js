@@ -4,6 +4,7 @@
 // 로그아웃은 항상 공통이라 메뉴 항목엔 넣지 않고 이 모듈이 마지막 줄에 고정으로 추가한다.
 
 import { auth, onProfile } from './firebase-shell.js';
+import { navigate } from './router.js';
 
 const STYLE_ID = 'shell-header-style';
 const STYLE = `
@@ -57,7 +58,7 @@ const STYLE = `
 
 const HEADER_HTML = `
 <header class="shellhdr-bar">
-  <a href="/tools/index.html" class="shellhdr-brand">Feeder</a>
+  <a href="/tools/index.html" class="shellhdr-brand" data-route="home">Feeder</a>
   <button type="button" class="shellhdr-hamburger" style="display:none;" aria-label="메뉴">☰</button>
 </header>
 <div class="shellhdr-overlay">
@@ -120,7 +121,7 @@ export function mountShellHeader(rootEl, { menuItems = [], showThemeSwitch = fal
 
   function openMenu() { overlay.classList.add('show'); }
   function closeMenu() { overlay.classList.remove('show'); }
-  function logout() { auth.signOut().then(() => { location.href = '/tools/index.html'; }); }
+  function logout() { auth.signOut().then(() => { navigate('home'); }); }
 
   function renderTheme() {
     const t = localStorage.getItem('feederTheme') === 'dark' ? 'dark' : 'light';

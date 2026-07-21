@@ -3,6 +3,7 @@
 // profile.isOperator를 직접 확인한다.
 
 import { auth, db, onProfile } from '../firebase-shell.js';
+import { navigate } from '../router.js';
 
 const STYLE_ID = 'view-style-admin-dashboard';
 const STYLE = `
@@ -86,7 +87,7 @@ const TEMPLATE = `
 <div class="admin-dash-root">
   <div class="toast" id="admdash-toast">저장 완료</div>
   <header class="site-header">
-    <a href="/tools/index.html" class="brand">Feeder</a>
+    <a href="/tools/index.html" class="brand" data-route="home">Feeder</a>
     <span class="site-header-title">운영자 대시보드</span>
     <button class="hamburger-btn" id="hamburger-btn" onclick="window.__admdash.openMenu()" style="display:none;" aria-label="메뉴">☰</button>
   </header>
@@ -96,7 +97,7 @@ const TEMPLATE = `
         <span class="menu-title">메뉴</span>
         <button class="menu-close" onclick="window.__admdash.closeMenu()" aria-label="닫기">✕</button>
       </div>
-      <button class="menu-item" onclick="window.__admdash.closeMenu(); location.href='/tools/index.html';">
+      <button class="menu-item" onclick="window.__admdash.closeMenu(); window.__admdash.goHome();">
         <span class="menu-item-icon">🏠</span><span>피더 홈</span>
       </button>
       <button class="menu-item menu-item--logout" onclick="window.__admdash.closeMenu(); window.__admdash.logout();">
@@ -120,7 +121,7 @@ const TEMPLATE = `
       <div class="locked-wrap">
         <span class="header-icon">⛔</span><h1>운영자만 볼 수 있어요</h1>
         <p>이 화면은 사이트 운영자 계정으로만 접근 가능해요</p>
-        <a href="/tools/index.html">피더 홈으로 →</a>
+        <a href="/tools/index.html" data-route="home">피더 홈으로 →</a>
       </div>
     </div>
     <div class="view" id="view-app">
@@ -215,6 +216,7 @@ export function mount(container) {
     if (target) target.classList.add('active');
   }
   function logout() { auth.signOut(); }
+  function goHome() { navigate('home'); }
   function openMenu() { $('menu-overlay').classList.add('show'); }
   function closeMenu() { $('menu-overlay').classList.remove('show'); }
   function showToast(msg) {
@@ -421,7 +423,7 @@ export function mount(container) {
   });
 
   window.__admdash = {
-    openMenu, closeMenu, logout, refreshPresenceNow, setInquiryFilter, renderUserTable, toggleInquiryStatus,
+    openMenu, closeMenu, logout, goHome, refreshPresenceNow, setInquiryFilter, renderUserTable, toggleInquiryStatus,
   };
 
   return function unmount() {
