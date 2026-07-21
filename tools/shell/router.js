@@ -13,6 +13,7 @@ const VIEW_PATHS = {
   roulette: '/tools/roulette.html',
   'team-ladder': '/tools/team-ladder.html',
   'tool-rental': '/tools/tool-rental.html',
+  'qty-report': '/tools/qty-report.html',
 };
 
 function mountEl() {
