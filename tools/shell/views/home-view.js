@@ -383,7 +383,7 @@ const TEMPLATE = `
           <button onclick="window.__home.dismissSignupBanner()" style="background:none; border:none; color:var(--text-dim); font-size:14px; cursor:pointer; padding:4px;" aria-label="닫기">✕</button>
         </div>
       </div>
-      <a href="/tools/gongsu-calendar.html" class="tool-card tool-card--hero">
+      <a href="#" class="tool-card tool-card--hero" data-route="gongsu-calendar">
         <div class="tool-icon">📅</div>
         <div class="tool-info">
           <div class="tool-name">공수달력</div>
@@ -394,7 +394,7 @@ const TEMPLATE = `
       </a>
       <div class="section-label tool-section">팀 업무</div>
       <div class="tool-duo">
-        <a href="/tools/qty-report.html" class="tool-card" onclick="return window.__home.requireLogin()">
+        <a href="#" class="tool-card" onclick="window.__home.goToolCard('qty-report', event)">
           <div class="tool-icon tool-icon--blue">🧾</div>
           <div class="tool-info"><div class="tool-name">물량작성</div><div class="tool-desc">입력 · 합산 · 공유</div></div>
         </a>
@@ -440,7 +440,7 @@ const TEMPLATE = `
           초대링크를 카톡으로 보내면 팀원이 누르는 것만으로 바로 참가돼요. 코드만 따로 받은 팀원은 메뉴의 "팀 참가"에서 직접 입력해도 돼요.
         </div>
       </div>
-      <a href="/tools/admin-dashboard.html" class="tool-card tool-card--admin" id="dashboard-entry" style="display:none; margin-bottom:16px;">
+      <a href="#" class="tool-card tool-card--admin" id="dashboard-entry" data-route="admin-dashboard" style="display:none; margin-bottom:16px;">
         <div class="tool-icon">📊</div>
         <div class="tool-info">
           <div class="tool-name">운영자 대시보드<span class="notify-badge" id="dashboard-inquiry-badge" style="display:none;"></span></div>
@@ -454,7 +454,7 @@ const TEMPLATE = `
           <div class="tool-info"><div class="tool-name">팀원 관리</div><div class="tool-desc">소속 팀원 목록 · 내보내기</div></div>
           <span class="tool-arrow">›</span>
         </a>
-        <a href="/tools/gongsu-admin.html" class="tool-card tool-card--admin">
+        <a href="#" class="tool-card tool-card--admin" data-route="gongsu-admin">
           <div class="tool-icon">📊</div>
           <div class="tool-info"><div class="tool-name">공수달력 관리</div><div class="tool-desc">현장별 팀단가 · 숙식비 · 차익금 관리</div></div>
           <span class="tool-arrow">›</span>

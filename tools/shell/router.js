@@ -7,8 +7,10 @@ let currentUnmount = null;
 let currentView = null;
 
 // 컷오버 완료된 view만 여기 등록한다 — 실제 파일(예: /tools/roulette.html)이 셸 부트스트랩으로
-// 바뀐 화면만 실제 경로로 pushState하고, 아직 안 바뀐 화면(예: home)은 기존처럼 ?view= 로 남는다.
+// 바뀐 화면만 실제 경로로 pushState하고, 아직 안 바뀐 화면은 기존처럼 ?view= 로 남는다.
+// (2026-07-21: 10개 화면 전부 컷오버 완료로 이 목록엔 현재 미등록 화면이 없음)
 const VIEW_PATHS = {
+  home: '/tools/index.html',
   games: '/tools/games.html',
   roulette: '/tools/roulette.html',
   'team-ladder': '/tools/team-ladder.html',
