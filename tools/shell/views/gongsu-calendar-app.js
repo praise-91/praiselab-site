@@ -1,4 +1,4 @@
-import { navigate } from '../router.js?v=3';
+import { navigate } from '../router.js?v=4';
 const {
   useState,
   useEffect,

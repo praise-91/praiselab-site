@@ -6,6 +6,14 @@ const routes = new Map();
 let currentUnmount = null;
 let currentView = null;
 
+// 새 배포가 감지되면(app.js의 checkForShellUpdate) true가 된다. 즉시 리로드하지 않고
+// "다음 화면 이동" 때 SPA 전환 대신 풀 리로드로 갈아타는 이유: 사용자가 입력 중인
+// 내용(공수 입력, 게시글 작성 등)을 날리지 않는 유일하게 안전한 타이밍이 화면을
+// 떠나는 순간이기 때문. 풀 리로드는 새 HTML(캐시 안 됨)을 받아 새 모듈 그래프를
+// 통째로 로드하므로 구버전 캐시가 끼어들 수 없다.
+let updatePending = false;
+export function flagShellUpdate() { updatePending = true; }
+
 // 컷오버 완료된 view만 여기 등록한다 — 실제 파일(예: /tools/roulette.html)이 셸 부트스트랩으로
 // 바뀐 화면만 실제 경로로 pushState하고, 아직 안 바뀐 화면은 기존처럼 ?view= 로 남는다.
 // (2026-07-21: 10개 화면 전부 컷오버 완료로 이 목록엔 현재 미등록 화면이 없음)
@@ -54,6 +62,11 @@ export async function navigate(name, push = true) {
     // 인스턴스가 앱 화면을 백지로 만드는 사고가 있었음) 홈으로 폴백하거나 조용히 무시한다.
     console.warn('[router] 등록되지 않은 화면:', name);
     if (name !== 'home' && routes.has('home')) return navigate('home', push);
+    return;
+  }
+  if (updatePending) {
+    // 새 배포 감지됨 — 이번 이동은 풀 리로드로(파일 상단 updatePending 설명 참고)
+    location.href = pathForView(name);
     return;
   }
   if (currentUnmount) {

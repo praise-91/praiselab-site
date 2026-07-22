@@ -2,8 +2,8 @@
 // 다른 화면들과 달리 게이트가 "승인된 회원"이 아니라 "운영자"라서 onProfile() 콜백에서
 // profile.isOperator를 직접 확인한다.
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=3';
-import { navigate } from '../router.js?v=3';
+import { auth, db, onProfile } from '../firebase-shell.js?v=4';
+import { navigate } from '../router.js?v=4';
 
 const STYLE_ID = 'view-style-admin-dashboard';
 const STYLE = `
