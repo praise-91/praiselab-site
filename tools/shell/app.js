@@ -1,16 +1,16 @@
-import { authReady, getAppCheckActivationCount } from './firebase-shell.js';
-import { registerView, navigate, currentViewFromUrl } from './router.js?v=2';
+import { authReady, getAppCheckActivationCount } from './firebase-shell.js?v=3';
+import { registerView, navigate, currentViewFromUrl } from './router.js?v=3';
 
-registerView('home', () => import('./views/home-view.js'));
-registerView('community', () => import('./views/community-view.js'));
-registerView('tool-rental', () => import('./views/tool-rental-view.js'));
-registerView('roulette', () => import('./views/roulette-view.js'));
-registerView('team-ladder', () => import('./views/team-ladder-view.js'));
-registerView('games', () => import('./views/games-view.js'));
-registerView('qty-report', () => import('./views/qty-report-view.js'));
-registerView('admin-dashboard', () => import('./views/admin-dashboard-view.js'));
-registerView('gongsu-admin', () => import('./views/gongsu-admin-view.js'));
-registerView('gongsu-calendar', () => import('./views/gongsu-calendar-view.js'));
+registerView('home', () => import('./views/home-view.js?v=3'));
+registerView('community', () => import('./views/community-view.js?v=3'));
+registerView('tool-rental', () => import('./views/tool-rental-view.js?v=3'));
+registerView('roulette', () => import('./views/roulette-view.js?v=3'));
+registerView('team-ladder', () => import('./views/team-ladder-view.js?v=3'));
+registerView('games', () => import('./views/games-view.js?v=3'));
+registerView('qty-report', () => import('./views/qty-report-view.js?v=3'));
+registerView('admin-dashboard', () => import('./views/admin-dashboard-view.js?v=3'));
+registerView('gongsu-admin', () => import('./views/gongsu-admin-view.js?v=3'));
+registerView('gongsu-calendar', () => import('./views/gongsu-calendar-view.js?v=3'));
 
 document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-route]');

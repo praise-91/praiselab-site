@@ -49,7 +49,11 @@ function viewForPath(pathname) {
 
 export async function navigate(name, push = true) {
   if (!routes.has(name)) {
-    mountEl().innerHTML = `<p>알 수 없는 화면: ${name}</p>`;
+    // 등록 안 된 화면 요청 — 화면을 파괴하지 말고(이전엔 mount를 통째로 "알 수 없는 화면"
+    // 텍스트로 덮어써서, 캐시 어긋남으로 라우터 모듈이 중복 로드된 상황에서 빈 껍데기
+    // 인스턴스가 앱 화면을 백지로 만드는 사고가 있었음) 홈으로 폴백하거나 조용히 무시한다.
+    console.warn('[router] 등록되지 않은 화면:', name);
+    if (name !== 'home' && routes.has('home')) return navigate('home', push);
     return;
   }
   if (currentUnmount) {
@@ -69,6 +73,9 @@ export async function navigate(name, push = true) {
 }
 
 window.addEventListener('popstate', (e) => {
+  // 등록된 화면이 하나도 없는 인스턴스는 빈 껍데기(캐시 어긋남으로 옛날 모듈이 이 파일을
+  // 버전 쿼리 없는 URL로 중복 import한 경우)다 — 진짜 라우터 인스턴스가 처리하게 두고 무시.
+  if (routes.size === 0) return;
   const view = (e.state && e.state.view) || currentViewFromUrl();
   // 화면(view)이 실제로 바뀔 때만 remount한다. 같은 화면 안에서 모달/서브뷰를 닫으려고
   // history.pushState + history.back()을 쓰는 view(예: gongsu-calendar의 React 앱)가 있는데,

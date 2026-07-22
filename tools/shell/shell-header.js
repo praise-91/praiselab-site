@@ -3,8 +3,8 @@
 // 로그인 상태(hamburger 노출·프로필 카드)는 셸의 onProfile()에 얹혀서 자동 갱신한다.
 // 로그아웃은 항상 공통이라 메뉴 항목엔 넣지 않고 이 모듈이 마지막 줄에 고정으로 추가한다.
 
-import { auth, onProfile } from './firebase-shell.js';
-import { navigate } from './router.js?v=2';
+import { auth, onProfile } from './firebase-shell.js?v=3';
+import { navigate } from './router.js?v=3';
 
 const STYLE_ID = 'shell-header-style';
 const STYLE = `
