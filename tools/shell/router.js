@@ -70,6 +70,12 @@ export async function navigate(name, push = true) {
 
 window.addEventListener('popstate', (e) => {
   const view = (e.state && e.state.view) || currentViewFromUrl();
+  // 화면(view)이 실제로 바뀔 때만 remount한다. 같은 화면 안에서 모달/서브뷰를 닫으려고
+  // history.pushState + history.back()을 쓰는 view(예: gongsu-calendar의 React 앱)가 있는데,
+  // 이 경우 popstate가 떠도 URL과 view는 그대로라 여기서 걸러내고 view 자신의 popstate
+  // 리스너가 처리하게 둬야 한다 — 안 그러면 매번 통째로 unmount/remount 되면서 저장 직전
+  // 상태(디바운스 타이머 등)가 날아간다.
+  if (view === currentView) return;
   navigate(view, false);
 });
 
