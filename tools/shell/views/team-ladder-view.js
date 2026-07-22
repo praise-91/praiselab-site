@@ -3,7 +3,7 @@
 
 import { auth, db, onProfile } from '../firebase-shell.js';
 import { mountShellHeader } from '../shell-header.js';
-import { navigate } from '../router.js';
+import { navigate } from '../router.js?v=2';
 
 const STYLE_ID = 'view-style-team-ladder';
 const STYLE = `

@@ -16,7 +16,7 @@
 // 팀 참가 등 실제 auth 상태를 "쓰는" 주체이기도 하다.
 
 import { auth, db, colUsers, onProfile } from '../firebase-shell.js';
-import { navigate as routerNavigate } from '../router.js';
+import { navigate as routerNavigate } from '../router.js?v=2';
 
 const STYLE_ID = 'view-style-home';
 const STYLE = `

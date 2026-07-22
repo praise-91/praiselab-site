@@ -1,5 +1,5 @@
 import { authReady, getAppCheckActivationCount } from './firebase-shell.js';
-import { registerView, navigate, currentViewFromUrl } from './router.js';
+import { registerView, navigate, currentViewFromUrl } from './router.js?v=2';
 
 registerView('home', () => import('./views/home-view.js'));
 registerView('community', () => import('./views/community-view.js'));

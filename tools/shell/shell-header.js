@@ -4,7 +4,7 @@
 // 로그아웃은 항상 공통이라 메뉴 항목엔 넣지 않고 이 모듈이 마지막 줄에 고정으로 추가한다.
 
 import { auth, onProfile } from './firebase-shell.js';
-import { navigate } from './router.js';
+import { navigate } from './router.js?v=2';
 
 const STYLE_ID = 'shell-header-style';
 const STYLE = `

@@ -6,7 +6,7 @@
 // (하드웨어 뒤로가기로 상세를 닫는 동작만 이번 이관에서 빠짐 — home-view.js와 동일한 트레이드오프).
 
 import { auth, db, onProfile } from '../firebase-shell.js';
-import { navigate } from '../router.js';
+import { navigate } from '../router.js?v=2';
 
 const STYLE_ID = 'view-style-community';
 const STYLE = `

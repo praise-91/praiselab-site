@@ -3,7 +3,7 @@
 // profile.isOperator를 직접 확인한다.
 
 import { auth, db, onProfile } from '../firebase-shell.js';
-import { navigate } from '../router.js';
+import { navigate } from '../router.js?v=2';
 
 const STYLE_ID = 'view-style-admin-dashboard';
 const STYLE = `
