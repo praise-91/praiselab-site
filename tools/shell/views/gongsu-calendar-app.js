@@ -1473,9 +1473,11 @@ function teamRangePreset(kind) {
 function TeamModal({
   onClose
 }) {
+  const [scope, setScope] = useState("team");
   const [start, setStart] = useState(() => teamRangePreset("month")[0]);
   const [end, setEnd] = useState(() => teamRangePreset("month")[1]);
   const [members, setMembers] = useState(null);
+  const [allMembers, setAllMembers] = useState(null);
   useEffect(() => {
     if (!window.gcMyTeamCode) { setMembers([]); return; }
     const unsub = window.colGongsuLeaderboard.where('teamCode', '==', window.gcMyTeamCode).onSnapshot(snap => {
@@ -1486,14 +1488,25 @@ function TeamModal({
     }, () => setMembers([]));
     return unsub;
   }, []);
+  useEffect(() => {
+    if (window.gcIsGuest || scope !== "all") return;
+    const unsub = window.colGongsuLeaderboard.onSnapshot(snap => {
+      setAllMembers(snap.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+      })));
+    }, () => setAllMembers([]));
+    return unsub;
+  }, [scope]);
+  const activeMembers = scope === "all" ? allMembers : members;
   const applyPreset = kind => {
     const [s, e] = teamRangePreset(kind);
     setStart(s);
     setEnd(e);
   };
   const ranked = useMemo(() => {
-    if (!members) return [];
-    const totals = members.map(m => {
+    if (!activeMembers) return [];
+    const totals = activeMembers.map(m => {
       let sum = 0;
       Object.entries(m.gongsuByDate || {}).forEach(([date, g]) => {
         if (date >= start && date <= end) sum += g || 0;
@@ -1511,7 +1524,7 @@ function TeamModal({
       m.rank = rank;
     });
     return sorted;
-  }, [members, start, end]);
+  }, [activeMembers, start, end]);
   const maxVal = Math.max(1, ...ranked.map(m => m.total));
   const groups = [];
   ranked.forEach(m => {
@@ -1524,11 +1537,11 @@ function TeamModal({
   });
   const rows = window.gcIsGuest ? React.createElement("div", {
     className: "gg-teamrank-empty"
-  }, "로그인하면 팀원과 공수 랭킹을 비교할 수 있어요") : members === null ? React.createElement("div", {
+  }, scope === "all" ? "로그인하면 전체 공수 랭킹을 볼 수 있어요" : "로그인하면 팀원과 공수 랭킹을 비교할 수 있어요") : activeMembers === null ? React.createElement("div", {
     className: "gg-teamrank-empty"
   }, "불러오는 중…") : ranked.length === 0 ? React.createElement("div", {
     className: "gg-teamrank-empty"
-  }, "이 기간에 입력된 팀원 공수가 없습니다.") : groups.map(g => {
+  }, scope === "all" ? "이 기간에 입력된 공수가 없습니다." : "이 기간에 입력된 팀원 공수가 없습니다.") : groups.map(g => {
     const isMe = g.items.some(m => m.id === window.gcMyUid);
     return React.createElement("div", {
       key: g.rank,
@@ -1566,6 +1579,16 @@ function TeamModal({
     className: "gg-fullscreen-body"
   }, React.createElement("div", {
     className: "gg-field"
+  }, React.createElement("div", {
+    className: "gg-taxswitch"
+  }, React.createElement("button", {
+    className: "gg-taxswitch-opt" + (scope === "team" ? " is-active" : ""),
+    onClick: () => setScope("team")
+  }, "팀 랭킹"), React.createElement("button", {
+    className: "gg-taxswitch-opt" + (scope === "all" ? " is-active" : ""),
+    onClick: () => setScope("all")
+  }, "전체 랭킹"))), React.createElement("div", {
+    className: "gg-field"
   }, React.createElement("label", null, "기간"), React.createElement("div", {
     className: "gg-teampresets"
   }, React.createElement("button", {
@@ -1591,7 +1614,7 @@ function TeamModal({
     onChange: e => setEnd(e.target.value)
   }))), React.createElement("div", {
     className: "gg-field"
-  }, React.createElement("label", null, "팀원 순위"), React.createElement("div", {
+  }, React.createElement("label", null, scope === "all" ? "전체 순위" : "팀원 순위"), React.createElement("div", {
     className: "gg-teamrank-list"
   }, rows))));
 }
