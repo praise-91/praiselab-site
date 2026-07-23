@@ -3,19 +3,19 @@
 // 올리면 옛날 캐시 모듈과 새 모듈이 한 페이지에 섞여 라우터 인스턴스가 쪼개지는 사고가
 // 난다(2026-07-22 "알 수 없는 화면" 백지 장애). 올린 뒤엔 반드시 grep으로 버전 안 붙은
 // 셸 참조가 0건인지 확인할 것.
-import { authReady, getAppCheckActivationCount } from './firebase-shell.js?v=6';
-import { registerView, navigate, currentViewFromUrl, flagShellUpdate } from './router.js?v=6';
+import { authReady, getAppCheckActivationCount } from './firebase-shell.js?v=7';
+import { registerView, navigate, currentViewFromUrl, flagShellUpdate } from './router.js?v=7';
 
-registerView('home', () => import('./views/home-view.js?v=6'));
-registerView('community', () => import('./views/community-view.js?v=6'));
-registerView('tool-rental', () => import('./views/tool-rental-view.js?v=6'));
-registerView('roulette', () => import('./views/roulette-view.js?v=6'));
-registerView('team-ladder', () => import('./views/team-ladder-view.js?v=6'));
-registerView('games', () => import('./views/games-view.js?v=6'));
-registerView('qty-report', () => import('./views/qty-report-view.js?v=6'));
-registerView('admin-dashboard', () => import('./views/admin-dashboard-view.js?v=6'));
-registerView('gongsu-admin', () => import('./views/gongsu-admin-view.js?v=6'));
-registerView('gongsu-calendar', () => import('./views/gongsu-calendar-view.js?v=6'));
+registerView('home', () => import('./views/home-view.js?v=7'));
+registerView('community', () => import('./views/community-view.js?v=7'));
+registerView('tool-rental', () => import('./views/tool-rental-view.js?v=7'));
+registerView('roulette', () => import('./views/roulette-view.js?v=7'));
+registerView('team-ladder', () => import('./views/team-ladder-view.js?v=7'));
+registerView('games', () => import('./views/games-view.js?v=7'));
+registerView('qty-report', () => import('./views/qty-report-view.js?v=7'));
+registerView('admin-dashboard', () => import('./views/admin-dashboard-view.js?v=7'));
+registerView('gongsu-admin', () => import('./views/gongsu-admin-view.js?v=7'));
+registerView('gongsu-calendar', () => import('./views/gongsu-calendar-view.js?v=7'));
 
 document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-route]');

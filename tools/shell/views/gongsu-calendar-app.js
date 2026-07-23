@@ -1,4 +1,4 @@
-import { navigate } from '../router.js?v=6';
+import { navigate } from '../router.js?v=7';
 const {
   useState,
   useEffect,
@@ -344,11 +344,26 @@ function App() {
       pay = 0,
       workDays = 0;
     const byType = {
-      day: 0,
-      extended: 0,
-      night: 0,
-      early: 0,
-      off: 0
+      day: {
+        count: 0,
+        gongsu: 0
+      },
+      extended: {
+        count: 0,
+        gongsu: 0
+      },
+      night: {
+        count: 0,
+        gongsu: 0
+      },
+      early: {
+        count: 0,
+        gongsu: 0
+      },
+      off: {
+        count: 0,
+        gongsu: 0
+      }
     };
     // 커스텀 칩별 이번 달 집계 (칩 id -> { count: 사용 일수, gongsu: 공수 합계 })
     const byChip = {};
@@ -365,7 +380,8 @@ function App() {
       if (g > 0) {
         gongsu += g;
         pay += g * (e.unitPrice == null ? state.defaultUnitPrice : e.unitPrice);
-        byType[typeOf(g)] += 1;
+        byType[typeOf(g)].count += 1;
+        byType[typeOf(g)].gongsu += g;
         workDays += 1;
         const chip = (state.customChips || []).find(c => chipValue(c) === g);
         if (chip) {
@@ -373,7 +389,7 @@ function App() {
           byChip[chipId(chip)].gongsu += g;
         }
       } else {
-        byType.off += 1;
+        byType.off.count += 1;
       }
     }
     const start = dateStr(cursor.y, cursor.m, 1);
@@ -631,7 +647,13 @@ function App() {
     }
   }), React.createElement("span", {
     className: "gg-typelabel"
-  }, meta.label), React.createElement("strong", null, monthStats.byType[k]))), state.customChips.map(chip => {
+  }, meta.label), React.createElement("strong", null, monthStats.byType[k].count + "일"), k !== "off" && React.createElement("span", {
+    style: {
+      fontSize: "11px",
+      fontWeight: 700,
+      color: "var(--gg-ink-faint)"
+    }
+  }, "· " + fmtG(monthStats.byType[k].gongsu)))), state.customChips.map(chip => {
     const t = typeOf(chipValue(chip));
     const stat = monthStats.byChip[chipId(chip)] || {
       count: 0,

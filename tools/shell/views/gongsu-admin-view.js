@@ -1,6 +1,6 @@
 // tools/gongsu-admin.html 이관. 팀장(isAdmin) 전용 — 현장/팀원 단가/휴무일 관리.
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=6';
+import { auth, db, onProfile } from '../firebase-shell.js?v=7';
 
 const STYLE_ID = 'view-style-gongsu-admin';
 const STYLE = `
