@@ -1,4 +1,4 @@
-import { navigate } from '../router.js?v=4';
+import { navigate } from '../router.js?v=5';
 const {
   useState,
   useEffect,
@@ -350,6 +350,11 @@ function App() {
       early: 0,
       off: 0
     };
+    // 커스텀 칩별 이번 달 공수 합계 (칩 id -> 합계)
+    const byChip = {};
+    (state.customChips || []).forEach(c => {
+      byChip[chipId(c)] = 0;
+    });
     for (let d = 1; d <= daysInMonth; d++) {
       const e = state.entries[dateStr(cursor.y, cursor.m, d)];
       if (!e) continue;
@@ -359,6 +364,8 @@ function App() {
         pay += g * (e.unitPrice == null ? state.defaultUnitPrice : e.unitPrice);
         byType[typeOf(g)] += 1;
         workDays += 1;
+        const chip = (state.customChips || []).find(c => chipValue(c) === g);
+        if (chip) byChip[chipId(chip)] += g;
       } else {
         byType.off += 1;
       }
@@ -371,6 +378,7 @@ function App() {
       pay,
       netPay,
       byType,
+      byChip,
       workDays
     };
   }, [state, cursor]);
@@ -617,12 +625,20 @@ function App() {
     }
   }), React.createElement("span", {
     className: "gg-typelabel"
-  }, meta.label), React.createElement("strong", null, monthStats.byType[k]))))), state.customChips.length > 0 && React.createElement("div", {
-    className: "gg-homechips"
-  }, state.customChips.map(chip => React.createElement("span", {
-    key: chipId(chip),
-    className: "gg-homechip"
-  }, chipLabel(chip))))), dayModal && React.createElement(DayModal, {
+  }, meta.label), React.createElement("strong", null, monthStats.byType[k]))), state.customChips.map(chip => {
+    const t = typeOf(chipValue(chip));
+    return React.createElement("div", {
+      key: chipId(chip),
+      className: "gg-typechip"
+    }, React.createElement("span", {
+      className: "gg-typedot",
+      style: {
+        background: TYPE_META[t].color
+      }
+    }), React.createElement("span", {
+      className: "gg-typelabel"
+    }, chipLabel(chip)), React.createElement("strong", null, fmtG(monthStats.byChip[chipId(chip)] || 0)));
+  })))), dayModal && React.createElement(DayModal, {
     date: dayModal.date,
     entry: state.entries[dayModal.date],
     customChips: state.customChips,

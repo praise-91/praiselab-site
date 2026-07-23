@@ -122,9 +122,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-taxswitch-opt.is-active { background:var(--gg-accent); color:#fff; }
 
 .gg-typerow { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:10px; }
-.gg-homechips { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:14px; }
-.gg-homechips-label { font-size:11.5px; font-weight:700; color:var(--gg-ink-faint); margin-right:2px; }
-.gg-homechip { padding:7px 13px; border-radius:9px; background:var(--gg-card); border:1.5px solid var(--gg-line); font-size:13.5px; font-weight:800; color:var(--gg-ink-soft); }
 .gg-typechip { display:flex; align-items:center; gap:7px; padding:10px 12px; border-radius:11px; background:var(--gg-card); border:1px solid var(--gg-line); font-size:12.5px; }
 .gg-typedot { width:8px;height:8px;border-radius:50%; flex-shrink:0; }
 .gg-typelabel { color:var(--gg-ink-soft); flex:1; }

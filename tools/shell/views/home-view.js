@@ -15,8 +15,8 @@
 // 패턴과는 조금 다르게 쓴다 — onProfile()로 프로필 변화를 구독하되, 여기서 로그인/가입/
 // 팀 참가 등 실제 auth 상태를 "쓰는" 주체이기도 하다.
 
-import { auth, db, colUsers, onProfile } from '../firebase-shell.js?v=4';
-import { navigate as routerNavigate } from '../router.js?v=4';
+import { auth, db, colUsers, onProfile } from '../firebase-shell.js?v=5';
+import { navigate as routerNavigate } from '../router.js?v=5';
 
 const STYLE_ID = 'view-style-home';
 const STYLE = `
@@ -587,7 +587,33 @@ export function mount(container) {
   }
   // 라우터의 popstate 처리와 충돌하는 걸 피하려고 history API 대신 로컬 스택을 씀(파일 상단 설명 참고)
   function syncView(viewId) { viewStack[viewStack.length - 1] = viewId; showView(viewId); }
-  function go(viewId) { viewStack.push(viewId); showView(viewId); }
+  // 이름 목록(전체 tools_users 컬렉션) 구독이 꼭 필요한 화면만 여기 등록 — 로그인된 팀원이
+  // 그냥 홈(view-app)만 보고 다른 화면으로 넘어갈 땐 이 무거운 구독을 아예 안 태운다.
+  const USERS_DEPENDENT_VIEWS = new Set([
+    'view-login', 'view-register', 'view-forgot-password',
+    'view-team-join', 'view-admin-request', 'view-admin-approve',
+  ]);
+  function go(viewId) {
+    if (USERS_DEPENDENT_VIEWS.has(viewId)) ensureUsersSubscription();
+    viewStack.push(viewId);
+    showView(viewId);
+  }
+  let usersUnsub = null;
+  // 원래는 mount()마다 무조건 전체 유저 컬렉션을 onSnapshot으로 구독해서, Feeder 로고를 눌러
+  // 홈으로 돌아올 때마다 이 무거운 리슨이 매번 새로 걸려 로딩이 유독 느렸다. 로그인/가입/
+  // 비밀번호찾기/팀참가/직위변경/팀원관리 화면만 이 목록이 실제로 필요해서, go()에서 그 화면에
+  // 들어갈 때만 지연 구독하도록 바꿈(멱등이라 여러 번 호출돼도 구독은 1번만 걸림).
+  function ensureUsersSubscription() {
+    if (usersUnsub) return;
+    usersUnsub = colUsers.onSnapshot((snap) => {
+      users = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => displayName(a).localeCompare(displayName(b), 'ko'));
+      if ($('view-admin-approve')?.classList.contains('active')) renderMemberList();
+      if ($('view-team-join')?.classList.contains('active')) renderTeamJoin();
+      if ($('view-admin-request')?.classList.contains('active')) renderAdminRequest();
+      updateAdminEntry();
+    });
+  }
   function goBack() {
     if (viewStack.length > 1) viewStack.pop();
     showView(viewStack[viewStack.length - 1]);
@@ -991,6 +1017,7 @@ export function mount(container) {
   }
 
   function promptJoinFromLink(code) {
+    ensureUsersSubscription();
     colTeams.doc(code).get()
       .then((doc) => {
         if (!doc.exists || doc.data().active === false) { showToast('유효하지 않은 초대 링크예요'); go('view-team-join'); return; }
@@ -1088,7 +1115,7 @@ export function mount(container) {
 
   function logout() { auth.signOut(); }
 
-  function openAdminApprove() { renderMemberList(); go('view-admin-approve'); }
+  function openAdminApprove() { ensureUsersSubscription(); renderMemberList(); go('view-admin-approve'); }
 
   function inScope(u) {
     if (myProfile && myProfile.isOperator) return !!u.teamCode;
@@ -1203,15 +1230,6 @@ export function mount(container) {
     if (teamCodeEl) teamCodeEl.textContent = myProfile.adminTeamCode || '아직 발급 전이에요';
   }
 
-  // ── 이름 목록 실시간 구독 (로그인 화면 + 승인 화면 공용) — 셸에선 이 화면이 마운트돼있는
-  // 동안만 구독하고 언마운트 시 정리(원본은 페이지가 살아있는 내내 구독).
-  const usersUnsub = colUsers.onSnapshot((snap) => {
-    users = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => displayName(a).localeCompare(displayName(b), 'ko'));
-    if ($('view-admin-approve')?.classList.contains('active')) renderMemberList();
-    updateAdminEntry();
-  });
-
   // ── 로그인 상태 변화 — 셸의 onProfile()에 위임(프로필 문서 자체 구독은 셸이 1번만 함) ──
   const unsubProfile = onProfile((profile, user) => {
     if (!user) {
@@ -1301,7 +1319,7 @@ export function mount(container) {
 
   return function unmount() {
     unsubProfile();
-    usersUnsub();
+    if (usersUnsub) usersUnsub();
     if (myInquiriesUnsub) myInquiriesUnsub();
     stopOpenInquiryWatch();
     delete window.__home;
