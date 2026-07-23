@@ -5,8 +5,8 @@
 // hideDetailArea)로만 상세 열기/닫기를 처리하고, "← 목록으로" 버튼으로만 닫도록 했다
 // (하드웨어 뒤로가기로 상세를 닫는 동작만 이번 이관에서 빠짐 — home-view.js와 동일한 트레이드오프).
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=12';
-import { navigate } from '../router.js?v=12';
+import { auth, db, onProfile } from '../firebase-shell.js?v=13';
+import { navigate } from '../router.js?v=13';
 
 const STYLE_ID = 'view-style-community';
 const STYLE = `
@@ -215,7 +215,7 @@ const TEMPLATE = `
         <button class="tab" id="tab-seekers" onclick="window.__community.switchTab('seekers')">구직</button>
       </div>
 
-      <div class="card" id="announcement-banner" style="display:none; border-left:3px solid var(--orange); align-items:flex-start; gap:10px; cursor:pointer;" onclick="window.__community.openAnnouncementDetail(event)">
+      <div class="card" id="announcement-banner" style="display:none; border-left:3px solid var(--orange); align-items:flex-start; gap:10px; cursor:pointer; margin-bottom:16px;" onclick="window.__community.openAnnouncementDetail(event)">
         <span style="font-size:15px;">📢</span>
         <div style="flex:1; font-size:13.5px; line-height:1.5; white-space:pre-wrap;" id="announcement-text"></div>
         <button class="menu-item-icon" id="announce-edit-btn" onclick="event.stopPropagation(); window.__community.openAnnounceForm()" style="display:none; background:none; border:none; cursor:pointer; font-size:14px; color:var(--text-dim);" aria-label="공지 수정">✎</button>
