@@ -1,4 +1,4 @@
-import { navigate } from '../router.js?v=5';
+import { navigate } from '../router.js?v=6';
 const {
   useState,
   useEffect,
@@ -350,10 +350,13 @@ function App() {
       early: 0,
       off: 0
     };
-    // 커스텀 칩별 이번 달 공수 합계 (칩 id -> 합계)
+    // 커스텀 칩별 이번 달 집계 (칩 id -> { count: 사용 일수, gongsu: 공수 합계 })
     const byChip = {};
     (state.customChips || []).forEach(c => {
-      byChip[chipId(c)] = 0;
+      byChip[chipId(c)] = {
+        count: 0,
+        gongsu: 0
+      };
     });
     for (let d = 1; d <= daysInMonth; d++) {
       const e = state.entries[dateStr(cursor.y, cursor.m, d)];
@@ -365,7 +368,10 @@ function App() {
         byType[typeOf(g)] += 1;
         workDays += 1;
         const chip = (state.customChips || []).find(c => chipValue(c) === g);
-        if (chip) byChip[chipId(chip)] += g;
+        if (chip) {
+          byChip[chipId(chip)].count += 1;
+          byChip[chipId(chip)].gongsu += g;
+        }
       } else {
         byType.off += 1;
       }
@@ -627,6 +633,10 @@ function App() {
     className: "gg-typelabel"
   }, meta.label), React.createElement("strong", null, monthStats.byType[k]))), state.customChips.map(chip => {
     const t = typeOf(chipValue(chip));
+    const stat = monthStats.byChip[chipId(chip)] || {
+      count: 0,
+      gongsu: 0
+    };
     return React.createElement("div", {
       key: chipId(chip),
       className: "gg-typechip"
@@ -637,7 +647,13 @@ function App() {
       }
     }), React.createElement("span", {
       className: "gg-typelabel"
-    }, chipLabel(chip)), React.createElement("strong", null, fmtG(monthStats.byChip[chipId(chip)] || 0)));
+    }, chipLabel(chip)), React.createElement("strong", null, stat.count + "일"), React.createElement("span", {
+      style: {
+        fontSize: "11px",
+        fontWeight: 700,
+        color: "var(--gg-ink-faint)"
+      }
+    }, "· " + fmtG(stat.gongsu)));
   })))), dayModal && React.createElement(DayModal, {
     date: dayModal.date,
     entry: state.entries[dayModal.date],
