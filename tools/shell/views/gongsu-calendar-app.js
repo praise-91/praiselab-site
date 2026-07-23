@@ -1,4 +1,4 @@
-import { navigate } from '../router.js?v=7';
+import { navigate } from '../router.js?v=8';
 const {
   useState,
   useEffect,
@@ -41,7 +41,7 @@ const EXPENSE_CATS = [{
   key: "etc",
   label: "기타"
 }];
-const DEFAULT_CHIPS = [0.5, 1.0, 1.5];
+const DEFAULT_CHIPS = [0.5, 1.0, 1.5, 2.0];
 const STORE_KEY = "gongsu:worker:v2";
 
 /* -------- 2026년 기준 세금/4대보험 상수 (참고용, 매년 변경될 수 있음) -------- */
@@ -637,7 +637,7 @@ function App() {
     className: "gg-sumitem-sub"
   }, "총 ", monthStats.workDays, "일"))), React.createElement("div", {
     className: "gg-typerow"
-  }, Object.entries(TYPE_META).filter(([k]) => k !== "night").map(([k, meta]) => React.createElement("div", {
+  }, Object.entries(TYPE_META).map(([k, meta]) => React.createElement("div", {
     key: k,
     className: "gg-typechip"
   }, React.createElement("span", {
@@ -653,7 +653,7 @@ function App() {
       fontWeight: 700,
       color: "var(--gg-ink-faint)"
     }
-  }, "· " + fmtG(monthStats.byType[k].gongsu)))), state.customChips.map(chip => {
+  }, "· " + fmtG(monthStats.byType[k].gongsu)))), state.customChips.filter(c => !isDefaultChip(chipValue(c))).map(chip => {
     const t = typeOf(chipValue(chip));
     const stat = monthStats.byChip[chipId(chip)] || {
       count: 0,
@@ -773,7 +773,8 @@ function DayModal({
   const pay = gongsu * unitPrice;
   const type = typeOf(gongsu);
   const expenseTotal = Object.values(expenses).reduce((a, b) => a + (b || 0), 0);
-  const allChips = useMemo(() => [...DEFAULT_CHIPS, ...customChips].sort((a, b) => chipValue(a) - chipValue(b)), [customChips]);
+  // 기본 칩과 값이 겹치는 커스텀 칩은 숨김 (기본 칩이 나중에 추가돼 겹치게 된 경우 대비)
+  const allChips = useMemo(() => [...DEFAULT_CHIPS, ...customChips.filter(c => !isDefaultChip(chipValue(c)))].sort((a, b) => chipValue(a) - chipValue(b)), [customChips]);
   const restricted = isTeamRestDay && !isAdmin;
   if (restricted) {
     return React.createElement("div", {

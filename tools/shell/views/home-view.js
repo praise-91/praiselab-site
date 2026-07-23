@@ -15,8 +15,8 @@
 // 패턴과는 조금 다르게 쓴다 — onProfile()로 프로필 변화를 구독하되, 여기서 로그인/가입/
 // 팀 참가 등 실제 auth 상태를 "쓰는" 주체이기도 하다.
 
-import { auth, db, colUsers, onProfile } from '../firebase-shell.js?v=7';
-import { navigate as routerNavigate } from '../router.js?v=7';
+import { auth, db, colUsers, onProfile } from '../firebase-shell.js?v=8';
+import { navigate as routerNavigate } from '../router.js?v=8';
 
 const STYLE_ID = 'view-style-home';
 const STYLE = `
