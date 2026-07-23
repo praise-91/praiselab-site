@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>피더 커뮤니티</title>
+<script>
+  // 저장된 테마를 CSS 그리기 전에 먼저 적용해서 어두운 화면이 잠깐 번쩍이는 걸 방지
+  (function () {
+    var t = localStorage.getItem('feederTheme');
+    if (t !== 'dark') document.documentElement.setAttribute('data-theme', 'light');
+  })();
+</script>
 <link rel="stylesheet" href="/tools/shell/shell-base.css">
 </head>
 <body>
@@ -15,7 +22,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
-<script type="module" src="/tools/shell/app.js?v=8"></script>
+<script type="module" src="/tools/shell/app.js?v=9"></script>
 <script src="/tools/assets/presence.js?v=4"></script>
 </body>
 </html>

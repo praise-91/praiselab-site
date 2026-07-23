@@ -12,7 +12,7 @@
 //    전역을 채운 뒤 window.gcStartApp()(=ReactDOM.createRoot(...).render(...))를 불렀는데,
 //    여기선 셸의 onProfile()에서 똑같은 전역들을 채우고 React 루트를 만든다.
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=8';
+import { auth, db, onProfile } from '../firebase-shell.js?v=9';
 
 const STYLE_HREF = '/tools/shell/views/gongsu-calendar.css';
 const STYLE_ID = 'view-style-gongsu-calendar';
@@ -109,7 +109,7 @@ export function mount(container) {
     await loadScriptOnce('/tools/shell/vendor/react.production.min.js');
     await loadScriptOnce('/tools/shell/vendor/react-dom.production.min.js');
     if (cancelled) return;
-    const { App } = await import('./gongsu-calendar-app.js?v=8');
+    const { App } = await import('./gongsu-calendar-app.js?v=9');
     if (cancelled) return;
     reactRoot = window.ReactDOM.createRoot($('gc-react-root'));
     reactRoot.render(window.React.createElement(App));

@@ -3,9 +3,9 @@
 // 목적도 겸함. 원본의 내부 SPA(go(viewId)로 .view들을 토글하는 방식)는 그대로 유지하고,
 // 로그인 게이트만 셸의 onProfile()에 위임했다.
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=8';
-import { mountShellHeader } from '../shell-header.js?v=8';
-import { navigate } from '../router.js?v=8';
+import { auth, db, onProfile } from '../firebase-shell.js?v=9';
+import { mountShellHeader } from '../shell-header.js?v=9';
+import { navigate } from '../router.js?v=9';
 
 const STYLE_ID = 'view-style-roulette';
 const STYLE = `

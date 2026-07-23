@@ -5,46 +5,44 @@
 // hideDetailArea)로만 상세 열기/닫기를 처리하고, "← 목록으로" 버튼으로만 닫도록 했다
 // (하드웨어 뒤로가기로 상세를 닫는 동작만 이번 이관에서 빠짐 — home-view.js와 동일한 트레이드오프).
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=8';
-import { navigate } from '../router.js?v=8';
+import { auth, db, onProfile } from '../firebase-shell.js?v=9';
+import { navigate } from '../router.js?v=9';
 
 const STYLE_ID = 'view-style-community';
 const STYLE = `
-:root {
-  --orange: #FF6B2B; --orange-dark: #E05520;
-  --bg: #F4F3F0; --card-bg: #FFFFFF; --border: #ECEBE7;
-  --text: #1C1E27; --text-dim: #767A85;
-  --give-bg: #E5F5EC; --give-text: #1E8E56;
-  --muted-bg: #F1F0EC; --muted-text: #8B8F9C;
-}
-/* 커뮤니티는 다크/화이트 테마 구분 없이 항상 화이트 톤인 예외 화면이라, 셸 공용
-   body 배경(--steel, 다크/화이트에 따라 바뀜)을 이 화면이 떠있는 동안만 덮어쓴다.
-   이 <style>은 mount() 때마다 head에 나중에 추가되므로 shell-base.css의 body 규칙보다
-   소스 순서상 뒤에 와서(!important 없이도) 자연스럽게 우선 적용된다. */
-body { background: var(--bg); color: var(--text); }
+/* 2026-07-23: 커뮤니티도 홈 화면과 동일한 다크/화이트 테마 시스템으로 통일.
+   orange, steel 계열, text 계열, give, border, header-bg 토큰은 shell-base.css의
+   :root / :root[data-theme="light"]에 이미 정의돼 있어 여기선 재정의하지 않고
+   그대로 재사용한다. 커뮤니티 배지에만 필요한 --give-bg(성공 배지 배경)만
+   추가로 테마 분기한다. */
+:root { --give-bg: rgba(59,232,138,0.15); }
+:root[data-theme="light"] { --give-bg: #E5F5EC; }
 .community-root { font-family: 'Noto Sans KR', sans-serif; color: var(--text); }
 .community-root .container { max-width: 480px; margin: 0 auto; }
-.community-root .site-header { position:sticky; top:0; z-index:100; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); background:rgba(244,243,240,0.85); border-bottom:1px solid var(--border); padding:0 20px; height:52px; display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.community-root .site-header { position:sticky; top:0; z-index:100; backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); background:var(--header-bg); border-bottom:1px solid var(--border); padding:0 20px; height:52px; display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
 .community-root .brand { font-size:15px; font-weight:700; color:var(--text); text-decoration:none; }
 .community-root .brand span { color:var(--orange); }
 .community-root .hamburger-btn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:none; border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:17px; cursor:pointer; flex-shrink:0; }
 .community-root .hamburger-btn:hover { border-color:var(--orange); color:var(--orange); }
 .community-root .menu-overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(28,30,39,0.35); justify-content:flex-end; }
 .community-root .menu-overlay.show { display:flex; }
-.community-root .menu-sheet { width:78%; max-width:300px; height:100%; background:var(--card-bg); border-left:1px solid var(--border); padding:20px 16px; display:flex; flex-direction:column; animation: comm-menuSlideIn 0.22s cubic-bezier(0.2,0.9,0.3,1); overflow-y:auto; }
+.community-root .menu-sheet { width:78%; max-width:300px; height:100%; background:var(--steel-mid); border-left:1px solid var(--border); padding:20px 16px; display:flex; flex-direction:column; animation: comm-menuSlideIn 0.22s cubic-bezier(0.2,0.9,0.3,1); overflow-y:auto; }
 @keyframes comm-menuSlideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
 .community-root .menu-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; padding:0 2px; }
 .community-root .menu-title { font-size:15px; font-weight:900; color:var(--text-dim); letter-spacing:0.5px; }
 .community-root .menu-close { width:32px; height:32px; border-radius:8px; background:none; border:none; color:var(--text-dim); font-size:16px; cursor:pointer; }
 .community-root .menu-close:hover { color:var(--orange); }
+.community-root .theme-quickswitch { display:inline-flex; border-radius:16px; background:var(--steel-light); border:1px solid var(--border); padding:2px; gap:2px; }
+.community-root .theme-quickswitch-opt { width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:12px; border-radius:12px; border:none; background:transparent; cursor:pointer; opacity:0.4; }
+.community-root .theme-quickswitch-opt.is-active { background:var(--orange); opacity:1; }
 .community-root .menu-item { display:flex; align-items:center; gap:12px; padding:14px 10px; border-radius:12px; background:none; border:none; color:var(--text); font-family:inherit; font-size:15px; font-weight:700; text-align:left; cursor:pointer; width:100%; }
-.community-root .menu-item:hover { background:var(--bg); }
+.community-root .menu-item:hover { background:var(--steel-light); }
 .community-root .menu-item-icon { font-size:17px; width:22px; text-align:center; flex-shrink:0; }
 .community-root .menu-item--logout { margin-top:auto; color:#D3453F; }
 .community-root .menu-badge { margin-left:auto; background:#D3453F; color:#fff; font-size:11px; font-weight:800; padding:2px 7px; border-radius:10px; flex-shrink:0; }
 .community-root .report-overlay { display:none; position:fixed; inset:0; z-index:220; background:rgba(28,30,39,0.45); align-items:center; justify-content:center; padding:20px; }
 .community-root .report-overlay.show { display:flex; }
-.community-root .report-modal { width:100%; max-width:340px; background:var(--card-bg); border-radius:16px; padding:20px 16px; animation: comm-fadeIn 0.2s ease; }
+.community-root .report-modal { width:100%; max-width:340px; background:var(--steel-mid); border-radius:16px; padding:20px 16px; animation: comm-fadeIn 0.2s ease; }
 .community-root .report-reason-list { display:flex; flex-direction:column; gap:8px; }
 .community-root .report-reason-opt { display:flex; align-items:center; gap:8px; padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:13.5px; cursor:pointer; }
 .community-root .report-reason-opt:has(input:checked) { border-color:var(--orange); background:rgba(255,107,43,0.06); }
@@ -54,25 +52,25 @@ body { background: var(--bg); color: var(--text); }
 .community-root .loading-brand { text-align:center; padding-top:60px; }
 .community-root .loading-brand-title { font-size:22px; font-weight:900; color:var(--text); letter-spacing:-0.5px; }
 .community-root .loading-brand-sub { font-size:13px; color:var(--text-dim); margin-top:8px; }
-.community-root .card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:20px; }
-.community-root .notice-strip { background:var(--give-bg); color:var(--give-text); font-size:12px; font-weight:700; text-align:center; padding:8px 12px; border-radius:10px; margin-bottom:16px; }
+.community-root .card { background:var(--steel-mid); border:1px solid var(--border); border-radius:12px; padding:20px; }
+.community-root .notice-strip { background:var(--give-bg); color:var(--give); font-size:12px; font-weight:700; text-align:center; padding:8px 12px; border-radius:10px; margin-bottom:16px; }
 .community-root .tabs { display:flex; align-items:center; gap:20px; border-bottom:1px solid var(--border); margin-bottom:16px; padding-top:4px; }
-.community-root .tab { font-size:14px; font-weight:700; color:#9A9DA8; padding-bottom:12px; border-bottom:2px solid transparent; background:none; border-left:none; border-right:none; border-top:none; font-family:inherit; cursor:pointer; flex-shrink:0; }
+.community-root .tab { font-size:14px; font-weight:700; color:var(--text-dim); padding-bottom:12px; border-bottom:2px solid transparent; background:none; border-left:none; border-right:none; border-top:none; font-family:inherit; cursor:pointer; flex-shrink:0; }
 .community-root .tab.active { color:var(--text); border-bottom-color:var(--orange); }
 .community-root .search-bar { display:flex; gap:8px; margin-bottom:10px; }
-.community-root .search-input { flex:1; min-width:0; padding:9px 12px; background:#FAFAF8; border:1.5px solid var(--border); border-radius:8px; color:var(--text); font-family:inherit; font-size:13px; outline:none; -webkit-appearance:none; }
+.community-root .search-input { flex:1; min-width:0; padding:9px 12px; background:var(--steel-light); border:1.5px solid var(--border); border-radius:8px; color:var(--text); font-family:inherit; font-size:13px; outline:none; -webkit-appearance:none; }
 .community-root .search-input:focus { border-color:var(--orange); }
-.community-root .filter-btn { flex-shrink:0; width:38px; height:38px; display:flex; align-items:center; justify-content:center; background:#FAFAF8; border:1.5px solid var(--border); border-radius:8px; font-size:14px; cursor:pointer; }
+.community-root .filter-btn { flex-shrink:0; width:38px; height:38px; display:flex; align-items:center; justify-content:center; background:var(--steel-light); border:1.5px solid var(--border); border-radius:8px; font-size:14px; cursor:pointer; }
 .community-root .filter-btn.active { border-color:var(--orange); background:rgba(255,107,43,0.08); }
-.community-root .filter-panel { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:14px; }
+.community-root .filter-panel { background:var(--steel-mid); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:14px; }
 .community-root .filter-group { display:flex; flex-wrap:wrap; gap:8px; }
-.community-root .filter-group select { flex:1 1 calc(50% - 4px); min-width:100px; padding:8px 10px; background:#FAFAF8; border:1.5px solid var(--border); border-radius:8px; color:var(--text); font-family:inherit; font-size:12.5px; outline:none; -webkit-appearance:none; }
+.community-root .filter-group select { flex:1 1 calc(50% - 4px); min-width:100px; padding:8px 10px; background:var(--steel-light); border:1.5px solid var(--border); border-radius:8px; color:var(--text); font-family:inherit; font-size:12.5px; outline:none; -webkit-appearance:none; }
 .community-root .filter-group select:focus { border-color:var(--orange); }
 .community-root .filter-range { flex:1 1 100%; display:flex; align-items:center; gap:6px; }
-.community-root .filter-range input { flex:1; min-width:0; padding:8px 10px; background:#FAFAF8; border:1.5px solid var(--border); border-radius:8px; color:var(--text); font-family:inherit; font-size:12.5px; outline:none; -webkit-appearance:none; }
+.community-root .filter-range input { flex:1; min-width:0; padding:8px 10px; background:var(--steel-light); border:1.5px solid var(--border); border-radius:8px; color:var(--text); font-family:inherit; font-size:12.5px; outline:none; -webkit-appearance:none; }
 .community-root .filter-range input:focus { border-color:var(--orange); }
 .community-root .filter-range span { font-size:12px; color:var(--text-dim); flex-shrink:0; }
-.community-root .filter-reset-btn { width:100%; margin-top:10px; padding:8px; background:#fff; border:1.5px solid var(--border); border-radius:8px; color:var(--text-dim); font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer; }
+.community-root .filter-reset-btn { width:100%; margin-top:10px; padding:8px; background:var(--steel-mid); border:1.5px solid var(--border); border-radius:8px; color:var(--text-dim); font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer; }
 .community-root .filter-reset-btn:hover { border-color:var(--orange); color:var(--orange); }
 .community-root .board-panel { display:none; }
 .community-root .board-panel.active { display:block; }
@@ -84,7 +82,7 @@ body { background: var(--bg); color: var(--text); }
 .community-root .field { margin-bottom:14px; }
 .community-root .field:last-child { margin-bottom:0; }
 .community-root .field label { display:block; font-size:12px; font-weight:700; color:var(--text-dim); letter-spacing:0.4px; margin-bottom:6px; }
-.community-root .field input, .community-root .field select, .community-root .field textarea { width:100%; padding:12px 14px; background:#FAFAF8; border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-family:inherit; font-size:14px; outline:none; -webkit-appearance:none; }
+.community-root .field input, .community-root .field select, .community-root .field textarea { width:100%; padding:12px 14px; background:var(--steel-light); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-family:inherit; font-size:14px; outline:none; -webkit-appearance:none; }
 .community-root .field textarea { resize:vertical; min-height:72px; }
 .community-root .field input:focus, .community-root .field select:focus, .community-root .field textarea:focus { border-color:var(--orange); }
 .community-root .field-row { display:flex; gap:10px; }
@@ -93,35 +91,35 @@ body { background: var(--bg); color: var(--text); }
 .community-root .check-row input { width:auto; }
 .community-root .form-actions { display:flex; gap:8px; margin-top:18px; }
 .community-root .form-actions .submit-btn { flex:1; }
-.community-root .cancel-btn { padding:13px 18px; background:#FFFFFF; border:1.5px solid var(--border); border-radius:10px; color:var(--text-dim); font-family:inherit; font-size:14px; font-weight:700; cursor:pointer; }
+.community-root .cancel-btn { padding:13px 18px; background:var(--steel-mid); border:1.5px solid var(--border); border-radius:10px; color:var(--text-dim); font-family:inherit; font-size:14px; font-weight:700; cursor:pointer; }
 .community-root .submit-btn { width:100%; padding:14px; background:var(--orange); border:none; border-radius:10px; color:#fff; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer; }
 .community-root .submit-btn:hover { background:var(--orange-dark); }
 .community-root .submit-btn:disabled { opacity:0.5; cursor:not-allowed; }
 .community-root .list { display:flex; flex-direction:column; gap:10px; }
-.community-root .job-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:14px; }
+.community-root .job-card { background:var(--steel-mid); border:1px solid var(--border); border-radius:12px; padding:14px; }
 .community-root .job-card.is-closed { opacity:0.55; }
 .community-root .job-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:8px; }
 .community-root .job-site { font-size:14px; font-weight:700; }
 .community-root .job-region { font-size:12px; color:var(--text-dim); margin-top:2px; }
 .community-root .badge { flex-shrink:0; font-size:10px; font-weight:700; padding:3px 8px; border-radius:6px; }
-.community-root .badge.stay-yes { background:var(--give-bg); color:var(--give-text); }
-.community-root .badge.stay-no { background:var(--muted-bg); color:var(--muted-text); }
+.community-root .badge.stay-yes { background:var(--give-bg); color:var(--give); }
+.community-root .badge.stay-no { background:var(--steel-light); color:var(--text-dim); }
 .community-root .badge.stay-negotiable { background:rgba(255,107,43,0.1); color:var(--orange-dark); }
-.community-root .badge.closed { background:var(--muted-bg); color:var(--muted-text); }
+.community-root .badge.closed { background:var(--steel-light); color:var(--text-dim); }
 .community-root .job-meta { font-size:12px; color:var(--text-dim); line-height:1.9; }
 .community-root .job-meta b { color:var(--text); font-weight:700; }
 .community-root .job-desc { font-size:13px; color:var(--text); margin-top:8px; line-height:1.6; white-space:pre-wrap; }
-.community-root .job-card-foot { display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px solid var(--muted-bg); }
+.community-root .job-card-foot { display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:10px; border-top:1px solid var(--steel-light); }
 .community-root .job-wage { font-size:14px; font-weight:700; color:var(--orange); }
 .community-root .job-contact { font-size:12px; color:var(--text-dim); }
 .community-root .card-counts { font-size:11.5px; color:var(--text-dim); }
 .community-root .admin-actions { display:flex; gap:6px; margin-top:10px; }
-.community-root .mini-btn { flex:1; padding:8px; font-size:12px; font-weight:700; border-radius:8px; cursor:pointer; font-family:inherit; border:1.5px solid var(--border); background:#fff; color:var(--text-dim); }
+.community-root .mini-btn { flex:1; padding:8px; font-size:12px; font-weight:700; border-radius:8px; cursor:pointer; font-family:inherit; border:1.5px solid var(--border); background:var(--steel-mid); color:var(--text-dim); }
 .community-root .mini-btn:hover { border-color:var(--orange); color:var(--orange); }
 .community-root .mini-btn.danger:hover { border-color:#E24B4A; color:#E24B4A; }
-.community-root .post-card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:14px; }
+.community-root .post-card { background:var(--steel-mid); border:1px solid var(--border); border-radius:12px; padding:14px; }
 .community-root .post-card-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; }
-.community-root .post-cat { font-size:10px; font-weight:700; padding:3px 8px; border-radius:6px; background:var(--muted-bg); color:var(--muted-text); }
+.community-root .post-cat { font-size:10px; font-weight:700; padding:3px 8px; border-radius:6px; background:var(--steel-light); color:var(--text-dim); }
 .community-root .post-title { font-size:14px; font-weight:700; margin:6px 0 4px; }
 .community-root .post-content { font-size:13px; color:var(--text); line-height:1.6; white-space:pre-wrap; }
 .community-root .post-content a, .community-root .job-desc a { color:var(--orange); text-decoration:underline; word-break:break-all; }
@@ -141,7 +139,13 @@ const TEMPLATE = `
     <div class="menu-sheet" onclick="event.stopPropagation()">
       <div class="menu-head">
         <span class="menu-title">메뉴</span>
-        <button class="menu-close" onclick="window.__community.closeMenu()" aria-label="닫기">✕</button>
+        <div style="display:flex; align-items:center; gap:2px;">
+          <div class="theme-quickswitch" onclick="event.stopPropagation()">
+            <button class="theme-quickswitch-opt" id="theme-quick-dark" onclick="window.__community.setTheme('dark')" aria-label="다크 테마">🌙</button>
+            <button class="theme-quickswitch-opt" id="theme-quick-light" onclick="window.__community.setTheme('light')" aria-label="화이트 테마">☀️</button>
+          </div>
+          <button class="menu-close" onclick="window.__community.closeMenu()" aria-label="닫기">✕</button>
+        </div>
       </div>
       <button class="menu-item" id="menu-user" onclick="window.__community.closeMenu(); location.href='/tools/index.html?profile=1';" style="display:none;">
         <span class="menu-item-icon">👤</span><span id="menu-user-name"></span>
@@ -681,6 +685,18 @@ export function mount(container) {
   function logout() { auth.signOut().then(() => { navigate('home'); }); }
   function openMenu() { $('menu-overlay').classList.add('show'); }
   function closeMenu() { $('menu-overlay').classList.remove('show'); }
+
+  function renderTheme() {
+    const t = localStorage.getItem('feederTheme') === 'dark' ? 'dark' : 'light';
+    $('theme-quick-dark')?.classList.toggle('is-active', t !== 'light');
+    $('theme-quick-light')?.classList.toggle('is-active', t === 'light');
+  }
+  function setTheme(t) {
+    localStorage.setItem('feederTheme', t);
+    if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    else document.documentElement.removeAttribute('data-theme');
+    renderTheme();
+  }
 
   function formatDate(ts) {
     if (!ts) return '';
@@ -1460,6 +1476,7 @@ export function mount(container) {
   togglePeriodInputs();
   toggleStayDetail();
   toggleWageInput();
+  renderTheme();
 
   // 셸의 onProfile() 구독에 얹혀서 승인 여부만 확인 — 게스트도 열람은 전체 공개(원본 정책 그대로)
   const unsubProfile = onProfile((profile, user) => {
@@ -1480,7 +1497,7 @@ export function mount(container) {
   });
 
   window.__community = {
-    openMenu, closeMenu, logout, switchTab, onSearchInput, toggleFilterPanel,
+    openMenu, closeMenu, setTheme, logout, switchTab, onSearchInput, toggleFilterPanel,
     onJobFilterChange, onSeekerFilterChange, onPostFilterChange, resetFilters,
     openJobForm, closeJobForm, saveJob, editJob, toggleJobStatus, deleteJob,
     togglePeriodInputs, toggleStayDetail, toggleWageInput,
