@@ -7,7 +7,7 @@
 // 다만 폰 하드웨어 뒤로가기로 이 드릴다운을 빠져나가는 동작만 이번 이관에서 빠졌다
 // (다른 이관 화면들과 동일한 트레이드오프 — 화면 안의 "‹" 버튼은 전부 동일하게 동작함).
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=9';
+import { auth, db, onProfile } from '../firebase-shell.js?v=12';
 
 const STYLE_ID = 'view-style-qty-report';
 const STYLE = `

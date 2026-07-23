@@ -15,8 +15,8 @@
 // 패턴과는 조금 다르게 쓴다 — onProfile()로 프로필 변화를 구독하되, 여기서 로그인/가입/
 // 팀 참가 등 실제 auth 상태를 "쓰는" 주체이기도 하다.
 
-import { auth, db, colUsers, onProfile } from '../firebase-shell.js?v=9';
-import { navigate as routerNavigate } from '../router.js?v=9';
+import { auth, db, colUsers, onProfile } from '../firebase-shell.js?v=12';
+import { navigate as routerNavigate } from '../router.js?v=12';
 
 const STYLE_ID = 'view-style-home';
 const STYLE = `
@@ -102,6 +102,9 @@ const STYLE = `
 .home-root .tool-list { display:flex; flex-direction:column; }
 .home-root .section-label.tool-section { margin:20px 0 10px; }
 .home-root .section-label.tool-section:first-of-type { margin-top:4px; }
+.home-root .top-tabbar { display:flex; align-items:center; gap:20px; border-bottom:1px solid var(--border); margin-bottom:16px; padding-top:4px; }
+.home-root .top-tab { font-size:14px; font-weight:700; color:var(--text-dim); padding-bottom:12px; border-bottom:2px solid transparent; background:none; border-left:none; border-right:none; border-top:none; font-family:inherit; cursor:pointer; flex-shrink:0; }
+.home-root .top-tab.active { color:var(--text); border-bottom-color:var(--orange); }
 .home-root .tool-card { background:var(--steel-mid); border:1.5px solid var(--border); border-radius:16px; padding:18px; display:flex; align-items:center; gap:16px; text-decoration:none; color:var(--text); transition:all 0.15s; margin-bottom:12px; cursor:pointer; }
 .home-root .tool-card:hover { border-color:var(--orange); transform:translateY(-2px); }
 .home-root .tool-icon { width:50px; height:50px; border-radius:13px; background:var(--steel-light); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:23px; flex-shrink:0; }
@@ -373,6 +376,11 @@ const TEMPLATE = `
     </div>
 
     <div class="view" id="view-app">
+      <div class="top-tabbar">
+        <button class="top-tab active">도구모음</button>
+        <button class="top-tab" onclick="window.__home.goBoard('free')">자유게시판</button>
+        <button class="top-tab" onclick="window.__home.goBoard('jobs')">구인구직</button>
+      </div>
       <div class="card" id="signup-team-banner" style="display:none; border-left:3px solid var(--orange);">
         <div style="display:flex; align-items:flex-start; gap:10px;">
           <span style="font-size:16px;">🔑</span>
@@ -407,12 +415,6 @@ const TEMPLATE = `
       <a href="#" class="tool-card" onclick="window.__home.goGamesCard(event)">
         <div class="tool-icon tool-icon--amber">🎮</div>
         <div class="tool-info"><div class="tool-name">게임모음</div><div class="tool-desc">사다리타기 · 룰렛돌리기</div></div>
-        <span class="tool-arrow">›</span>
-      </a>
-      <div class="section-label tool-section">커뮤니티</div>
-      <a href="#" class="tool-card" data-route="community" id="community-entry">
-        <div class="tool-icon tool-icon--teal">💬</div>
-        <div class="tool-info"><div class="tool-name">피더 커뮤니티</div><div class="tool-desc">구인 · 구직 · 자유게시판</div></div>
         <span class="tool-arrow">›</span>
       </a>
       <div class="app-footer">
@@ -628,6 +630,12 @@ export function mount(container) {
     if (e) e.preventDefault();
     if (!checkTeamGameAccess()) return;
     routerNavigate('games');
+  }
+  // 상단 탭바에서 자유게시판/구인구직 탭 클릭 시 — 커뮤니티 화면으로 이동하면서
+  // 어떤 게시판을 열지 sessionStorage로 살짝 넘겨준다(community-view.js가 mount 때 읽음).
+  function goBoard(board) {
+    sessionStorage.setItem('feederCommunityBoard', board);
+    routerNavigate('community');
   }
 
   function loadGongsuSummary(uid) {
@@ -1309,7 +1317,7 @@ export function mount(container) {
   renderSettings();
 
   window.__home = {
-    go, goBack, goToolCard, goGamesCard, openMenu, closeMenu, setTheme, setInquiryType,
+    go, goBack, goToolCard, goGamesCard, goBoard, openMenu, closeMenu, setTheme, setInquiryType,
     submitInquiry, renderInquiryList, login, register, googleLogin, requestPasswordReset,
     joinTeam, confirmPendingJoin, dismissPendingJoin, cancelTeamJoin, leaveTeam,
     setAdminMode, claimTeamCodeFromBanner, dismissSignupBanner, logout, openAdminApprove,

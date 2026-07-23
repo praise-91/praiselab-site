@@ -5,8 +5,8 @@
 // hideDetailArea)로만 상세 열기/닫기를 처리하고, "← 목록으로" 버튼으로만 닫도록 했다
 // (하드웨어 뒤로가기로 상세를 닫는 동작만 이번 이관에서 빠짐 — home-view.js와 동일한 트레이드오프).
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=9';
-import { navigate } from '../router.js?v=9';
+import { auth, db, onProfile } from '../firebase-shell.js?v=12';
+import { navigate } from '../router.js?v=12';
 
 const STYLE_ID = 'view-style-community';
 const STYLE = `
@@ -54,9 +54,12 @@ const STYLE = `
 .community-root .loading-brand-sub { font-size:13px; color:var(--text-dim); margin-top:8px; }
 .community-root .card { background:var(--steel-mid); border:1px solid var(--border); border-radius:12px; padding:20px; }
 .community-root .notice-strip { background:var(--give-bg); color:var(--give); font-size:12px; font-weight:700; text-align:center; padding:8px 12px; border-radius:10px; margin-bottom:16px; }
-.community-root .tabs { display:flex; align-items:center; gap:20px; border-bottom:1px solid var(--border); margin-bottom:16px; padding-top:4px; }
-.community-root .tab { font-size:14px; font-weight:700; color:var(--text-dim); padding-bottom:12px; border-bottom:2px solid transparent; background:none; border-left:none; border-right:none; border-top:none; font-family:inherit; cursor:pointer; flex-shrink:0; }
-.community-root .tab.active { color:var(--text); border-bottom-color:var(--orange); }
+.community-root .top-tabbar { display:flex; align-items:center; gap:20px; border-bottom:1px solid var(--border); margin-bottom:16px; padding-top:4px; }
+.community-root .top-tab { font-size:14px; font-weight:700; color:var(--text-dim); padding-bottom:12px; border-bottom:2px solid transparent; background:none; border-left:none; border-right:none; border-top:none; font-family:inherit; cursor:pointer; flex-shrink:0; }
+.community-root .top-tab.active { color:var(--text); border-bottom-color:var(--orange); }
+.community-root .tabs { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+.community-root .tab { font-size:13px; font-weight:700; color:var(--text-dim); padding:6px 14px; border-radius:20px; background:var(--steel-light); border:1.5px solid transparent; font-family:inherit; cursor:pointer; flex-shrink:0; }
+.community-root .tab.active { color:#fff; background:var(--orange); }
 .community-root .search-bar { display:flex; gap:8px; margin-bottom:10px; }
 .community-root .search-input { flex:1; min-width:0; padding:9px 12px; background:var(--steel-light); border:1.5px solid var(--border); border-radius:8px; color:var(--text); font-family:inherit; font-size:13px; outline:none; -webkit-appearance:none; }
 .community-root .search-input:focus { border-color:var(--orange); }
@@ -202,10 +205,14 @@ const TEMPLATE = `
     </div>
 
     <div class="view" id="view-app">
-      <div class="tabs">
+      <div class="top-tabbar">
+        <button class="top-tab" onclick="window.__community.goHome()">도구모음</button>
+        <button class="top-tab" id="toptab-board" onclick="window.__community.switchTab('free')">자유게시판</button>
+        <button class="top-tab active" id="toptab-jobseek" onclick="window.__community.switchToJobSeek()">구인구직</button>
+      </div>
+      <div class="tabs" id="jobseek-subtabs">
         <button class="tab active" id="tab-jobs" onclick="window.__community.switchTab('jobs')">구인</button>
         <button class="tab" id="tab-seekers" onclick="window.__community.switchTab('seekers')">구직</button>
-        <button class="tab" id="tab-free" onclick="window.__community.switchTab('free')">자유게시판</button>
       </div>
 
       <div class="card" id="announcement-banner" style="display:none; border-left:3px solid var(--orange); align-items:flex-start; gap:10px; cursor:pointer;" onclick="window.__community.openAnnouncementDetail(event)">
@@ -541,6 +548,7 @@ export function mount(container) {
   let removeExistingImage = false;
 
   let currentTab = 'jobs';
+  let lastJobSeekTab = 'jobs';
   let searchQuery = '';
   let jobFilter = { workType: '', sido: '', stay: '', status: '', wageMin: null };
   let seekerFilter = { workType: '', region: '', stay: '', status: '' };
@@ -603,16 +611,25 @@ export function mount(container) {
   function switchTab(name) {
     if (currentDetailId) closePostDetail();
     currentTab = name;
+    if (name === 'jobs' || name === 'seekers') lastJobSeekTab = name;
     $('tab-jobs').classList.toggle('active', name === 'jobs');
     $('tab-seekers').classList.toggle('active', name === 'seekers');
-    $('tab-free').classList.toggle('active', name === 'free');
     $('panel-jobs').classList.toggle('active', name === 'jobs');
     $('panel-seekers').classList.toggle('active', name === 'seekers');
     $('panel-free').classList.toggle('active', name === 'free');
     $('filter-jobs').style.display = name === 'jobs' ? 'flex' : 'none';
     $('filter-seekers').style.display = name === 'seekers' ? 'flex' : 'none';
     $('filter-free').style.display = name === 'free' ? 'flex' : 'none';
+    $('jobseek-subtabs').style.display = name === 'free' ? 'none' : 'flex';
+    $('toptab-board').classList.toggle('active', name === 'free');
+    $('toptab-jobseek').classList.toggle('active', name !== 'free');
   }
+  // 상단 "구인구직" 탭 클릭 — 이미 구인/구직 그룹에 있으면 그대로 두고(구직 보던 중이면
+  // 구직 유지), 자유게시판에서 넘어올 때만 구인으로 진입한다.
+  function switchToJobSeek() {
+    if (currentTab === 'free') switchTab(lastJobSeekTab);
+  }
+  function goHome() { navigate('home'); }
 
   function toggleFilterPanel() {
     const panel = $('filter-panel');
@@ -1478,6 +1495,14 @@ export function mount(container) {
   toggleWageInput();
   renderTheme();
 
+  // 홈 화면 상단 탭바에서 "자유게시판"/"구인구직"을 눌러 들어온 경우, 어떤 게시판을
+  // 열지 sessionStorage로 넘겨받는다(home-view.js의 goBoard() 참고). 1회성 신호라 읽자마자 지운다.
+  const requestedBoard = sessionStorage.getItem('feederCommunityBoard');
+  if (requestedBoard) {
+    sessionStorage.removeItem('feederCommunityBoard');
+    switchTab(requestedBoard === 'free' ? 'free' : 'jobs');
+  }
+
   // 셸의 onProfile() 구독에 얹혀서 승인 여부만 확인 — 게스트도 열람은 전체 공개(원본 정책 그대로)
   const unsubProfile = onProfile((profile, user) => {
     if (!user || !profile || profile.status !== 'approved') {
@@ -1497,7 +1522,7 @@ export function mount(container) {
   });
 
   window.__community = {
-    openMenu, closeMenu, setTheme, logout, switchTab, onSearchInput, toggleFilterPanel,
+    openMenu, closeMenu, setTheme, goHome, switchToJobSeek, logout, switchTab, onSearchInput, toggleFilterPanel,
     onJobFilterChange, onSeekerFilterChange, onPostFilterChange, resetFilters,
     openJobForm, closeJobForm, saveJob, editJob, toggleJobStatus, deleteJob,
     togglePeriodInputs, toggleStayDetail, toggleWageInput,
