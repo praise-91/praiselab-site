@@ -5,8 +5,8 @@
 // hideDetailArea)로만 상세 열기/닫기를 처리하고, "← 목록으로" 버튼으로만 닫도록 했다
 // (하드웨어 뒤로가기로 상세를 닫는 동작만 이번 이관에서 빠짐 — home-view.js와 동일한 트레이드오프).
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=13';
-import { navigate } from '../router.js?v=13';
+import { auth, db, onProfile } from '../firebase-shell.js?v=14';
+import { navigate } from '../router.js?v=14';
 
 const STYLE_ID = 'view-style-community';
 const STYLE = `
@@ -1086,7 +1086,7 @@ export function mount(container) {
       return storage.ref(`community_posts/${editingPostId}/image.jpg`).delete().catch(() => {})
         .then(() => ({ postId: editingPostId, imageUrl: null }));
     }
-    return Promise.resolve({ postId: editingPostId, imageUrl: editingPostId ? existingImageUrl : null });
+    return Promise.resolve({ postId: editingPostId || colPosts.doc().id, imageUrl: editingPostId ? existingImageUrl : null });
   }
   function savePost() {
     const title = $('post-title').value.trim();
