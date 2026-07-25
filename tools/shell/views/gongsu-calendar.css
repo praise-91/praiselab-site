@@ -116,7 +116,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .gg-sumitem span { font-size:11.5px; color:var(--gg-ink-faint); }
 .gg-sumitem strong { font-size:16px; font-weight:800; letter-spacing:-.02em; }
 .gg-sumpay strong { color:var(--gg-accent); }
-.gg-sumpay-label { display:flex; align-items:center; gap:6px; }
+.gg-sumpay-label { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.gg-sumpay-labeltext { white-space:nowrap; flex-shrink:0; }
 .gg-taxswitch { display:inline-flex; border-radius:20px; background:var(--gg-paper); border:1px solid var(--gg-line); padding:2px; gap:2px; }
 .gg-taxswitch-opt { font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:16px; border:none; background:transparent; color:var(--gg-ink-faint); cursor:pointer; line-height:1.5; }
 .gg-taxswitch-opt.is-active { background:var(--gg-accent); color:#fff; }

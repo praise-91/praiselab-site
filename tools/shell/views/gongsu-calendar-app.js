@@ -1,4 +1,4 @@
-import { navigate } from '../router.js?v=16';
+import { navigate } from '../router.js?v=17';
 const {
   useState,
   useEffect,
@@ -640,7 +640,9 @@ function App() {
     className: "gg-sumitem gg-sumpay"
   }, React.createElement("span", {
     className: "gg-sumpay-label"
-  }, "이 달 예상 급여", state.taxMode === "worker" && monthStats.isRegionalMonth && React.createElement("span", {
+  }, React.createElement("span", {
+    className: "gg-sumpay-labeltext"
+  }, "이 달 예상 급여"), state.taxMode === "worker" && monthStats.isRegionalMonth && React.createElement("span", {
     className: "gg-regional-badge"
   }, "4대보험 제외"), React.createElement("div", {
     className: "gg-taxswitch",
