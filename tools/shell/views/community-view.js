@@ -5,8 +5,8 @@
 // hideDetailArea)로만 상세 열기/닫기를 처리하고, "← 목록으로" 버튼으로만 닫도록 했다
 // (하드웨어 뒤로가기로 상세를 닫는 동작만 이번 이관에서 빠짐 — home-view.js와 동일한 트레이드오프).
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=17';
-import { navigate } from '../router.js?v=17';
+import { auth, db, onProfile } from '../firebase-shell.js?v=18';
+import { navigate } from '../router.js?v=18';
 
 const STYLE_ID = 'view-style-community';
 const STYLE = `
