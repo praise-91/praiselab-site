@@ -1,4 +1,4 @@
-import { navigate } from '../router.js?v=15';
+import { navigate } from '../router.js?v=16';
 const {
   useState,
   useEffect,
@@ -405,8 +405,12 @@ function App() {
     const start = dateStr(cursor.y, cursor.m, 1);
     const end = dateStr(cursor.y, cursor.m, daysInMonth);
     const netPay = computeSummary(state.entries, start, end, state.defaultUnitPrice, state.taxMode, state.hireDates).netPay;
+    const ym = `${cursor.y}-${pad(cursor.m + 1)}`;
+    const hireDay = hireDayInMonth(state.hireDates, ym);
+    const isRegionalMonth = hireDay != null && hireDay !== 1;
     return {
       gongsu,
+      isRegionalMonth,
       pay,
       netPay,
       byType,
@@ -636,7 +640,9 @@ function App() {
     className: "gg-sumitem gg-sumpay"
   }, React.createElement("span", {
     className: "gg-sumpay-label"
-  }, "이 달 예상 급여", React.createElement("div", {
+  }, "이 달 예상 급여", state.taxMode === "worker" && monthStats.isRegionalMonth && React.createElement("span", {
+    className: "gg-regional-badge"
+  }, "4대보험 제외"), React.createElement("div", {
     className: "gg-taxswitch",
     onClick: e => e.stopPropagation()
   }, React.createElement("button", {
