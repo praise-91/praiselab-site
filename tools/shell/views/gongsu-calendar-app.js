@@ -1,4 +1,4 @@
-import { navigate } from '../router.js?v=14';
+import { navigate } from '../router.js?v=15';
 const {
   useState,
   useEffect,
@@ -124,8 +124,15 @@ function defaultState() {
     taxMode: "worker",
     customChips: [],
     theme: "cream",
+    hireDates: [],
     entries: {}
   };
+}
+
+// 해당 월(YYYY-MM)에 속한 입사일이 있으면 그 날짜의 '일'을, 없으면 null을 반환
+function hireDayInMonth(hireDates, ym) {
+  const found = (hireDates || []).find(d => d.slice(0, 7) === ym);
+  return found ? Number(found.slice(8, 10)) : null;
 }
 
 /* ---- 일용근로소득세 (1일 단위 계산 후 합산) ---- */
@@ -145,7 +152,7 @@ function freelanceIncomeTax(grossPay) {
 }
 
 /* ---- 기간 내 급여/세금/4대보험 종합 계산 ---- */
-function computeSummary(entries, start, end, defaultUnitPrice, taxMode) {
+function computeSummary(entries, start, end, defaultUnitPrice, taxMode, hireDates) {
   let totalGross = 0;
   let totalIncomeTax = 0;
   let totalAllowance = 0;
@@ -212,7 +219,10 @@ function computeSummary(entries, start, end, defaultUnitPrice, taxMode) {
     ltc = 0,
     employment = 0;
   if (taxMode !== "freelance33") {
-    Object.values(monthGroups).forEach(mg => {
+    Object.entries(monthGroups).forEach(([ym, mg]) => {
+      const hireDay = hireDayInMonth(hireDates, ym);
+      const isRegionalMonth = hireDay != null && hireDay !== 1; // 1일 입사가 아니면 그 달은 지역가입자 취급, 사대보험 전부 스킵
+      if (isRegionalMonth) return;
       employment += mg.gross * EMPLOYMENT_RATE;
       if (mg.days >= PENSION_HEALTH_MIN_DAYS) {
         pension += mg.gross * PENSION_RATE;
@@ -394,7 +404,7 @@ function App() {
     }
     const start = dateStr(cursor.y, cursor.m, 1);
     const end = dateStr(cursor.y, cursor.m, daysInMonth);
-    const netPay = computeSummary(state.entries, start, end, state.defaultUnitPrice, state.taxMode).netPay;
+    const netPay = computeSummary(state.entries, start, end, state.defaultUnitPrice, state.taxMode, state.hireDates).netPay;
     return {
       gongsu,
       pay,
@@ -453,6 +463,10 @@ function App() {
   const saveTaxMode = m => setState(prev => ({
     ...prev,
     taxMode: m
+  }));
+  const saveHireDates = dates => setState(prev => ({
+    ...prev,
+    hireDates: dates
   }));
   const saveTheme = t => setState(prev => ({
     ...prev,
@@ -705,12 +719,14 @@ function App() {
     defaultAllowance: state.defaultAllowance,
     taxMode: state.taxMode,
     theme: state.theme || "cream",
+    hireDates: state.hireDates || [],
     onClose: closeOverlay,
     onSaveChips: saveCustomChips,
     onSavePrice: saveDefaultPrice,
     onSaveAllowance: saveDefaultAllowance,
     onSaveTaxMode: saveTaxMode,
-    onSaveTheme: saveTheme
+    onSaveTheme: saveTheme,
+    onSaveHireDates: saveHireDates
   }), showMenu && React.createElement(Sidebar, {
     onClose: closeOverlay,
     onSettings: () => {
@@ -742,6 +758,7 @@ function App() {
     entries: state.entries,
     defaultUnitPrice: state.defaultUnitPrice,
     taxMode: state.taxMode,
+    hireDates: state.hireDates,
     onClose: closeOverlay
   }));
 }
@@ -989,7 +1006,7 @@ function SummaryModal({
   const [start, setStart] = useState(monthStart);
   const [end, setEnd] = useState(monthEnd);
   const [tab, setTab] = useState("pay");
-  const r = useMemo(() => computeSummary(state.entries, start, end, state.defaultUnitPrice, state.taxMode), [state, start, end]);
+  const r = useMemo(() => computeSummary(state.entries, start, end, state.defaultUnitPrice, state.taxMode, state.hireDates), [state, start, end]);
   const isFreelance = state.taxMode === "freelance33";
   return React.createElement("div", {
     className: "gg-overlay",
@@ -1096,19 +1113,35 @@ function SettingsModal({
   defaultAllowance,
   taxMode: taxModeProp,
   theme,
+  hireDates: hireDatesProp,
   onClose,
   onSaveChips,
   onSavePrice,
   onSaveAllowance,
   onSaveTaxMode,
-  onSaveTheme
+  onSaveTheme,
+  onSaveHireDates
 }) {
   const [chips, setChips] = useState(customChips);
   const [price, setPrice] = useState(defaultUnitPrice);
   const [allowance, setAllowance] = useState(defaultAllowance || 0);
   const [taxMode, setTaxMode] = useState(taxModeProp || "worker");
+  const [hireDates, setHireDates] = useState(hireDatesProp || []);
+  const [newHireDate, setNewHireDate] = useState("");
   const [newChip, setNewChip] = useState("");
   const [newChipName, setNewChipName] = useState("");
+  const addHireDate = () => {
+    if (!newHireDate || hireDates.includes(newHireDate)) return;
+    const next = [...hireDates, newHireDate].sort();
+    setHireDates(next);
+    onSaveHireDates(next);
+    setNewHireDate("");
+  };
+  const removeHireDate = d => setHireDates(prev => {
+    const next = prev.filter(x => x !== d);
+    onSaveHireDates(next);
+    return next;
+  });
   const addChip = () => {
     const v = parseFloat(newChip);
     if (!v || v <= 0 || isDefaultChip(v) || chips.some(c => chipValue(c) === v)) return;
@@ -1176,6 +1209,28 @@ function SettingsModal({
   }, "3.3% 사업소득")), React.createElement("p", {
     className: "gg-hint"
   }, "3.3%는 팀장이 팀원에게 프리랜서(사업소득) 방식으로 직접 지급할 때만 선택하세요. 4대보험이 전부 빠지고 소득세 3%+지방소득세 0.3%만 적용됩니다.")), React.createElement("div", {
+    className: "gg-field"
+  }, React.createElement("label", null, "입사일"), hireDates.length > 0 && React.createElement("div", {
+    className: "gg-chipedit"
+  }, hireDates.map(d => React.createElement("span", {
+    key: d,
+    className: "gg-chipedititem"
+  }, d, React.createElement("button", {
+    onClick: () => removeHireDate(d),
+    "aria-label": d + " 삭제"
+  }, "✕")))), React.createElement("div", {
+    className: "gg-chipadd"
+  }, React.createElement("input", {
+    className: "gg-input",
+    type: "date",
+    value: newHireDate,
+    onChange: e => setNewHireDate(e.target.value)
+  }), React.createElement("button", {
+    className: "gg-btn gg-btn-ghost",
+    onClick: addHireDate
+  }, "추가")), React.createElement("p", {
+    className: "gg-hint"
+  }, "입사(재입사)한 날짜를 등록하세요. 1일이 아닌 날짜에 입사하면 그 달은 지역가입자로 분류되어 4대보험(국민연금·건강보험·장기요양·고용보험)이 전부 빠집니다.")), React.createElement("div", {
     className: "gg-field"
   }, React.createElement("label", null, "기본 칩 (고정, 수정 불가)"), React.createElement("div", {
     className: "gg-chipedit"
@@ -1254,6 +1309,7 @@ function SettingsModal({
       onSavePrice(price);
       onSaveAllowance(allowance);
       onSaveTaxMode(taxMode);
+      onSaveHireDates(hireDates);
       onClose();
     }
   }, "저장"))));
@@ -1312,6 +1368,7 @@ function MyStatsModal({
   entries,
   defaultUnitPrice,
   taxMode,
+  hireDates,
   onClose
 }) {
   const months = useMemo(() => {
@@ -1326,11 +1383,11 @@ function MyStatsModal({
       Object.entries(entries).forEach(([date, e]) => {
         if (date >= start && date <= end) gongsu += e.gongsu || 0;
       });
-      const netPay = computeSummary(entries, start, end, defaultUnitPrice, taxMode).netPay;
+      const netPay = computeSummary(entries, start, end, defaultUnitPrice, taxMode, hireDates).netPay;
       list.push({ label: `${m + 1}월`, ym: `${y}-${String(m + 1).padStart(2, "0")}`, gongsu, netPay });
     }
     return list;
-  }, [entries, defaultUnitPrice, taxMode]);
+  }, [entries, defaultUnitPrice, taxMode, hireDates]);
   const workedMonths = months.filter(m => m.gongsu > 0);
   const avgGongsu = workedMonths.length ? workedMonths.reduce((a, m) => a + m.gongsu, 0) / workedMonths.length : 0;
   const thisMonth = months[months.length - 1];
