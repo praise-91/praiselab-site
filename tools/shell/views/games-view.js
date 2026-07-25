@@ -4,7 +4,7 @@
 // 원본엔 브랜드 링크만 있고 햄버거 메뉴는 없었지만, 공용 헤더로 통일한다(로그인 중이면
 // 다른 화면과 똑같이 메뉴/로그아웃 접근 가능 — 로그아웃 상태면 원본처럼 브랜드만 보임).
 
-import { mountShellHeader } from '../shell-header.js?v=21';
+import { mountShellHeader } from '../shell-header.js?v=22';
 
 const STYLE_ID = 'view-style-games';
 const STYLE = `

@@ -1,4 +1,4 @@
-import { navigate } from '../router.js?v=21';
+import { navigate } from '../router.js?v=22';
 const {
   useState,
   useEffect,
@@ -279,6 +279,13 @@ function App() {
     sessionStorage.setItem("gc_guest_notice_dismissed", "1");
     setShowGuestNotice(false);
   };
+  // 입사일 미등록 안내 다이얼로그 — 상태 로드 직후 1회만 판단, 세션마다 다시 보이게(완전히 끄진 않음)
+  const [showHireDateNudge, setShowHireDateNudge] = useState(false);
+  const hireNudgeCheckedRef = useRef(false);
+  const dismissHireDateNudge = () => {
+    sessionStorage.setItem("gc_hiredate_nudge_dismissed", "1");
+    setShowHireDateNudge(false);
+  };
   const closeOverlay = () => history.back();
   useEffect(() => {
     const onPop = () => {
@@ -325,6 +332,13 @@ function App() {
       alive = false;
     };
   }, []);
+  useEffect(() => {
+    if (!state || hireNudgeCheckedRef.current) return;
+    hireNudgeCheckedRef.current = true;
+    if (state.taxMode === "worker" && (!state.hireDates || state.hireDates.length === 0) && !sessionStorage.getItem("gc_hiredate_nudge_dismissed")) {
+      setShowHireDateNudge(true);
+    }
+  }, [state]);
   const saveTimer = useRef(null);
   useEffect(() => {
     if (!state) return;
@@ -770,7 +784,31 @@ function App() {
     taxMode: state.taxMode,
     hireDates: state.hireDates,
     onClose: closeOverlay
-  }));
+  }), showHireDateNudge && React.createElement("div", {
+    className: "gg-dialog-overlay",
+    onClick: dismissHireDateNudge
+  }, React.createElement("div", {
+    className: "gg-dialog",
+    onClick: e => e.stopPropagation()
+  }, React.createElement("h2", {
+    className: "gg-dialog-title"
+  }, "입사일을 등록해보세요"), React.createElement("p", {
+    className: "gg-dialog-body"
+  }, "입사일을 등록하면 1일 입사가 아닌 달의 4대보험을 급여 계산에서 자동으로 빼드려요."), React.createElement("div", {
+    className: "gg-dialog-actions"
+  }, React.createElement("button", {
+    className: "gg-btn gg-btn-ghost",
+    onClick: dismissHireDateNudge
+  }, "나중에"), React.createElement("button", {
+    className: "gg-btn gg-btn-primary",
+    style: {
+      background: "var(--gg-accent)"
+    },
+    onClick: () => {
+      dismissHireDateNudge();
+      setShowChipEdit(true);
+    }
+  }, "설정에서 등록하기")))));
 }
 function DayModal({
   date,

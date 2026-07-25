@@ -132,6 +132,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 .gg-overlay { position:fixed; inset:0; background:rgba(30,25,18,.4); display:flex; align-items:flex-end; justify-content:center; z-index:20; animation:gg-fade .18s ease; }
 @keyframes gg-fade { from { opacity:0; } }
+.gg-dialog-overlay { position:fixed; inset:0; background:rgba(30,25,18,.4); display:flex; align-items:center; justify-content:center; z-index:25; padding:24px; animation:gg-fade .18s ease; }
+.gg-dialog { width:100%; max-width:340px; background:var(--gg-card); border-radius:18px; padding:22px 20px 20px; box-shadow:0 12px 40px rgba(30,25,18,.25); animation:gg-slideup-full .2s ease-out forwards; }
+.gg-dialog-title { font-size:16px; font-weight:800; letter-spacing:-.02em; margin-bottom:8px; }
+.gg-dialog-body { font-size:13px; color:var(--gg-ink-soft); line-height:1.55; margin-bottom:18px; }
+.gg-dialog-actions { display:flex; gap:8px; }
 .gg-sheet { width:100%; max-width:460px; background:var(--gg-card); border-radius:22px 22px 0 0; padding:10px 20px 26px; box-shadow:0 -8px 40px rgba(30,25,18,.2); animation:gg-slideup .24s cubic-bezier(.2,.9,.3,1) forwards; max-height:88vh; overflow-y:auto; }
 .gg-sheet-tall { max-height:92vh; }
 .gg-sheet-full { max-width:none; height:100vh; max-height:100vh; border-radius:0; animation:gg-slideup-full .2s ease-out forwards; }
