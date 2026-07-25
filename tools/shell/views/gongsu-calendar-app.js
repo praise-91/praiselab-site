@@ -1,4 +1,4 @@
-import { navigate } from '../router.js?v=19';
+import { navigate } from '../router.js?v=20';
 const {
   useState,
   useEffect,
@@ -642,9 +642,7 @@ function App() {
     className: "gg-sumpay-label"
   }, React.createElement("span", {
     className: "gg-sumpay-labeltext"
-  }, "이 달 예상 급여"), state.taxMode === "worker" && monthStats.isRegionalMonth && React.createElement("span", {
-    className: "gg-regional-badge"
-  }, "4대보험 제외"), React.createElement("div", {
+  }, "이 달 예상 급여"), React.createElement("div", {
     className: "gg-taxswitch",
     onClick: e => e.stopPropagation()
   }, React.createElement("button", {
@@ -653,7 +651,11 @@ function App() {
   }, "세후"), React.createElement("button", {
     className: "gg-taxswitch-opt" + (showNetPay ? "" : " is-active"),
     onClick: () => setShowNetPay(false)
-  }, "세전"))), React.createElement("strong", null, won(showNetPay ? monthStats.netPay : monthStats.pay))), React.createElement("div", {
+  }, "세전"))), React.createElement("div", {
+    className: "gg-sumpay-amountrow"
+  }, React.createElement("strong", null, won(showNetPay ? monthStats.netPay : monthStats.pay)), state.taxMode === "worker" && monthStats.isRegionalMonth && React.createElement("span", {
+    className: "gg-regional-badge"
+  }, "4대보험 제외"))), React.createElement("div", {
     className: "gg-sumitem"
   }, React.createElement("span", null, "총 공수"), React.createElement("strong", null, fmtG(monthStats.gongsu)), React.createElement("span", {
     className: "gg-sumitem-sub"
