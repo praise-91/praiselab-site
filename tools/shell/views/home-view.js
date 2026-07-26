@@ -15,8 +15,8 @@
 // 패턴과는 조금 다르게 쓴다 — onProfile()로 프로필 변화를 구독하되, 여기서 로그인/가입/
 // 팀 참가 등 실제 auth 상태를 "쓰는" 주체이기도 하다.
 
-import { auth, db, colUsers, onProfile } from '../firebase-shell.js?v=22';
-import { navigate as routerNavigate } from '../router.js?v=22';
+import { auth, db, colUsers, onProfile } from '../firebase-shell.js?v=23';
+import { navigate as routerNavigate } from '../router.js?v=23';
 
 const STYLE_ID = 'view-style-home';
 const STYLE = `
@@ -512,7 +512,12 @@ function gcFmtG(g) {
   const r = Math.round(g * 100) / 100;
   return Number.isInteger(r) ? r.toFixed(1) : String(r);
 }
-function computeHomeSummary(entries, start, end, defaultUnitPrice, taxMode) {
+// 해당 월(YYYY-MM)에 속한 입사일이 있으면 그 날짜의 '일'을, 없으면 null을 반환 (gongsu-calendar-app.js와 동일 로직)
+function gcHireDayInMonth(hireDates, ym) {
+  const found = (hireDates || []).find((d) => d.slice(0, 7) === ym);
+  return found ? Number(found.slice(8, 10)) : null;
+}
+function computeHomeSummary(entries, start, end, defaultUnitPrice, taxMode, hireDates) {
   let totalGongsu = 0, totalGross = 0, totalIncomeTax = 0, totalAllowance = 0, workDays = 0;
   Object.entries(entries || {}).forEach(([date, e]) => {
     if (date < start || date > end) return;
@@ -528,7 +533,9 @@ function computeHomeSummary(entries, start, end, defaultUnitPrice, taxMode) {
   });
   const localIncomeTax = Math.floor(totalIncomeTax * GC_LOCAL_TAX_RATE);
   let pension = 0, health = 0, ltc = 0, employment = 0;
-  if (taxMode !== 'freelance33' && workDays > 0) {
+  const hireDay = gcHireDayInMonth(hireDates, start.slice(0, 7));
+  const isRegionalMonth = hireDay != null && hireDay !== 1; // 1일 입사가 아니면 그 달은 지역가입자 취급, 사대보험 전부 스킵
+  if (taxMode !== 'freelance33' && workDays > 0 && !isRegionalMonth) {
     employment = totalGross * GC_EMPLOYMENT_RATE;
     if (workDays >= GC_PENSION_HEALTH_MIN_DAYS) {
       pension = totalGross * GC_PENSION_RATE;
@@ -645,7 +652,7 @@ export function mount(container) {
       if (!doc.exists || doc.data().data == null) return;
       const state = JSON.parse(doc.data().data);
       const { start, end, month } = currentMonthRange();
-      const { totalGongsu, netPay } = computeHomeSummary(state.entries, start, end, state.defaultUnitPrice, state.taxMode);
+      const { totalGongsu, netPay } = computeHomeSummary(state.entries, start, end, state.defaultUnitPrice, state.taxMode, state.hireDates);
       if (totalGongsu <= 0) return;
       const chip = $('hero-chip');
       if (!chip) return;
