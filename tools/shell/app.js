@@ -3,19 +3,19 @@
 // 올리면 옛날 캐시 모듈과 새 모듈이 한 페이지에 섞여 라우터 인스턴스가 쪼개지는 사고가
 // 난다(2026-07-22 "알 수 없는 화면" 백지 장애). 올린 뒤엔 반드시 grep으로 버전 안 붙은
 // 셸 참조가 0건인지 확인할 것.
-import { authReady, getAppCheckActivationCount } from './firebase-shell.js?v=25';
-import { registerView, navigate, currentViewFromUrl, flagShellUpdate } from './router.js?v=25';
+import { authReady, getAppCheckActivationCount } from './firebase-shell.js?v=26';
+import { registerView, navigate, currentViewFromUrl, flagShellUpdate } from './router.js?v=26';
 
-registerView('home', () => import('./views/home-view.js?v=25'));
-registerView('community', () => import('./views/community-view.js?v=25'));
-registerView('tool-rental', () => import('./views/tool-rental-view.js?v=25'));
-registerView('roulette', () => import('./views/roulette-view.js?v=25'));
-registerView('team-ladder', () => import('./views/team-ladder-view.js?v=25'));
-registerView('games', () => import('./views/games-view.js?v=25'));
-registerView('qty-report', () => import('./views/qty-report-view.js?v=25'));
-registerView('admin-dashboard', () => import('./views/admin-dashboard-view.js?v=25'));
-registerView('gongsu-admin', () => import('./views/gongsu-admin-view.js?v=25'));
-registerView('gongsu-calendar', () => import('./views/gongsu-calendar-view.js?v=25'));
+registerView('home', () => import('./views/home-view.js?v=26'));
+registerView('community', () => import('./views/community-view.js?v=26'));
+registerView('tool-rental', () => import('./views/tool-rental-view.js?v=26'));
+registerView('roulette', () => import('./views/roulette-view.js?v=26'));
+registerView('team-ladder', () => import('./views/team-ladder-view.js?v=26'));
+registerView('games', () => import('./views/games-view.js?v=26'));
+registerView('qty-report', () => import('./views/qty-report-view.js?v=26'));
+registerView('admin-dashboard', () => import('./views/admin-dashboard-view.js?v=26'));
+registerView('gongsu-admin', () => import('./views/gongsu-admin-view.js?v=26'));
+registerView('gongsu-calendar', () => import('./views/gongsu-calendar-view.js?v=26'));
 
 document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-route]');

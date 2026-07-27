@@ -15,8 +15,8 @@
 // 패턴과는 조금 다르게 쓴다 — onProfile()로 프로필 변화를 구독하되, 여기서 로그인/가입/
 // 팀 참가 등 실제 auth 상태를 "쓰는" 주체이기도 하다.
 
-import { auth, db, colUsers, onProfile } from '../firebase-shell.js?v=25';
-import { navigate as routerNavigate } from '../router.js?v=25';
+import { auth, db, colUsers, onProfile } from '../firebase-shell.js?v=26';
+import { navigate as routerNavigate } from '../router.js?v=26';
 
 const STYLE_ID = 'view-style-home';
 const STYLE = `
@@ -187,7 +187,7 @@ const TEMPLATE = `
         <span class="menu-item-icon">🔑</span><span>로그인 / 회원가입</span>
       </button>
       <button class="menu-item" id="menu-admin" onclick="window.__home.closeMenu(); window.__home.go('view-admin-hub');" style="display:none;">
-        <span class="menu-item-icon">🔑</span><span>팀장 기능</span>
+        <span class="menu-item-icon">🔑</span><span>관리 기능</span>
       </button>
       <button class="menu-item" id="menu-team-join" onclick="window.__home.closeMenu(); window.__home.go('view-team-join');">
         <span class="menu-item-icon">🔗</span><span>팀 참가</span>
@@ -429,7 +429,7 @@ const TEMPLATE = `
     <div class="view" id="view-admin-hub">
       <div class="view-head">
         <button class="back-btn" onclick="window.__home.goBack()">‹</button>
-        <h2>팀장 기능</h2>
+        <h2>관리 기능</h2>
       </div>
       <div class="card">
         <div class="section-label">내 팀 코드</div>

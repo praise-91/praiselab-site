@@ -7,7 +7,7 @@
 // 다만 폰 하드웨어 뒤로가기로 이 드릴다운을 빠져나가는 동작만 이번 이관에서 빠졌다
 // (다른 이관 화면들과 동일한 트레이드오프 — 화면 안의 "‹" 버튼은 전부 동일하게 동작함).
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=25';
+import { auth, db, onProfile } from '../firebase-shell.js?v=26';
 
 const STYLE_ID = 'view-style-qty-report';
 const STYLE = `
@@ -166,7 +166,7 @@ const TEMPLATE = `
         </div>
       </div>
       <button class="menu-item" id="menu-admin" onclick="window.__qty.closeMenu(); location.href='/tools/index.html?admin=1';" style="display:none;">
-        <span class="menu-item-icon">🔑</span><span>팀장 기능</span>
+        <span class="menu-item-icon">🔑</span><span>관리 기능</span>
       </button>
       <button class="menu-item" onclick="window.__qty.closeMenu(); window.__qty.go('view-settings'); window.__qty.renderSettings();">
         <span class="menu-item-icon">⚙️</span><span>설정</span>

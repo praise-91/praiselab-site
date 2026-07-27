@@ -5,8 +5,8 @@
 // hideDetailArea)로만 상세 열기/닫기를 처리하고, "← 목록으로" 버튼으로만 닫도록 했다
 // (하드웨어 뒤로가기로 상세를 닫는 동작만 이번 이관에서 빠짐 — home-view.js와 동일한 트레이드오프).
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=25';
-import { navigate } from '../router.js?v=25';
+import { auth, db, onProfile } from '../firebase-shell.js?v=26';
+import { navigate } from '../router.js?v=26';
 
 const STYLE_ID = 'view-style-community';
 const STYLE = `
@@ -160,7 +160,7 @@ const TEMPLATE = `
         <span class="menu-item-icon">🔑</span><span>로그인 / 회원가입</span>
       </button>
       <button class="menu-item" id="menu-admin" onclick="window.__community.closeMenu(); location.href='/tools/index.html?admin=1';" style="display:none;">
-        <span class="menu-item-icon">🔑</span><span>팀장 기능</span>
+        <span class="menu-item-icon">🔑</span><span>관리 기능</span>
       </button>
       <button class="menu-item" id="menu-announce" onclick="window.__community.closeMenu(); window.__community.openAnnounceForm();" style="display:none;">
         <span class="menu-item-icon">📢</span><span>공지 관리</span>

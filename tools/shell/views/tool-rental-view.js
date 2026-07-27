@@ -7,8 +7,8 @@
 //  - 인라인 onclick="save()" 같은 핸들러가 전역 함수를 찾는 문제를 피하려고
 //    window.__trv 네임스페이스에만 노출하고 unmount 시 지움(다른 뷰와 이름 충돌 방지)
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=25';
-import { mountShellHeader } from '../shell-header.js?v=25';
+import { auth, db, onProfile } from '../firebase-shell.js?v=26';
+import { mountShellHeader } from '../shell-header.js?v=26';
 
 const STYLE_ID = 'view-style-tool-rental';
 const STYLE = `
@@ -179,7 +179,7 @@ export function mount(container) {
     menuItems: [
       {
         icon: '🔑',
-        label: '팀장 기능',
+        label: '관리 기능',
         visible: (profile) => !!profile?.isAdmin,
         onClick: () => { location.href = '/tools/index.html?admin=1'; },
       },
