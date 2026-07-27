@@ -1,9 +1,9 @@
 // tools/team-ladder.html 이관. roulette-view.js와 거의 같은 구조(팀 room 실시간 공유 +
 // runTransaction)라 같은 패턴을 한 번 더 검증하는 목적. 로그인 게이트는 셸의 onProfile()에 위임.
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=24';
-import { mountShellHeader } from '../shell-header.js?v=24';
-import { navigate } from '../router.js?v=24';
+import { auth, db, onProfile } from '../firebase-shell.js?v=25';
+import { mountShellHeader } from '../shell-header.js?v=25';
+import { navigate } from '../router.js?v=25';
 
 const STYLE_ID = 'view-style-team-ladder';
 const STYLE = `
@@ -585,7 +585,7 @@ export function mount(container) {
   const unsubProfile = onProfile((profile, user) => {
     if (!user) { myUid = null; go('view-locked'); return; }
     if (!profile || profile.status !== 'approved') { myUid = null; go('view-locked'); return; }
-    const teamCode = profile.teamCode || profile.adminTeamCode || null;
+    const teamCode = profile.teamCode || (profile.isAdmin ? profile.adminTeamCode : null) || null;
     if (!teamCode) { go('view-no-team'); return; }
     myUid = user.uid;
     myName = profile.name;

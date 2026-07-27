@@ -15,8 +15,8 @@
 // 패턴과는 조금 다르게 쓴다 — onProfile()로 프로필 변화를 구독하되, 여기서 로그인/가입/
 // 팀 참가 등 실제 auth 상태를 "쓰는" 주체이기도 하다.
 
-import { auth, db, colUsers, onProfile } from '../firebase-shell.js?v=24';
-import { navigate as routerNavigate } from '../router.js?v=24';
+import { auth, db, colUsers, onProfile } from '../firebase-shell.js?v=25';
+import { navigate as routerNavigate } from '../router.js?v=25';
 
 const STYLE_ID = 'view-style-home';
 const STYLE = `
@@ -1205,7 +1205,7 @@ export function mount(container) {
 
   function checkTeamGameAccess() {
     if (!requireLogin()) return false;
-    if (myProfile && (myProfile.teamCode || myProfile.adminTeamCode)) return true;
+    if (myProfile && (myProfile.teamCode || (myProfile.isAdmin && myProfile.adminTeamCode))) return true;
     alert('팀 코드가 있어야 팀원들과 같이 즐길 수 있어요');
     return false;
   }

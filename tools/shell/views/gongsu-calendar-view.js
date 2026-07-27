@@ -12,9 +12,9 @@
 //    전역을 채운 뒤 window.gcStartApp()(=ReactDOM.createRoot(...).render(...))를 불렀는데,
 //    여기선 셸의 onProfile()에서 똑같은 전역들을 채우고 React 루트를 만든다.
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=24';
+import { auth, db, onProfile } from '../firebase-shell.js?v=25';
 
-const STYLE_HREF = '/tools/shell/views/gongsu-calendar.css?v=24';
+const STYLE_HREF = '/tools/shell/views/gongsu-calendar.css?v=25';
 const STYLE_ID = 'view-style-gongsu-calendar';
 
 const TEMPLATE = `
@@ -109,7 +109,7 @@ export function mount(container) {
     await loadScriptOnce('/tools/shell/vendor/react.production.min.js');
     await loadScriptOnce('/tools/shell/vendor/react-dom.production.min.js');
     if (cancelled) return;
-    const { App } = await import('./gongsu-calendar-app.js?v=24');
+    const { App } = await import('./gongsu-calendar-app.js?v=25');
     if (cancelled) return;
     reactRoot = window.ReactDOM.createRoot($('gc-react-root'));
     reactRoot.render(window.React.createElement(App));
@@ -139,7 +139,7 @@ export function mount(container) {
     window.gcIsGuest = false;
     window.gcMyUid = user.uid;
     window.gcMyName = profile.name;
-    window.gcMyTeamCode = profile.teamCode || profile.adminTeamCode || null;
+    window.gcMyTeamCode = profile.teamCode || (profile.isAdmin ? profile.adminTeamCode : null) || null;
     window.gcIsAdmin = !!profile.isAdmin;
     window.colGongsuLeaderboard = colGongsuLeaderboard;
 
@@ -155,7 +155,7 @@ export function mount(container) {
         if (targetDoc.exists) {
           targetUid = asUid;
           targetName = targetDoc.data().name;
-          targetTeamCode = targetDoc.data().teamCode || targetDoc.data().adminTeamCode || window.gcMyTeamCode;
+          targetTeamCode = targetDoc.data().teamCode || (targetDoc.data().isAdmin ? targetDoc.data().adminTeamCode : null) || window.gcMyTeamCode;
           targetSiteId = targetDoc.data().gongsuSiteId || null;
           $('gc-admin-target-name').textContent = targetName;
           $('gc-admin-banner').style.display = 'flex';
