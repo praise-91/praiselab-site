@@ -7,8 +7,8 @@
 //  - 인라인 onclick="save()" 같은 핸들러가 전역 함수를 찾는 문제를 피하려고
 //    window.__trv 네임스페이스에만 노출하고 unmount 시 지움(다른 뷰와 이름 충돌 방지)
 
-import { auth, db, onProfile } from '../firebase-shell.js?v=23';
-import { mountShellHeader } from '../shell-header.js?v=23';
+import { auth, db, onProfile } from '../firebase-shell.js?v=24';
+import { mountShellHeader } from '../shell-header.js?v=24';
 
 const STYLE_ID = 'view-style-tool-rental';
 const STYLE = `
@@ -119,6 +119,11 @@ const TEMPLATE = `
       <div class="locked-msg">로그인이 필요해요.<br>피더 홈에서 로그인 후 다시 들어와주세요.</div>
       <a href="/tools/index.html?login=1" class="locked-link">로그인하러 가기 →</a>
     </div>
+    <div class="locked-wrap" id="trv-view-noteam" style="display:none;">
+      <span class="locked-icon">🔧</span>
+      <div class="locked-msg">팀 코드가 있어야 팀원들과 같이 쓸 수 있어요.</div>
+      <a href="/tools/index.html" class="locked-link">피더 홈으로 →</a>
+    </div>
     <div id="trv-view-app" style="display:none;">
       <div class="form-card">
         <div class="toggle-wrap">
@@ -186,6 +191,7 @@ export function mount(container) {
   let activeTab = 'active';
   let recordsUnsub = null;
   let appStarted = false;
+  let myTeamCode = null;
 
   const $ = (id) => document.getElementById(id);
   const TOAST_DEFAULT_MSG = $('trv-toast').textContent;
@@ -271,7 +277,7 @@ export function mount(container) {
     const btn = $('trv-submit-btn');
     btn.disabled = true;
     col.add({
-      type, team, person, item, returned: false,
+      type, team, person, item, returned: false, teamCode: myTeamCode,
       ts: firebase.firestore.FieldValue.serverTimestamp(),
     })
       .then(() => {
@@ -353,8 +359,9 @@ export function mount(container) {
     $('trv-view-loading').style.display = 'none';
     $('trv-view-locked').style.display = 'none';
     $('trv-view-app').style.display = '';
-    recordsUnsub = col.orderBy('ts', 'desc').onSnapshot((snapshot) => {
+    recordsUnsub = col.where('teamCode', '==', myTeamCode).onSnapshot((snapshot) => {
       records = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      records.sort((a, b) => (b.ts ? b.ts.toMillis() : 0) - (a.ts ? a.ts.toMillis() : 0));
       render();
     }, () => {
       const list = $('trv-record-list');
@@ -367,14 +374,27 @@ export function mount(container) {
     if (recordsUnsub) { recordsUnsub(); recordsUnsub = null; }
     $('trv-view-loading').style.display = 'none';
     $('trv-view-locked').style.display = '';
+    $('trv-view-noteam').style.display = 'none';
+    $('trv-view-app').style.display = 'none';
+  }
+
+  function showNoTeam() {
+    appStarted = false;
+    if (recordsUnsub) { recordsUnsub(); recordsUnsub = null; }
+    $('trv-view-loading').style.display = 'none';
+    $('trv-view-locked').style.display = 'none';
+    $('trv-view-noteam').style.display = '';
     $('trv-view-app').style.display = 'none';
   }
 
   // 셸의 공용 프로필 구독에 얹혀서 승인 여부만 확인 — 문서 구독 자체는 셸이 1번만 함
   const unsubProfile = onProfile((profile, user) => {
     if (!user) { showLocked(); return; }
-    if (profile && profile.status === 'approved') startApp();
-    else showLocked();
+    if (!profile || profile.status !== 'approved') { showLocked(); return; }
+    const teamCode = profile.teamCode || profile.adminTeamCode || null;
+    if (!teamCode) { showNoTeam(); return; }
+    myTeamCode = teamCode;
+    startApp();
   });
 
   window.__trv = {
