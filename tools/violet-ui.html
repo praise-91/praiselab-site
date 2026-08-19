@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>바이올렛 UI 스냅샷</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
+  :root {
+    --orange: #FF6B2B;
+    --steel: #1A1E2E;
+    --steel-mid: #252A3D;
+    --steel-light: #2E3450;
+    --text: #F0F2FF;
+    --text-dim: #8892B0;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--steel);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+  }
+
+  .container { max-width: 480px; margin: 0 auto; }
+
+  /* ── 상단 브랜드 네비 (모든 도구 공통) ── */
+  .site-header {
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(26, 30, 46, 0.8);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px; height: 52px;
+    display: flex; align-items: center;
+    margin: -20px -16px 20px;
+  }
+  .brand {
+    font-size: 15px; font-weight: 700; color: var(--text);
+    display: flex; align-items: center; gap: 8px; text-decoration: none;
+  }
+  .brand-icon {
+    width: 26px; height: 26px;
+    background: linear-gradient(135deg, #FF6B2E, #FFB347);
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+
+  header.page-head { text-align: center; padding: 28px 0 20px; }
+  .header-icon { font-size: 40px; display: block; margin-bottom: 12px; }
+  header.page-head h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+
+  /* 찍은 시각 — ⛔이게 없으면 낡은 스냅샷을 최신으로 읽는다 */
+  .shot-at {
+    margin-top: 10px; font-size: 11px; color: var(--text-dim);
+  }
+  .shot-at b { color: var(--text); font-weight: 700; }
+
+  /* 탭 = 화면이동 ⇒ 흰색 배경 + 주황 글씨 (버튼 색상 원칙) */
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tab {
+    flex: 1 1 0; min-width: 0;
+    padding: 11px 4px;
+    border: none; border-radius: 10px;
+    background: rgba(255,255,255,0.10); color: var(--text-dim);
+    font-family: inherit; font-size: 14px; font-weight: 700;
+    cursor: pointer;
+  }
+  .tab.on { background: #FFFFFF; color: var(--orange); }
+
+  .shot {
+    background: var(--steel-mid);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px;
+    overflow-x: auto;
+  }
+  .shot img {
+    display: block; width: 100%; max-width: 450px;
+    margin: 0 auto; border-radius: 8px;
+  }
+  /* 1:1 로 보기 — 폰 폭보다 크면 가로 스크롤로 본다 */
+  .shot.zoom img { width: 450px; max-width: none; margin: 0; }
+
+  .hint {
+    margin-top: 10px; text-align: center;
+    font-size: 11px; color: var(--text-dim);
+  }
+
+  .note {
+    margin-top: 18px; padding: 12px 14px;
+    background: var(--steel-mid); border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 12px; line-height: 1.7; color: var(--text-dim);
+  }
+  .note b { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="https://praiselab.net/" class="brand">
+    <div class="brand-icon">🏕️</div>
+    Praiselab
+  </a>
+</header>
+
+<div class="container">
+  <header class="page-head">
+    <span class="header-icon">🟣</span>
+    <h1>바이올렛 UI 스냅샷</h1>
+    <div class="shot-at">찍은 시각 <b id="shot-at">—</b></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="1">ATS+</button>
+    <button class="tab" data-tab="2">명령어</button>
+    <button class="tab" data-tab="3">설정</button>
+  </div>
+
+  <div class="shot" id="shot">
+    <img id="shot-img" alt="바이올렛 UI 레이아웃">
+  </div>
+  <div class="hint">그림을 누르면 1:1 크기로 본다 (가로로 밀어서)</div>
+
+  <div class="note">
+    <b>읽기 전용이다.</b> 여기서 고쳐도 아무 데도 안 들어간다 —
+    편집은 집 PC의 편집기(<span style="white-space:nowrap">127.0.0.1:8777</span>)에서만 한다.
+    레이아웃을 고친 뒤 <b>snap_to_site.py</b> 를 돌려야 이 화면이 바뀐다.
+  </div>
+</div>
+
+<script>
+// ⛔이 줄은 snap_to_site.py 가 통째로 갈아끼운다. 손으로 고치지 마라.
+//   🔑정적 파일은 4시간 캐시된다 ⇒ 같은 경로에 새 PNG 를 올려도 폰은 옛 그림을 본다.
+//     HTML 만 max-age=0 이라, ★버전을 HTML 안에 두고 그림 주소에 붙인다.
+const SNAP = {"at": "2026-08-19 10:51", "v": "20260819105152"};
+
+document.getElementById('shot-at').textContent = SNAP.at;
+
+const img = document.getElementById('shot-img');
+const shot = document.getElementById('shot');
+
+function show(tab) {
+  img.src = 'assets/violet/tab' + tab + '.png?v=' + SNAP.v;
+  document.querySelectorAll('.tab').forEach(function (b) {
+    b.classList.toggle('on', b.dataset.tab === String(tab));
+  });
+  shot.classList.remove('zoom');
+  shot.scrollLeft = 0;
+}
+
+document.querySelectorAll('.tab').forEach(function (b) {
+  b.addEventListener('click', function () { show(b.dataset.tab); });
+});
+shot.addEventListener('click', function () { shot.classList.toggle('zoom'); });
+
+show(1);
+</script>
+
+</body>
+</html>
