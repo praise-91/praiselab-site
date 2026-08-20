@@ -170,7 +170,7 @@
 <script>
 
 // ⛔이 줄은 status_to_site.py 가 통째로 갈아끼운다. 손으로 고치지 마라.
-const LIVE = {"at":1787184683.9,"at_hm":"09:11:23","clients":[{"who":"1번","moving":true,"ats":true,"hp":"정상","why":null},{"who":"2번","moving":true,"ats":true,"hp":"정상","why":null}],"last":"원장 기준 마지막 조작 · <b>08:32:18 켰다</b> — 🤖 재점화","caveat":"게임 안에서 직접 켜고 끈 것(Ctrl+D 등)은 여기 안 남는다. 「마지막 조작」은 우리 도구를 거친 것만이다."};
+const LIVE = {"at":1787185017.7,"at_hm":"09:16:57","clients":[{"who":"1번","moving":true,"ats":true,"hp":"정상","why":null},{"who":"2번","moving":true,"ats":true,"hp":"정상","why":null}],"last":"원장 기준 마지막 조작 · <b>08:32:18 켰다</b> — 🤖 재점화","caveat":"게임 안에서 직접 켜고 끈 것(Ctrl+D 등)은 여기 안 남는다. 「마지막 조작」은 우리 도구를 거친 것만이다."};
 
 (function () {
   var card = document.getElementById('live-card');
@@ -190,11 +190,16 @@ const LIVE = {"at":1787184683.9,"at_hm":"09:11:23","clients":[{"who":"1번","mov
     if (!LIVE.clients.length) { rows.innerHTML = '<div class="live-sub">클라가 안 잡힌다</div>'; return; }
     rows.innerHTML = LIVE.clients.map(function (c) {
       var cls = c.moving === true ? 'go' : (c.moving === false ? 'stop' : 'unk');
-      var txt = c.moving === true ? '돌고 있다' : (c.moving === false ? '멈춰 있다' : '모른다');
+      // 🔑⭐**★비대칭이다** — 움직이면 ★확실히 살아있지만 ⛔안 움직인다고 ★멈춘 게 ⚪아니다
+      //   🅾️2026-08-20 09:1x: 제자리에서 ★때리는 중이었는데 ★「멈춰 있다」로 ★거짓 경보를 냈다
+      //   ⇒ ⭐**★단정하는 말을 ★뺀다** — ★「움직임이 안 보인다」까지만 말한다
+      var txt = c.moving === true ? '돌고 있다'
+              : (c.moving === false ? '움직임이 안 보인다' : '모른다');
       var sub = [];
       if (c.ats !== null && c.ats !== undefined) sub.push('ATS 표시 ' + (c.ats ? '켜짐' : '꺼짐'));
       if (c.hp) sub.push('HP ' + c.hp);
       if (c.why) sub.push(c.why);
+      if (c.moving === false) sub.push('제자리에서 싸우는 중일 수도 있다');
       return '<div class="live-row"><div class="live-who">' + c.who + '</div>' +
              '<div class="live-main"><div class="live-big ' + cls + '">' + txt + '</div>' +
              '<div class="live-sub">' + sub.join(' · ') + '</div></div></div>';
