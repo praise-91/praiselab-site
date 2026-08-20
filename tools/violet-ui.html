@@ -170,7 +170,7 @@
 <script>
 
 // ⛔이 줄은 status_to_site.py 가 통째로 갈아끼운다. 손으로 고치지 마라.
-const LIVE = {"at":1787190952.0,"at_hm":"10:55:52","clients":[{"who":"1번","moving":true,"ats":true,"hp":"정상","why":null},{"who":"2번","moving":true,"ats":true,"hp":"정상","why":null}],"last":"원장 기준 마지막 조작 · <b>10:54:13 켰다</b> — 🤖 재점화","caveat":"게임 안에서 직접 켜고 끈 것(Ctrl+D 등)은 여기 안 남는다. 「마지막 조작」은 우리 도구를 거친 것만이다."};
+const LIVE = {"at":1787191090.1,"at_hm":"10:58:10","clients":[{"who":"1번","moving":true,"ats":true,"hp":"정상","ago":0.0,"why":null},{"who":"2번","moving":true,"ats":true,"hp":"정상","ago":12.1,"why":null}],"last":"원장 기준 마지막 조작 · <b>10:54:13 켰다</b> — 🤖 재점화","caveat":"게임 안에서 직접 켜고 끈 것(Ctrl+D 등)은 여기 안 남는다. 「마지막 조작」은 우리 도구를 거친 것만이다."};
 
 (function () {
   var card = document.getElementById('live-card');
@@ -193,13 +193,16 @@ const LIVE = {"at":1787190952.0,"at_hm":"10:55:52","clients":[{"who":"1번","mov
       // 🔑⭐**★비대칭이다** — 움직이면 ★확실히 살아있지만 ⛔안 움직인다고 ★멈춘 게 ⚪아니다
       //   🅾️2026-08-20 09:1x: 제자리에서 ★때리는 중이었는데 ★「멈춰 있다」로 ★거짓 경보를 냈다
       //   ⇒ ⭐**★단정하는 말을 ★뺀다** — ★「움직임이 안 보인다」까지만 말한다
-      var txt = c.moving === true ? '돌고 있다'
-              : (c.moving === false ? '움직임이 안 보인다' : '모른다');
+      // 🔄**★판정 지문 교체**(2026-08-20 10:5x · 🎖던전 실측) — ⭐«최근 15초에 ★공격이 있었나»
+      //   ⛔좌표는 ★안 쓴다 — 🔒서성이는 중에도 ★좌표는 ★변한다(8/11) ⇒ ★멈춤을 ★못 가른다
+      var txt = c.moving === true ? '사냥 중'
+              : (c.moving === false ? '안 때린 지 오래' : '모른다');
       var sub = [];
       if (c.ats !== null && c.ats !== undefined) sub.push('ATS 표시 ' + (c.ats ? '켜짐' : '꺼짐'));
       if (c.hp) sub.push('HP ' + c.hp);
       if (c.why) sub.push(c.why);
-      if (c.moving === false) sub.push('제자리에서 싸우는 중일 수도 있다');
+      if (c.moving === false) sub.push('15초 넘게 공격이 없다 — 막혔거나 제외 대상일 수 있다');
+      if (c.ago !== null && c.ago !== undefined) sub.push('마지막 공격 ' + c.ago + '초 전');
       return '<div class="live-row"><div class="live-who">' + c.who + '</div>' +
              '<div class="live-main"><div class="live-big ' + cls + '">' + txt + '</div>' +
              '<div class="live-sub">' + sub.join(' · ') + '</div></div></div>';
