@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>하이엔드 작업목록</title>
+<!--
+  📋 하이엔드 작업목록 — 🙋가 폰으로 적으면 PC 쪽 `작업목록.py` 가 정리·순위를 매긴다.
+  🗣🙋 2026-08-31 «폰으로 수정 추가작업 가능 · 자동으로 정리 · 작업 task 목록, 순위»
+
+  ⚖️ 왜 Firebase SDK 를 안 쓰나
+    ⛔SDK 를 쓰면 ①App Check(리캡차) ②승인 도메인 두 관문이 더 생긴다.
+    ✅`fetch` 로 REST 를 직접 부르면 PC 쪽 `hishare.py` 와 ★똑같은 길이다.
+    ⇒ 🔑한 길만 쓰면 ★한쪽만 되는 일이 ⚪없다.
+
+  🔑 열쇠 = 주소 뒤 `#목록id`. ⛔`?` 가 아니라 `#` 다 — 서버 로그에 안 남는다.
+-->
+<style>
+  :root{
+    --bg:#12131a; --card:#1b1d27; --line:#2b2e3d; --tx:#e8e9f0; --dim:#9aa0b4;
+    --hot:#ff7a45; --ok:#5cc98b; --me:#f7c948;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--tx);
+       font:16px/1.55 -apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;
+       padding:calc(12px + env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom))}
+  h1{font-size:19px;margin:0 0 2px}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:14px}
+  .row{display:flex;gap:8px;margin-bottom:14px}
+  textarea{flex:1;background:var(--card);color:var(--tx);border:1px solid var(--line);
+           border-radius:12px;padding:12px;font:inherit;resize:vertical;min-height:52px}
+  button{background:var(--hot);color:#fff;border:0;border-radius:12px;padding:0 18px;
+         font:600 16px/1 inherit;min-height:52px;cursor:pointer}
+  button.ghost{background:transparent;color:var(--dim);border:1px solid var(--line);
+               min-height:34px;padding:0 12px;font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+        padding:12px 14px;margin-bottom:10px}
+  .card.done{opacity:.42}
+  .top{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+  .rank{background:var(--hot);color:#fff;border-radius:8px;font:700 13px/1 inherit;
+        padding:5px 8px;min-width:28px;text-align:center}
+  .rank.none{background:var(--line);color:var(--dim)}
+  .cat{color:var(--dim);font-size:13px}
+  .pt{margin-left:auto;color:var(--dim);font-size:12px}
+  .tx{white-space:pre-wrap;word-break:break-word}
+  .acts{display:flex;gap:6px;margin-top:9px}
+  .note{color:var(--dim);font-size:13px;margin:18px 0;line-height:1.7}
+  .err{background:#3a1f1f;border:1px solid #6b3030;color:#ffb4a8;
+       border-radius:12px;padding:12px;margin-bottom:12px;font-size:14px;white-space:pre-wrap}
+  h2{font-size:14px;color:var(--dim);margin:22px 0 8px;font-weight:600}
+</style>
+</head>
+<body>
+
+<h1>📋 하이엔드 작업목록</h1>
+<div class="sub" id="sub">여는 중…</div>
+
+<div id="err"></div>
+
+<div class="row">
+  <textarea id="tx" placeholder="할 일을 적어라 — 그냥 편하게 쓰면 된다&#10;예) ats 자꾸 꺼지는 거 급함"></textarea>
+  <button id="add">추가</button>
+</div>
+
+<div id="list"></div>
+
+<div class="note">
+  ⭐ <b>순위·갈래는 PC 쪽 도구가 매긴다</b> — 여기서 적기만 하면 된다.<br>
+  ⛔ 아직 <b>—</b> 로 뜨는 것은 PC 가 아직 안 본 것이다.<br>
+  🙋 <b>내가 직접</b> 해야 하는 일은 순위에서 빠진다(맨 아래에 따로 모인다).
+</div>
+
+<script>
+// ── 붙는 곳 ───────────────────────────────────────────────────────────
+var PROJ = 'newtype-43da0';
+var KEY  = 'AIzaSyCuv1A6UD_Z4wyhyffBoKMkLaIjr6xGSAY';   // ⭐웹 API 키 — 원래 공개되는 값이다
+var DOCS = 'https://firestore.googleapis.com/v1/projects/' + PROJ + '/databases/(default)/documents';
+var 목록id = (location.hash || '').replace(/^#/, '').trim();
+var 토큰 = null, 항목들 = [];
+
+function $(id){ return document.getElementById(id); }
+function 알림(m){ $('err').innerHTML = m ? '<div class="err">' + m + '</div>' : ''; }
+
+// ── 값 싸고 풀기 — ⭐PC 쪽 `hishare.값싸기/값풀기` 와 ★같은 규칙 ─────────
+function 싸기(v){
+  if (v === null || v === undefined) return {nullValue:null};
+  if (typeof v === 'boolean') return {booleanValue:v};
+  if (typeof v === 'number')
+    return Number.isInteger(v) ? {integerValue:String(v)} : {doubleValue:v};
+  return {stringValue:String(v)};
+}
+function 풀기(v){
+  if (!v) return null;
+  if ('integerValue' in v) return parseInt(v.integerValue, 10);
+  if ('doubleValue'  in v) return v.doubleValue;
+  if ('booleanValue' in v) return v.booleanValue;
+  if ('stringValue'  in v) return v.stringValue;
+  return null;
+}
+
+async function 부르기(url, body, method){
+  var o = {method: method || (body ? 'POST' : 'GET'), headers:{}};
+  if (토큰) o.headers['Authorization'] = 'Bearer ' + 토큰;
+  if (body){ o.headers['Content-Type'] = 'application/json'; o.body = JSON.stringify(body); }
+  var r = await fetch(url, o);
+  var t = await r.text();
+  if (!r.ok) throw new Error('HTTP ' + r.status + ' — ' + t.slice(0, 300));
+  return t ? JSON.parse(t) : {};
+}
+
+// ⭐uid 를 ★그대로 유지한다 — 📄PC 쪽이 08-23 에 여기서 데였다(매시간 새 계정이 생겼다)
+async function 로그인(){
+  var rt = localStorage.getItem('hi_rt');
+  if (rt){
+    try{
+      var r = await 부르기('https://securetoken.googleapis.com/v1/token?key=' + KEY,
+                          {grant_type:'refresh_token', refresh_token:rt});
+      localStorage.setItem('hi_rt', r.refresh_token || rt);
+      토큰 = r.id_token; return;
+    }catch(e){ /* ⛔갱신이 막히면 ★새로 만든다 */ }
+  }
+  var s = await 부르기('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + KEY,
+                      {returnSecureToken:true});
+  localStorage.setItem('hi_rt', s.refreshToken);
+  토큰 = s.idToken;
+}
+
+function 바탕(){ return DOCS + '/worklist/' + encodeURIComponent(목록id) + '/items'; }
+
+async function 읽기(){
+  var out = [], page = '';
+  do {
+    var r = await 부르기(바탕() + '?pageSize=300' + (page ? '&pageToken=' + page : ''));
+    (r.documents || []).forEach(function(d){
+      var f = d.fields || {}, it = {_id: d.name.split('/').pop()};
+      Object.keys(f).forEach(function(k){ it[k] = 풀기(f[k]); });
+      out.push(it);
+    });
+    page = r.nextPageToken || '';
+  } while (page);
+  항목들 = out;
+}
+
+async function 더하기(글){
+  await 부르기(바탕(), {fields:{
+    '글': 싸기(글), '적은때': 싸기(Math.floor(Date.now()/1000)),
+    '낸이': 싸기('폰'), '상태': 싸기('')
+  }});
+}
+async function 고치기(id, 글){
+  await 부르기(바탕() + '/' + id + '?updateMask.fieldPaths=글',
+              {fields:{'글': 싸기(글)}}, 'PATCH');
+}
+async function 상태바꾸기(id, s){
+  await 부르기(바탕() + '/' + id + '?updateMask.fieldPaths=상태',
+              {fields:{'상태': 싸기(s)}}, 'PATCH');
+}
+async function 지우기(id){ await 부르기(바탕() + '/' + id, null, 'DELETE'); }
+
+// ── 그리기 ────────────────────────────────────────────────────────────
+function 그리기(){
+  var 끝 = 항목들.filter(function(x){ return x['상태'] === '끝'; });
+  var 살 = 항목들.filter(function(x){ return x['상태'] !== '끝'; });
+  var 내손 = 살.filter(function(x){ return x['_갈래'] === '🙋내손'; });
+  var 할일 = 살.filter(function(x){ return x['_갈래'] !== '🙋내손'; });
+
+  // ⭐순위가 있는 것부터. ⛔아직 안 매겨진 것(0/없음)은 뒤로 — ★위장하지 않는다
+  할일.sort(function(a, b){
+    var A = a['_순위'] || 9999, B = b['_순위'] || 9999;
+    return A - B || (a['적은때'] || 0) - (b['적은때'] || 0);
+  });
+
+  var h = '';
+  h += 묶음('', 할일);
+  if (내손.length) h += '<h2>🙋 내가 직접 해야 하는 것</h2>' + 묶음('', 내손);
+  if (끝.length)   h += '<h2>✅ 끝난 것 ' + 끝.length + '건</h2>' + 묶음('', 끝);
+  if (!항목들.length) h = '<div class="note">⚪ 아직 적힌 것이 없다.</div>';
+  $('list').innerHTML = h;
+
+  $('sub').textContent = '할일 ' + 할일.length + ' · 내손 ' + 내손.length
+                       + ' · 끝 ' + 끝.length;
+}
+
+function 묶음(_, xs){
+  return xs.map(function(x){
+    var r = x['_순위'];
+    var 끝 = x['상태'] === '끝';
+    return '<div class="card' + (끝 ? ' done' : '') + '">'
+      + '<div class="top">'
+      +   '<span class="rank' + (r ? '' : ' none') + '">' + (r || '—') + '</span>'
+      +   '<span class="cat">' + (x['_갈래'] || '') + '</span>'
+      +   (x['_점수'] != null ? '<span class="pt">' + x['_점수'] + '점</span>' : '')
+      + '</div>'
+      + '<div class="tx">' + (x['글'] || '').replace(/[<>&]/g, function(c){
+          return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c]; }) + '</div>'
+      + '<div class="acts">'
+      +   '<button class="ghost" data-do="edit" data-id="' + x._id + '">고치기</button>'
+      +   '<button class="ghost" data-do="' + (끝 ? 'undone' : 'done')
+      +     '" data-id="' + x._id + '">' + (끝 ? '되살리기' : '끝') + '</button>'
+      +   '<button class="ghost" data-do="del" data-id="' + x._id + '">지우기</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+// ── 손짓 ──────────────────────────────────────────────────────────────
+async function 다시(){ await 읽기(); 그리기(); }
+
+$('add').onclick = async function(){
+  var v = $('tx').value.trim();
+  if (!v) return;
+  $('add').disabled = true;
+  try{ await 더하기(v); $('tx').value = ''; await 다시(); 알림(''); }
+  catch(e){ 알림('⛔ 못 적었다 — ' + e.message); }
+  $('add').disabled = false;
+};
+
+$('list').onclick = async function(ev){
+  var b = ev.target.closest('button[data-do]');
+  if (!b) return;
+  var id = b.dataset.id, it = 항목들.filter(function(x){ return x._id === id; })[0];
+  try{
+    if (b.dataset.do === 'edit'){
+      var v = prompt('고치기', (it && it['글']) || '');
+      if (v === null || !v.trim()) return;
+      await 고치기(id, v.trim());
+    } else if (b.dataset.do === 'done')   { await 상태바꾸기(id, '끝'); }
+    else if   (b.dataset.do === 'undone') { await 상태바꾸기(id, ''); }
+    else if   (b.dataset.do === 'del'){
+      if (!confirm('지운다. 되돌릴 수 없다.')) return;
+      await 지우기(id);
+    }
+    await 다시(); 알림('');
+  }catch(e){ 알림('⛔ 못 했다 — ' + e.message); }
+};
+
+// ── 열기 ──────────────────────────────────────────────────────────────
+(async function(){
+  if (!목록id){
+    $('sub').textContent = '';
+    알림('🔑 열쇠가 ⚪없다.\n주소 뒤에 #목록id 를 붙여야 한다.\n(PC 의 violet/작업목록_설정.json 에 있다)');
+    return;
+  }
+  try{ await 로그인(); await 다시(); 알림(''); }
+  catch(e){ $('sub').textContent = ''; 알림('⛔ 못 열었다 — ' + e.message); }
+})();
+
+window.addEventListener('hashchange', function(){ location.reload(); });
+</script>
+</body>
+</html>
