@@ -154,12 +154,22 @@ async function 더하기(글){
     '낸이': 싸기('폰'), '상태': 싸기('')
   }});
 }
+// 🅾️🚨**2026-08-31 21:4x — ★「고치기」와 ★「끝」이 ★안 되고 있었다**
+//   🔫한글 칸 이름을 ★그대로 `updateMask.fieldPaths` 에 넣었다 ⇒ ⇒ ★Firestore 가 ★400 을 낸다
+//   🔒세 꼴을 ★재봤다(PC 도구로 · ★같은 구름 · ★같은 목록)
+//     ⓐ `글`          (그대로)   ⇒ 🔴 `Invalid property path "글". Unquoted property path…`
+//     ⓑ `%EA%B8%80`   (인코딩만) ⇒ 🔴 ★같은 400  ⇐ ⭐**★브라우저는 ★ⓐ 를 ★ⓑ 로 보낸다**
+//     ⓒ `` `글` ``＋인코딩       ⇒ ✅ **★바뀐다** ＋ ★딴 칸 4개도 ★안 다친다
+//   ⇒ ✅**★백틱으로 ★감싸고 ★인코딩한다** ⇒ 📄PC 쪽 `작업목록.py` 가 ★이미 ★그렇게 하고 있었다
+//   ⇒ ⇒ 📄«합치는 자리에서 깨진다» — ★폰과 ★도구가 ★같은 칸을 ★다른 꼴로 불렀다
+function 칸길(이름){ return 'updateMask.fieldPaths=' + encodeURIComponent('`' + 이름 + '`'); }
+
 async function 고치기(id, 글){
-  await 부르기(바탕() + '/' + id + '?updateMask.fieldPaths=글',
+  await 부르기(바탕() + '/' + id + '?' + 칸길('글'),
               {fields:{'글': 싸기(글)}}, 'PATCH');
 }
 async function 상태바꾸기(id, s){
-  await 부르기(바탕() + '/' + id + '?updateMask.fieldPaths=상태',
+  await 부르기(바탕() + '/' + id + '?' + 칸길('상태'),
               {fields:{'상태': 싸기(s)}}, 'PATCH');
 }
 async function 지우기(id){ await 부르기(바탕() + '/' + id, null, 'DELETE'); }
